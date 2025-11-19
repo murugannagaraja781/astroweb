@@ -42,7 +42,7 @@ const Home = () => {
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Sparkles className="w-12 h-12 animate-pulse" />
-            <h1 className="text-5xl md:text-6xl font-bold">AstroConnect</h1>
+            <h1 className="text-5xl md:text-6xl font-bold">AstroConnect1.o</h1>
           </div>
           <p className="text-xl md:text-2xl text-orange-100 mb-8">
             Connect with Expert Astrologers Instantly
