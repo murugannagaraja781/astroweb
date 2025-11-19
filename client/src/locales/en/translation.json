@@ -1,0 +1,22 @@
+{
+  "welcome": "Welcome to AstroWeb",
+  "login": "Login",
+  "register": "Register",
+  "email": "Email",
+  "password": "Password",
+  "role": "Role",
+  "admin": "Admin",
+  "astrologer": "Astrologer",
+  "client": "Client",
+  "dashboard": "Dashboard",
+  "wallet": "Wallet",
+  "add_money": "Add Money",
+  "balance": "Balance",
+  "online": "Online",
+  "offline": "Offline",
+  "call": "Call",
+  "chat": "Chat",
+  "languages": "Languages",
+  "specialties": "Specialties",
+  "rate": "Rate/min"
+}
