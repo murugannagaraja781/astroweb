@@ -15,7 +15,7 @@ const AdminDashboard = () => {
 
   const fetchAstrologers = async () => {
     try {
-      const res = await axios.get('http://localhost:9001/api/admin/astrologers');
+      const res = await axios.get('https://astroweb-y0i6.onrender.com/api/admin/astrologers');
       setAstrologers(res.data);
     } catch (err) {
       console.error(err);

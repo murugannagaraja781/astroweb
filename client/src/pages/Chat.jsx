@@ -5,7 +5,7 @@ import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 import { Send, Mic, Square, Play, Pause } from 'lucide-react';
 
-const socket = io('http://localhost:9001');
+const socket = io('https://astroweb-y0i6.onrender.com');
 
 const Chat = () => {
   const { id: receiverId } = useParams();

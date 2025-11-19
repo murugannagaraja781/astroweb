@@ -5,7 +5,7 @@ import AgoraRTC, { AgoraRTCProvider, useRTCClient, useLocalCameraTrack, useLocal
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 
-const socket = io('http://localhost:9001');
+const socket = io('https://astroweb-y0i6.onrender.com');
 const APP_ID = '196be66ba9ab4172921c1e7f7e948879';
 
 const VideoCallContent = ({ callId, receiverId, setCallActive, callActive, userRole }) => {
@@ -31,7 +31,7 @@ const VideoCallContent = ({ callId, receiverId, setCallActive, callActive, userR
     // Fetch wallet balance
     const fetchBalance = async () => {
       try {
-        const res = await axios.get('http://localhost:9001/api/wallet/balance');
+        const res = await axios.get('https://astroweb-y0i6.onrender.com/api/wallet/balance');
         setBalance(res.data.balance);
       } catch (err) {
         console.error("Failed to fetch balance", err);
@@ -72,7 +72,7 @@ const VideoCallContent = ({ callId, receiverId, setCallActive, callActive, userR
     // End Call on Backend
     if (callId) {
       try {
-        await axios.post('http://localhost:9001/api/call/end', { callId, duration });
+        await axios.post('https://astroweb-y0i6.onrender.com/api/call/end', { callId, duration });
       } catch (err) {
         console.error("Error ending call:", err);
       }
@@ -157,7 +157,7 @@ const VideoCall = () => {
       try {
         if (user.role === 'client') {
           // Client Initiates
-          const res = await axios.post('http://localhost:9001/api/call/initiate', { receiverId: otherUserId });
+          const res = await axios.post('https://astroweb-y0i6.onrender.com/api/call/initiate', { receiverId: otherUserId });
           const newCallId = res.data.callId;
           setCallId(newCallId);
           setCallActive(true);
