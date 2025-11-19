@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Wallet, Video, MessageCircle, Sparkles } from 'lucide-react';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:9001');
+const socket = io('https://astroweb-y0i6.onrender.com');
 
 const ClientDashboard = () => {
   const [astrologers, setAstrologers] = useState([]);
@@ -75,7 +75,7 @@ const ClientDashboard = () => {
 
   const fetchAstrologers = async () => {
     try {
-      const res = await axios.get('http://localhost:9001/api/admin/astrologers');
+      const res = await axios.get('https://astroweb-y0i6.onrender.com/api/admin/astrologers');
       setAstrologers(res.data);
     } catch (err) {
       console.error('Error fetching astrologers:', err);
@@ -84,7 +84,7 @@ const ClientDashboard = () => {
 
   const fetchWallet = async () => {
     try {
-      const res = await axios.get('http://localhost:9001/api/wallet/balance');
+      const res = await axios.get('https://astroweb-y0i6.onrender.com/api/wallet/balance');
       setWallet(res.data);
     } catch (err) {
       console.error('Error fetching wallet:', err);
@@ -97,7 +97,7 @@ const ClientDashboard = () => {
       return;
     }
     try {
-      await axios.post('http://localhost:9001/api/wallet/add', {
+      await axios.post('https://astroweb-y0i6.onrender.com/api/wallet/add', {
         amount: parseInt(amount)
       });
       fetchWallet();
