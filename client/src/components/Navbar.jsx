@@ -84,7 +84,7 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="space-x-4">
-              <Link to="/login" className="text-secondary hover:text-primary font-medium">{t('login')}</Link>
+              <Link to="/login" style={{background:'red',color:'white'}}>{t('login')}</Link>
               <Link to="/register" >{t('register')}</Link>
             </div>
           )}

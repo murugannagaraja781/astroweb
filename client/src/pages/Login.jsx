@@ -36,7 +36,7 @@ const Login = () => {
           <label className="block text-gray-700">{t('password')}</label>
           <input type="password" name="password" value={password} onChange={onChange} className="w-full p-2 border rounded" required />
         </div>
-          <button type="submit" className="w-full bg-primary text-white p-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">{t('login')}</button>
+          <button type="submit" style={{background:'red',color:'white'}}>{t('login')}</button>
       </form>
     </div>
   );
