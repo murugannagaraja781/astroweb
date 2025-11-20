@@ -27,7 +27,7 @@ const AdminDashboard = () => {
   const onSubmit = async e => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:9001/api/admin/astrologer', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/astrologer`, {
         ...formData,
         languages: formData.languages.split(','),
         specialties: formData.specialties.split(',')
@@ -44,7 +44,7 @@ const AdminDashboard = () => {
   const removeAstrologer = async (id) => {
     if (confirm('Are you sure?')) {
       try {
-        await axios.delete(`http://localhost:9001/api/admin/astrologer/${id}`);
+        await axios.delete(`${import.meta.env.VITE_API_URL}/api/admin/astrologer/${id}`);
         fetchAstrologers();
       } catch (err) {
         console.error(err);

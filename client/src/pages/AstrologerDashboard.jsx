@@ -3,7 +3,7 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 
-const socket = io('http://localhost:9001');
+const socket = io(import.meta.env.VITE_API_URL);
 
 const AstrologerDashboard = () => {
   const [profile, setProfile] = useState(null);
@@ -17,7 +17,7 @@ const AstrologerDashboard = () => {
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get('http://localhost:9001/api/astrologer/profile');
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`);
       setProfile(res.data);
       setFormData({
         languages: res.data.languages.join(','),
@@ -32,7 +32,7 @@ const AstrologerDashboard = () => {
 
   const toggleStatus = async () => {
     try {
-      const res = await axios.put('http://localhost:9001/api/astrologer/status');
+      const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/astrologer/status`);
       setProfile(res.data);
     } catch (err) {
       console.error(err);
@@ -44,7 +44,7 @@ const AstrologerDashboard = () => {
   const onSubmit = async e => {
     e.preventDefault();
     try {
-      await axios.put('http://localhost:9001/api/astrologer/profile', {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`, {
         ...formData,
         languages: formData.languages.split(','),
         specialties: formData.specialties.split(',')

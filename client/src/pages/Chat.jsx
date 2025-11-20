@@ -45,7 +45,7 @@ const Chat = () => {
     // Fetch wallet balance
     const fetchBalance = async () => {
       try {
-        const res = await axios.get('http://localhost:9001/api/wallet/balance');
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
         setBalance(res.data.balance);
       } catch (err) {
         console.error("Failed to fetch balance", err);
@@ -57,7 +57,7 @@ const Chat = () => {
     const initChat = async () => {
       if (user && user.role === 'client') {
         try {
-          const res = await axios.post('http://localhost:9001/api/call/initiate', { receiverId, type: 'chat' });
+          const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/call/initiate`, { receiverId, type: 'chat' });
           setChatId(res.data.callId);
         } catch (err) {
           console.error("Failed to initiate chat billing", err);
@@ -248,7 +248,7 @@ const Chat = () => {
     clearInterval(timerRef.current);
     if (chatId) {
       try {
-        await axios.post('http://localhost:9001/api/call/end', { callId: chatId, duration });
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/call/end`, { callId: chatId, duration });
         alert(`Chat ended. Cost: ₹${cost.toFixed(2)}`);
       } catch (err) {
         console.error(err);

@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         axios.defaults.headers.common['x-auth-token'] = token;
         try {
-          const res = await axios.get('http://localhost:9001/api/auth/me');
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`);
           setUser(res.data);
         } catch (err) {
           localStorage.removeItem('token');
@@ -26,14 +26,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const res = await axios.post('http://localhost:9001/api/auth/login', { email, password });
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password });
     localStorage.setItem('token', res.data.token);
     axios.defaults.headers.common['x-auth-token'] = res.data.token;
     setUser(res.data.user);
   };
 
   const register = async (name, email, password, role) => {
-    const res = await axios.post('http://localhost:9001/api/auth/register', { name, email, password, role });
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, { name, email, password, role });
     localStorage.setItem('token', res.data.token);
     axios.defaults.headers.common['x-auth-token'] = res.data.token;
     setUser(res.data.user);
