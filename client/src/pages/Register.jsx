@@ -47,7 +47,7 @@ const Register = () => {
             <option value="astrologer">{t('astrologer')}</option>
           </select>
         </div>
-          <button type="submit" className="w-full bg-primary text-white p-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">{t('register')}</button>
+          <button type="submit" style={{background:'red',color:'white',borderRadius:'5px',padding:'10px 20px',cursor:'pointer'}}>{t('register')}</button>
       </div>
     </div>
   );
