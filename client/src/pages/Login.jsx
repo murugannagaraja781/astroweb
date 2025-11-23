@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -8,63 +8,20 @@ const Login = () => {
   const [loginMode, setLoginMode] = useState('email'); // 'email' or 'otp'
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otpWidgetLoaded, setOtpWidgetLoaded] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   const { email, password } = formData;
   const MSG91_AUTHKEY = import.meta.env.VITE_MSG91_AUTHKEY;
+  const API_URL = import.meta.env.VITE_API_URL;
 
   // Load MSG91 OTP widget script
-  useEffect(() => {
-    if (loginMode === 'otp' && !otpWidgetLoaded) {
-      const script = document.createElement('script');
-      script.src = 'https://control.msg91.com/app/assets/otp-provider/otp-provider.js';
-      script.async = true;
-      script.onload = () => {
-        setOtpWidgetLoaded(true);
-        console.log('MSG91 OTP widget loaded');
-      };
-      document.body.appendChild(script);
-
-      return () => {
-        document.body.removeChild(script);
-      };
-    }
-  }, [loginMode, otpWidgetLoaded]);
-
-  // Initialize MSG91 OTP widget
-  useEffect(() => {
-    if (otpWidgetLoaded && loginMode === 'otp') {
-      const configuration = {
-        widgetId: MSG91_AUTHKEY,
-        tokenAuth: MSG91_AUTHKEY,
-        identifier: phoneNumber, // Add identifier here
-        exposeMethods: true,
-        success: (data) => {
-          console.log('OTP Success - Full Data:', data);
-          // The data object should contain the access token
-          if (data && (data.message || data.token || data['access-token'])) {
-            verifyAccessToken(data);
-          } else {
-            console.error('No access token found in response:', data);
-            alert('OTP verification failed - no token received.');
-          }
-        },
-        failure: (error) => {
-          console.error('OTP Failure:', error);
-          alert(`OTP verification failed: ${error?.message || 'Please try again.'}`);
-        },
-      };
-
-      if (window.initSendOTP) {
-        console.log('Initializing MSG91 widget with config:', configuration);
-        window.initSendOTP(configuration);
-      }
-    }
-  }, [otpWidgetLoaded, loginMode, MSG91_AUTHKEY, phoneNumber]);
+  // Removed MSG91 widget useEffects
 
   const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -79,35 +36,20 @@ const Login = () => {
     }
   };
 
-  const handleOtpLogin = () => {
+  const handleSendOtp = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
-      alert('Please enter a valid phone number');
+      alert('Please enter a valid 10-digit phone number');
       return;
     }
 
-    if (window.sendOtp) {
-      // Pass the phone number as identifier to MSG91 OTP widget
-      window.sendOtp(phoneNumber);
-    } else {
-      alert('OTP widget not loaded. Please try again.');
-    }
-  };
-
-  const verifyAccessToken = async (otpData) => {
-    setIsVerifying(true);
-
-    // Extract access token from various possible formats
-    const accessToken = otpData['access-token'] || otpData.message || otpData.token || otpData;
-
-    console.log('Verifying access token:', accessToken);
-    console.log('Full OTP data:', otpData);
-
+    setIsSendingOtp(true);
     try {
       const response = await axios.post(
-        'https://control.msg91.com/api/v5/widget/verifyAccessToken',
+        `https://control.msg91.com/api/v5/otp`,
         {
+          template_id: '6749f5d5d6fc054b4a0e1e0c',
+          mobile: `91${phoneNumber}`,
           authkey: MSG91_AUTHKEY,
-          'access-token': accessToken,
         },
         {
           headers: {
@@ -116,19 +58,56 @@ const Login = () => {
         }
       );
 
-      console.log('Access token verification response:', response.data);
+      console.log('OTP Send Response:', response.data);
 
       if (response.data.type === 'success') {
-        // Successfully verified OTP
-        alert('OTP verified successfully!');
-        // You can now proceed with your login logic
-        // For example, create a session or redirect to dashboard
-        navigate('/dashboard');
+        setOtpSent(true);
+        alert('OTP sent successfully! Please check your phone.');
       } else {
-        alert('OTP verification failed. Please try again.');
+        alert('Failed to send OTP. Please try again.');
       }
     } catch (error) {
-      console.error('Error verifying access token:', error);
+      console.error('Error sending OTP:', error);
+      console.error('Error response:', error.response?.data);
+      alert(`Error sending OTP: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 4) {
+      alert('Please enter a valid OTP');
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const response = await axios.post(
+        `https://control.msg91.com/api/v5/otp/verify`,
+        {
+          mobile: `91${phoneNumber}`,
+          otp: otp,
+          authkey: MSG91_AUTHKEY,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('OTP Verification Response:', response.data);
+
+      if (response.data.type === 'success') {
+        alert('OTP verified successfully!');
+        // TODO: Create user session or authenticate with your backend
+        navigate('/dashboard');
+      } else {
+        alert('Invalid OTP. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
       console.error('Error response:', error.response?.data);
       alert(`Error verifying OTP: ${error.response?.data?.message || error.message}`);
     } finally {
@@ -211,28 +190,68 @@ const Login = () => {
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter your phone number"
+                placeholder="Enter 10-digit phone number"
                 className="w-full p-2 border rounded"
                 maxLength="10"
+                disabled={otpSent}
               />
             </div>
 
-            {/* MSG91 OTP Widget Container */}
-            <div id="send_otp" className="mb-4"></div>
+            {otpSent && (
+              <div className="mb-4">
+                <label className="block text-gray-700 mb-2">Enter OTP</label>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="Enter OTP"
+                  className="w-full p-2 border rounded"
+                  maxLength="6"
+                />
+              </div>
+            )}
 
-            <button
-              type="button"
-              onClick={handleOtpLogin}
-              disabled={isVerifying}
-              className="w-full py-2 px-4 rounded"
-              style={{
-                background: isVerifying ? '#ccc' : 'red',
-                color: 'white',
-                cursor: isVerifying ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {isVerifying ? 'Verifying...' : 'Send OTP'}
-            </button>
+            {!otpSent ? (
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                disabled={isSendingOtp}
+                className="w-full py-2 px-4 rounded"
+                style={{
+                  background: isSendingOtp ? '#ccc' : 'red',
+                  color: 'white',
+                  cursor: isSendingOtp ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {isSendingOtp ? 'Sending OTP...' : 'Send OTP'}
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  disabled={isVerifying}
+                  className="w-full py-2 px-4 rounded"
+                  style={{
+                    background: isVerifying ? '#ccc' : 'red',
+                    color: 'white',
+                    cursor: isVerifying ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {isVerifying ? 'Verifying...' : 'Verify OTP'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtpSent(false);
+                    setOtp('');
+                  }}
+                  className="w-full py-2 px-4 rounded bg-gray-200 text-gray-700"
+                >
+                  Change Number
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
