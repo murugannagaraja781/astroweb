@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import Navbar from './components/Navbar';
+import MobileNav from './components/MobileNav';
+import DesktopSidebar from './components/DesktopSidebar';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
@@ -29,17 +30,21 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="min-h-screen bg-white font-sans text-gray-900">
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/astrologer/:id" element={<AstrologerDetail />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/astrologer-dashboard" element={<AstrologerDashboard />} />
-            <Route path="/call/:id" element={<VideoCall />} />
-            <Route path="/chat/:id" element={<Chat />} />
-          </Routes>
+          <DesktopSidebar />
+          <div className="desktop-main-content">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/astrologer/:id" element={<AstrologerDetail />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/astrologer-dashboard" element={<AstrologerDashboard />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/call/:id" element={<VideoCall />} />
+              <Route path="/chat/:id" element={<Chat />} />
+            </Routes>
+          </div>
+          <MobileNav />
         </div>
       </Router>
     </AuthProvider>
