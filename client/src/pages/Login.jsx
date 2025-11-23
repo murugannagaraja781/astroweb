@@ -41,22 +41,30 @@ const Login = () => {
       const configuration = {
         widgetId: MSG91_AUTHKEY,
         tokenAuth: MSG91_AUTHKEY,
+        identifier: phoneNumber, // Add identifier here
         exposeMethods: true,
         success: (data) => {
-          console.log('OTP Success:', data);
-          verifyAccessToken(data);
+          console.log('OTP Success - Full Data:', data);
+          // The data object should contain the access token
+          if (data && (data.message || data.token || data['access-token'])) {
+            verifyAccessToken(data);
+          } else {
+            console.error('No access token found in response:', data);
+            alert('OTP verification failed - no token received.');
+          }
         },
         failure: (error) => {
           console.error('OTP Failure:', error);
-          alert('OTP verification failed. Please try again.');
+          alert(`OTP verification failed: ${error?.message || 'Please try again.'}`);
         },
       };
 
       if (window.initSendOTP) {
+        console.log('Initializing MSG91 widget with config:', configuration);
         window.initSendOTP(configuration);
       }
     }
-  }, [otpWidgetLoaded, loginMode, MSG91_AUTHKEY]);
+  }, [otpWidgetLoaded, loginMode, MSG91_AUTHKEY, phoneNumber]);
 
   const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -87,12 +95,19 @@ const Login = () => {
 
   const verifyAccessToken = async (otpData) => {
     setIsVerifying(true);
+
+    // Extract access token from various possible formats
+    const accessToken = otpData['access-token'] || otpData.message || otpData.token || otpData;
+
+    console.log('Verifying access token:', accessToken);
+    console.log('Full OTP data:', otpData);
+
     try {
       const response = await axios.post(
         'https://control.msg91.com/api/v5/widget/verifyAccessToken',
         {
           authkey: MSG91_AUTHKEY,
-          'access-token': otpData.message || otpData.token || otpData,
+          'access-token': accessToken,
         },
         {
           headers: {
@@ -114,7 +129,8 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Error verifying access token:', error);
-      alert('Error verifying OTP. Please try again.');
+      console.error('Error response:', error.response?.data);
+      alert(`Error verifying OTP: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsVerifying(false);
     }
