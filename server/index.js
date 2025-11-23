@@ -21,6 +21,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/otp', require('./routes/otpRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/wallet', require('./routes/walletRoutes'));
 app.use('/api/astrologer', require('./routes/astrologerRoutes'));

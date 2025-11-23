@@ -45,12 +45,8 @@ const Login = () => {
     setIsSendingOtp(true);
     try {
       const response = await axios.post(
-        `https://control.msg91.com/api/v5/otp`,
-        {
-          template_id: '6749f5d5d6fc054b4a0e1e0c',
-          mobile: `91${phoneNumber}`,
-          authkey: MSG91_AUTHKEY,
-        },
+        `${API_URL}/api/otp/send`,
+        { phoneNumber },
         {
           headers: {
             'Content-Type': 'application/json',
@@ -69,7 +65,7 @@ const Login = () => {
     } catch (error) {
       console.error('Error sending OTP:', error);
       console.error('Error response:', error.response?.data);
-      alert(`Error sending OTP: ${error.response?.data?.message || error.message}`);
+      alert(`Error sending OTP: ${error.response?.data?.msg || error.message}`);
     } finally {
       setIsSendingOtp(false);
     }
@@ -84,12 +80,8 @@ const Login = () => {
     setIsVerifying(true);
     try {
       const response = await axios.post(
-        `https://control.msg91.com/api/v5/otp/verify`,
-        {
-          mobile: `91${phoneNumber}`,
-          otp: otp,
-          authkey: MSG91_AUTHKEY,
-        },
+        `${API_URL}/api/otp/verify`,
+        { phoneNumber, otp },
         {
           headers: {
             'Content-Type': 'application/json',
@@ -99,17 +91,21 @@ const Login = () => {
 
       console.log('OTP Verification Response:', response.data);
 
-      if (response.data.type === 'success') {
+      if (response.data.type === 'success' && response.data.token) {
+        // Store token in localStorage
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+
         alert('OTP verified successfully!');
-        // TODO: Create user session or authenticate with your backend
         navigate('/dashboard');
+        window.location.reload(); // Reload to update AuthContext
       } else {
         alert('Invalid OTP. Please try again.');
       }
     } catch (error) {
       console.error('Error verifying OTP:', error);
       console.error('Error response:', error.response?.data);
-      alert(`Error verifying OTP: ${error.response?.data?.message || error.message}`);
+      alert(`Error verifying OTP: ${error.response?.data?.msg || error.message}`);
     } finally {
       setIsVerifying(false);
     }
