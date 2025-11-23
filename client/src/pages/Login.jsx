@@ -78,7 +78,8 @@ const Login = () => {
     }
 
     if (window.sendOtp) {
-      window.sendOtp();
+      // Pass the phone number as identifier to MSG91 OTP widget
+      window.sendOtp(phoneNumber);
     } else {
       alert('OTP widget not loaded. Please try again.');
     }
