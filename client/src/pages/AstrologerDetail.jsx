@@ -17,7 +17,7 @@ const AstrologerDetail = () => {
 
   const fetchAstrologer = async () => {
     try {
-      const res = await axios.get('https://astroweb-y0i6.onrender.com/api/admin/astrologers');
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/astrologers`);
       const astro = res.data.find(a => a._id === id);
       setAstrologer(astro);
       setLoading(false);

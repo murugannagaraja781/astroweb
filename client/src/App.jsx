@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import MobileNav from './components/MobileNav';
+import MobileNav from './components/MobileNav.jsx';
 import DesktopSidebar from './components/DesktopSidebar';
+import DesktopHeader from './components/DesktopHeader.jsx';
+import MobileHeader from './components/MobileHeader.jsx';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
@@ -30,6 +32,8 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="min-h-screen bg-white font-sans text-gray-900">
+          <DesktopHeader />
+          <MobileHeader />
           <DesktopSidebar />
           <div className="desktop-main-content">
             <Routes>

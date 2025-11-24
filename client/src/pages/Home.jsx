@@ -14,7 +14,7 @@ const Home = () => {
 
   const fetchAstrologers = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/astrologers`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/astrologers`);
       setAstrologers(res.data);
       setLoading(false);
     } catch (err) {
