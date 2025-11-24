@@ -55,6 +55,9 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: 'Invalid Credentials' });
 
+    user.lastLogin = Date.now();
+    await user.save();
+
     const payload = { user: { id: user._id, role: user.role } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }, (err, token) => {
       if (err) throw err;
@@ -71,6 +74,17 @@ exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    // In a stateless JWT auth, the server doesn't need to do much.
+    // The client handles logout by removing the token.
+    res.json({ msg: 'Logged out successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
