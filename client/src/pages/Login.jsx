@@ -309,7 +309,16 @@ const Login = () => {
             )}
 
             {/* Footer */}
-            <div className="mt-8 text-center">
+            <div className="mt-8 text-center space-y-3">
+              <p className="text-gray-300 text-sm">
+                Don't have an account?{' '}
+                <button
+                  onClick={() => navigate('/register')}
+                  className="text-yellow-400 hover:text-yellow-300 underline font-semibold"
+                >
+                  Create Account ✨
+                </button>
+              </p>
               <p className="text-gray-400 text-xs lg:text-sm">
                 By logging in, you agree to our{' '}
                 <a href="#" className="text-yellow-400 hover:text-yellow-300 underline">

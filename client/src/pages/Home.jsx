@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import MobileHome from './MobileHome';
-import DesktopHome from './DesktopHome';
+import MobileHome from './mobile/MobileHome';
+import DesktopHome from './desktop/DesktopHome';
 
 const Home = () => {
   const [astrologers, setAstrologers] = useState([]);

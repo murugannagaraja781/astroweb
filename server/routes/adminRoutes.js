@@ -11,15 +11,15 @@ const adminCheck = (req, res, next) => {
   next();
 };
 
-router.post('/astrologer', auth, adminCheck, addAstrologer);
-router.delete('/astrologer/:id', auth, adminCheck, removeAstrologer);
+router.post('/astrologers', auth, adminCheck, addAstrologer);
+router.delete('/astrologers/:id', auth, adminCheck, removeAstrologer);
 router.get('/astrologers', auth, getAllAstrologers);
-router.post('/horoscope', auth, adminCheck, addHoroscope);
+router.post('/horoscopes', auth, adminCheck, addHoroscope);
 router.get('/horoscopes', auth, getHoroscopes);
-router.delete('/horoscope/:id', auth, adminCheck, deleteHoroscope);
+router.delete('/horoscopes/:id', auth, adminCheck, deleteHoroscope);
 router.get('/stats', auth, adminCheck, getStats);
 router.get('/settings', auth, adminCheck, getSettings);
-router.post('/settings', auth, adminCheck, updateSettings);
+router.put('/settings', auth, adminCheck, updateSettings);
 
 router.get('/offers', auth, adminCheck, getOffers);
 router.post('/offers', auth, adminCheck, addOffer);

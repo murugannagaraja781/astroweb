@@ -27,6 +27,7 @@ app.use('/api/wallet', require('./routes/walletRoutes'));
 app.use('/api/astrologer', require('./routes/astrologerRoutes'));
 app.use('/api/call', require('./routes/callRoutes'));
 app.use('/api/public', require('./routes/publicRoutes'));
+app.use('/api/horoscope', require('./routes/horoscopeRoutes'));
 
 // Database Connection
 mongoose.connect(process.env.MONGO_URI)

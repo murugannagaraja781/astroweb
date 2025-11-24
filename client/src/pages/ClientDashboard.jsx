@@ -200,7 +200,7 @@ const ClientDashboard = () => {
             <Sparkles className="w-8 h-8" />
             <h1 className="text-4xl font-bold">AstroConnect</h1>
           </div>
-          <p className="text-orange-100 text-lg">Connect with expert astrologers instantly</p>
+          <p className="text-orange-100 text-lg">Connect with expert astrologers instantly2</p>
         </div>
       </div>
 

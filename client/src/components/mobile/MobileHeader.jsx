@@ -1,7 +1,7 @@
  import { Link, useLocation } from 'react-router-dom';
 import { Home, LayoutDashboard, MessageCircle, Video, User, Sparkles, LogOut } from 'lucide-react';
 import { useContext } from 'react';
-import AuthContext from '../context/AuthContext';
+import AuthContext from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MobileNav = () => {

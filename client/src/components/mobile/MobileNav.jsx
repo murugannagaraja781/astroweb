@@ -1,7 +1,7 @@
  import { Link, useLocation } from 'react-router-dom';
 import { Home, LayoutDashboard, MessageCircle, Video, User, Sparkles, LogOut } from 'lucide-react';
 import { useContext } from 'react';
-import AuthContext from '../context/AuthContext';
+import AuthContext from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MobileNav = () => {
@@ -33,7 +33,8 @@ const MobileNav = () => {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="fixed bottom-4 left-4 right-4 bg-gradient-to-br from-purple-900/90 to-space-900/90 backdrop-blur-2xl border border-purple-500/30 rounded-3xl shadow-2xl z-50 safe-area-bottom"
+      className="fixed bottom-4 left-4 right-4 bg-gradient-to-br from-purple-900/90 to-space-900/90 backdrop-blur-2xl border border-purple-500/30 rounded-3xl shadow-2xl z-50"
+      style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
     >
       {/* Floating Stars Background */}
       <div className="absolute inset-0 overflow-hidden rounded-3xl">

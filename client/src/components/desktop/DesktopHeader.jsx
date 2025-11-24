@@ -1,7 +1,7 @@
  import { Link, useLocation } from "react-router-dom";
 import { Home, LayoutDashboard, MessageCircle, Video, LogOut, LogIn, User, UserPlus, Sparkles } from "lucide-react";
 import { useContext } from "react";
-import AuthContext from "../context/AuthContext";
+import AuthContext from "../../context/AuthContext";
 
 const DesktopHeader = () => {
   const location = useLocation();

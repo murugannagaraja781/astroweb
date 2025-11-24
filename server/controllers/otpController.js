@@ -11,17 +11,17 @@ exports.sendOtp = async (req, res) => {
             return res.status(400).json({ msg: 'Please provide a valid phone number' });
         }
 
-        // Call MSG91 API to send OTP
+        // Clean phone number (remove any spaces, dashes, etc.)
+        const cleanPhone = phoneNumber.replace(/\D/g, '');
+
+        // MSG91 API v5 - Correct format
         const response = await axios.post(
-            'https://control.msg91.com/api/v5/otp',
-            {
-                template_id: process.env.MSG91_TEMPLATE_ID,
-                mobile: `91${phoneNumber}`,
-                authkey: process.env.MSG91_AUTHKEY,
-            },
+            `https://control.msg91.com/api/v5/otp?template_id=${process.env.MSG91_TEMPLATE_ID}&mobile=91${cleanPhone}`,
+            {},
             {
                 headers: {
                     'Content-Type': 'application/json',
+                    'authkey': process.env.MSG91_AUTHKEY,
                 },
             }
         );
@@ -50,17 +50,15 @@ exports.verifyOtp = async (req, res) => {
             return res.status(400).json({ msg: 'Phone number and OTP are required' });
         }
 
-        // Call MSG91 API to verify OTP
-        const response = await axios.post(
-            'https://control.msg91.com/api/v5/otp/verify',
-            {
-                mobile: `91${phoneNumber}`,
-                otp: otp,
-                authkey: process.env.MSG91_AUTHKEY,
-            },
+        // Clean phone number
+        const cleanPhone = phoneNumber.replace(/\D/g, '');
+
+        // MSG91 API v5 - Correct format
+        const response = await axios.get(
+            `https://control.msg91.com/api/v5/otp/verify?otp=${otp}&mobile=91${cleanPhone}`,
             {
                 headers: {
-                    'Content-Type': 'application/json',
+                    'authkey': process.env.MSG91_AUTHKEY,
                 },
             }
         );
@@ -69,14 +67,14 @@ exports.verifyOtp = async (req, res) => {
 
         if (response.data.type === 'success') {
             // OTP verified successfully, now handle user authentication
-            let user = await User.findOne({ phone: phoneNumber });
+            let user = await User.findOne({ phone: cleanPhone });
 
             if (!user) {
                 // Create new user with phone number
                 user = new User({
-                    name: `User_${phoneNumber}`, // Default name, can be updated later
-                    email: `${phoneNumber}@phone.user`, // Temporary email
-                    phone: phoneNumber,
+                    name: `User_${cleanPhone}`, // Default name, can be updated later
+                    email: `${cleanPhone}@phone.user`, // Temporary email
+                    phone: cleanPhone,
                     role: 'client'
                 });
                 await user.save();

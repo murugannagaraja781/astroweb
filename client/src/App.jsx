@@ -1,23 +1,38 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import MobileNav from './components/MobileNav.jsx';
-import DesktopSidebar from './components/DesktopSidebar';
-import DesktopHeader from './components/DesktopHeader.jsx';
-import MobileHeader from './components/MobileHeader.jsx';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Home from './pages/Home';
-import AstrologerDetail from './pages/AstrologerDetail';
-import { useContext } from 'react';
+import { lazy, Suspense, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import AuthContext from './context/AuthContext';
 
-import AdminDashboard from './pages/AdminDashboard';
-import AstrologerDashboard from './pages/AstrologerDashboard';
-import ClientDashboard from './pages/ClientDashboard';
-import VideoCall from './pages/VideoCall';
-import Chat from './pages/Chat';
+// Eager load critical components (above the fold)
+import MobileNav from './components/mobile/MobileNav.jsx';
+import DesktopSidebar from './components/desktop/DesktopSidebar';
+import DesktopHeader from './components/desktop/DesktopHeader.jsx';
+import MobileHeader from './components/mobile/MobileHeader.jsx';
+import Home from './pages/Home';
+import HoroscopeDetail from './pages/HoroscopeDetail';
 
-// Placeholder Dashboards
+// Lazy load route components for code splitting
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const AstrologerDetail = lazy(() => import('./pages/AstrologerDetail'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AstrologerDashboard = lazy(() => import('./pages/AstrologerDashboard'));
+const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
+const VideoCall = lazy(() => import('./pages/VideoCall'));
+const Chat = lazy(() => import('./pages/Chat'));
+
+// Loading component
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-space-900 via-purple-900 to-space-900">
+    <div className="text-center">
+      <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-white text-sm">Loading...</p>
+    </div>
+  </div>
+);
+
+// Dashboard Router
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
   if (!user) return <Navigate to="/login" />;
@@ -27,8 +42,6 @@ const Dashboard = () => {
   return <ClientDashboard />;
 };
 
-import { useLocation } from 'react-router-dom';
-
 const AppLayout = ({ children }) => {
   const location = useLocation();
   const { user } = useContext(AuthContext);
@@ -37,7 +50,7 @@ const AppLayout = ({ children }) => {
   const isAdminPage = location.pathname === '/admin-dashboard' ||
                       (location.pathname === '/dashboard' && user?.role === 'admin');
 
-  // Hide desktop sidebar on home page
+  // Home page - show mobile nav only, no desktop elements
   const isHomePage = location.pathname === '/';
 
   // Hide all navigation on astrologer detail page
@@ -45,6 +58,23 @@ const AppLayout = ({ children }) => {
 
   // Hide all navigation on auth pages (login, register)
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+  // Home page - mobile nav only
+  if (isHomePage) {
+    return (
+      <div className="min-h-screen bg-white font-sans text-gray-900">
+        {/* Desktop Header for desktop view */}
+        <div className="hidden md:block">
+          <DesktopHeader />
+        </div>
+        {children}
+        {/* Mobile Nav only for mobile devices */}
+        <div className="md:hidden">
+          <MobileNav />
+        </div>
+      </div>
+    );
+  }
 
   if (isAdminPage) {
     return <>{children}</>;
@@ -62,11 +92,15 @@ const AppLayout = ({ children }) => {
     <div className="min-h-screen bg-white font-sans text-gray-900">
       <DesktopHeader />
       <MobileHeader />
-      {!isHomePage && <DesktopSidebar />}
+      {/* Desktop Sidebar removed globally for desktop */}
+      {/* <DesktopSidebar /> */}
       <div className="desktop-main-content">
         {children}
       </div>
-      <MobileNav />
+      {/* Mobile Nav only visible on mobile devices */}
+      <div className="md:hidden">
+        <MobileNav />
+      </div>
     </div>
   );
 };
@@ -76,17 +110,20 @@ function App() {
     <AuthProvider>
       <Router>
         <AppLayout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/astrologer/:id" element={<AstrologerDetail />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/astrologer-dashboard" element={<AstrologerDashboard />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/call/:id" element={<VideoCall />} />
-            <Route path="/chat/:id" element={<Chat />} />
-          </Routes>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/horoscope/:sign" element={<HoroscopeDetail />} />
+              <Route path="/astrologer/:id" element={<AstrologerDetail />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/astrologer-dashboard" element={<AstrologerDashboard />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/call/:id" element={<VideoCall />} />
+              <Route path="/chat/:id" element={<Chat />} />
+            </Routes>
+          </Suspense>
         </AppLayout>
       </Router>
     </AuthProvider>

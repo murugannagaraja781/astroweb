@@ -22,12 +22,53 @@ const DesktopHome = ({ astrologers, loading }) => {
             <h1 className="text-5xl md:text-6xl font-bold">AstroConnect</h1>
           </div>
           <p className="text-xl md:text-2xl text-orange-100 mb-8">
-            Connect with Expert Astrologers Instantly
+            Connect with Expert Astrologers Instantly 3
           </p>
           <p className="text-lg text-orange-50 max-w-2xl mx-auto">
             Get personalized guidance from certified astrologers through video calls and chat.
             Your journey to clarity starts here.
           </p>
+        </div>
+      </div>
+
+      {/* Daily Horoscope Section */}
+      <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 py-16 px-4">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-white mb-3">இன்றைய ராசி பலன்</h2>
+            <p className="text-purple-100 text-lg">Daily Horoscope - Choose Your Zodiac Sign</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            {[
+              { id: 'mesham', name: 'மேஷம்', icon: '♈', color: 'from-red-400 to-red-600' },
+              { id: 'rishabam', name: 'ரிஷபம்', icon: '♉', color: 'from-green-400 to-green-600' },
+              { id: 'mithunam', name: 'மிதுனம்', icon: '♊', color: 'from-yellow-400 to-yellow-600' },
+              { id: 'kadagam', name: 'கடகம்', icon: '♋', color: 'from-blue-400 to-blue-600' },
+              { id: 'simmam', name: 'சிம்மம்', icon: '♌', color: 'from-orange-400 to-orange-600' },
+              { id: 'kanni', name: 'கன்னி', icon: '♍', color: 'from-pink-400 to-pink-600' },
+              { id: 'thulam', name: 'துலாம்', icon: '♎', color: 'from-purple-400 to-purple-600' },
+              { id: 'viruchigam', name: 'விருச்சிகம்', icon: '♏', color: 'from-red-500 to-red-700' },
+              { id: 'dhanusu', name: 'தனுசு', icon: '♐', color: 'from-indigo-400 to-indigo-600' },
+              { id: 'magaram', name: 'மகரம்', icon: '♑', color: 'from-gray-400 to-gray-600' },
+              { id: 'kumbam', name: 'கும்பம்', icon: '♒', color: 'from-cyan-400 to-cyan-600' },
+              { id: 'meenam', name: 'மீனம்', icon: '♓', color: 'from-teal-400 to-teal-600' },
+            ].map((sign) => (
+              <button
+                key={sign.id}
+                onClick={() => navigate(`/horoscope/${sign.id}`)}
+                className="group relative bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-2xl p-6 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl border border-white/20"
+              >
+                <div className={`w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br ${sign.color} flex items-center justify-center text-3xl shadow-lg group-hover:shadow-xl transition-shadow`}>
+                  {sign.icon}
+                </div>
+                <h3 className="text-white font-bold text-center text-lg mb-1">{sign.name}</h3>
+                <p className="text-purple-100 text-xs text-center opacity-75 group-hover:opacity-100 transition-opacity">
+                  View Today's Prediction
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
