@@ -10,7 +10,7 @@ const MobileHome = ({ astrologers, loading }) => {
     return name.split(' ').map((n) => n[0]).join('').toUpperCase();
   };
 
-  const onlineAstrologers = astrologers.filter(a => a.profile?.isOnline);
+  const onlineAstrologers = astrologers.filter(a => a.isOnline);
 
   return (
     <div
@@ -230,7 +230,7 @@ const MobileHome = ({ astrologers, loading }) => {
                       >
                         {getInitials(astro.name)}
                       </motion.div>
-                      {astro.profile?.isOnline && (
+                      {astro.isOnline && (
                         <motion.span
                           className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 border-2 border-space-900 rounded-full"
                           animate={{ scale: [1, 1.3, 1] }}

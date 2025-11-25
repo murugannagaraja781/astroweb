@@ -624,17 +624,17 @@ const AdminDashboard = () => {
                           <td className="px-6 py-4 font-medium text-slate-900">{settings.currency}{astro.profile?.ratePerMinute}/min</td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              astro.profile?.isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'
+                              astro.isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'
                             }`}>
-                              {astro.profile?.isOnline ? 'Online' : 'Offline'}
+                              {astro.isOnline ? 'Online' : 'Offline'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <button
-                                onClick={() => toggleAstrologerStatus(astro._id, astro.profile?.isOnline)}
+                                onClick={() => toggleAstrologerStatus(astro._id, astro.isOnline)}
                                 className={`p-1.5 rounded-md transition-colors ${
-                                  astro.profile?.isOnline ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'
+                                  astro.isOnline ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'
                                 }`}
                                 title="Toggle Status"
                               >

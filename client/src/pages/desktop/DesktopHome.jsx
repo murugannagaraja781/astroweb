@@ -9,8 +9,8 @@ const DesktopHome = ({ astrologers, loading }) => {
     return name.split(' ').map((n) => n[0]).join('').toUpperCase();
   };
 
-  const onlineAstrologers = astrologers.filter(a => a.profile?.isOnline);
-  const offlineAstrologers = astrologers.filter(a => !a.profile?.isOnline);
+  const onlineAstrologers = astrologers.filter(a => a.isOnline);
+  const offlineAstrologers = astrologers.filter(a => !a.isOnline);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-purple-50">

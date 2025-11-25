@@ -126,7 +126,7 @@ const AstrologerDetail = () => {
                   {getInitials(astrologer.name)}
                 </span>
               </div>
-              {astrologer.profile?.isOnline && (
+              {astrologer.isOnline && (
                 <span className="absolute bottom-2 right-2 w-8 h-8 bg-green-500 border-4 border-white rounded-full animate-pulse"></span>
               )}
             </div>
@@ -134,7 +134,7 @@ const AstrologerDetail = () => {
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-4xl font-bold text-gray-800 mb-2">{astrologer.name}</h1>
               <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
-                {astrologer.profile?.isOnline ? (
+                {astrologer.isOnline ? (
                   <span className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-semibold flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     Available Now
