@@ -293,4 +293,51 @@ exports.getRecentLogins = async (req, res) => {
     console.error(err.message);
     res.status(500).send('Server error');
   }
-};
+  // User Management
+  exports.getAllUsers = async (req, res) => {
+    try {
+      const users = await User.find({ role: 'user' }).select('-password').sort({ createdAt: -1 });
+      // Fetch wallet balance for each user
+      const result = await Promise.all(users.map(async (user) => {
+        const wallet = await Wallet.findOne({ userId: user._id });
+        return { ...user._doc, walletBalance: wallet ? wallet.balance : 0 };
+      }));
+      res.json(result);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  };
+
+  exports.addMoneyToUser = async (req, res) => {
+    try {
+      const { userId, amount } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ msg: 'Please enter a valid amount' });
+      }
+
+      let wallet = await Wallet.findOne({ userId });
+      if (!wallet) {
+        wallet = new Wallet({ userId });
+      }
+
+      wallet.balance += parseInt(amount);
+
+      // Add transaction record
+      wallet.transactions.push({
+        amount: parseInt(amount),
+        type: 'credit',
+        description: 'Added by Admin',
+        date: new Date()
+      });
+
+      await wallet.save();
+
+      res.json({ msg: 'Money added successfully', balance: wallet.balance });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  };
+

@@ -17,9 +17,9 @@ const Chat = () => {
   const [balance, setBalance] = useState(0);
   const [duration, setDuration] = useState(0);
   const [cost, setCost] = useState(0);
-  const rate = 5; // Chat rate per minute (cheaper than video)
+  const rate = 1; // Chat rate: ₹1 per minute
   const timerRef = useRef(null);
-  const [chatActive, setChatActive] = useState(true);
+  const [chatActive, setChatActive] = useState(false); // Default to false, wait for accept
   const [chatId, setChatId] = useState(null);
 
   // Voice recording states
@@ -58,31 +58,52 @@ const Chat = () => {
       if (user && user.role === 'client') {
         try {
           const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/call/initiate`, { receiverId, type: 'chat' });
-          setChatId(res.data.callId);
+          const newChatId = res.data.callId;
+          setChatId(newChatId);
+
+          // Emit callUser to notify astrologer
+          socket.emit('callUser', {
+            userToCall: receiverId,
+            from: user.id,
+            name: user.name,
+            type: 'chat',
+            callId: newChatId
+          });
+
         } catch (err) {
           console.error("Failed to initiate chat billing", err);
           alert("Insufficient balance or error starting chat");
           navigate('/dashboard');
         }
+      } else if (user && user.role === 'astrologer') {
+        // Astrologer joins, assume active if they are here (accepted via dashboard)
+        setChatActive(true);
       }
     };
     initChat();
 
-    // Join chat room - FIXED: Use consistent room ID
+    // Join chat room
     const roomId = [user.id, receiverId].sort().join('-');
     console.log('Joining room:', roomId);
     socket.emit('join', roomId);
 
-    // Listen for messages
+    // Listen for messages & call acceptance
     const handleReceiveMessage = (msg) => {
       console.log('Message received:', msg);
       setMessages(prev => [...prev, msg]);
     };
 
+    const handleCallAccepted = () => {
+      console.log('Chat accepted by astrologer');
+      setChatActive(true);
+    };
+
     socket.on('receiveMessage', handleReceiveMessage);
+    socket.on('callAccepted', handleCallAccepted);
 
     return () => {
       socket.off('receiveMessage', handleReceiveMessage);
+      socket.off('callAccepted', handleCallAccepted);
       clearInterval(timerRef.current);
     };
   }, [user, receiverId, navigate]);
@@ -92,7 +113,7 @@ const Chat = () => {
     const numericBalance = Number(balance) || 0;
     const numericRate = Number(rate) || 0;
 
-    if (chatActive && numericBalance > 0 && chatId) {
+    if (chatActive && numericBalance > 0 && chatId && user.role === 'client') {
       const maxDuration = (numericBalance / numericRate) * 60;
 
       timerRef.current = setInterval(() => {
@@ -111,7 +132,7 @@ const Chat = () => {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [chatActive, balance, chatId]);
+  }, [chatActive, balance, chatId, user]);
 
   // Typing Indicator Logic
   const [isTyping, setIsTyping] = useState(false);

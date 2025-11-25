@@ -6,36 +6,120 @@ import { useNavigate } from 'react-router-dom';
 const socket = io(import.meta.env.VITE_API_URL);
 
 const AstrologerDashboard = () => {
+  const [activeTab, setActiveTab] = useState('overview');
   const [profile, setProfile] = useState(null);
   const [formData, setFormData] = useState({
-    languages: '', specialties: '', ratePerMinute: 10, bio: ''
+    languages: '', specialties: '', ratePerMinute: 10, bio: '', experience: '', education: ''
   });
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [callHistory, setCallHistory] = useState([]);
+  const [earnings, setEarnings] = useState({ today: 0, weekly: 0, monthly: 0 });
+  const [reviews, setReviews] = useState([]);
+  const [schedule, setSchedule] = useState([]);
+  const [analytics, setAnalytics] = useState({ totalCalls: 0, avgRating: 0, totalEarnings: 0 });
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProfile();
+    fetchDashboardData();
+    setupSocketListeners();
+
+    return () => {
+      socket.off('callUser');
+      socket.off('callEnded');
+    };
   }, []);
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`);
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setProfile(res.data);
       setFormData({
-        languages: res.data.languages.join(','),
-        specialties: res.data.specialties.join(','),
-        ratePerMinute: res.data.ratePerMinute,
-        bio: res.data.bio
+        languages: res.data.languages?.join(',') || '',
+        specialties: res.data.specialties?.join(',') || '',
+        ratePerMinute: res.data.ratePerMinute || 10,
+        bio: res.data.bio || '',
+        experience: res.data.experience || '',
+        education: res.data.education || ''
       });
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching profile:', err);
+      alert('Failed to load profile');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      // Fetch call history
+      const callsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/call-history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCallHistory(callsRes.data);
+
+      // Fetch earnings
+      const earningsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/earnings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEarnings(earningsRes.data);
+
+      // Fetch reviews
+      const reviewsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/reviews`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReviews(reviewsRes.data);
+
+      // Fetch analytics
+      const analyticsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/analytics`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAnalytics(analyticsRes.data);
+
+      // Fetch schedule
+      const scheduleRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/schedule`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSchedule(scheduleRes.data);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+    }
+  };
+
+  const setupSocketListeners = () => {
+    socket.on('callUser', (data) => {
+      console.log("Incoming call data:", data);
+      setIncomingCall(data);
+    });
+
+    socket.on('callEnded', () => {
+      setIncomingCall(null);
+    });
+
+    socket.on('callRejected', () => {
+      setIncomingCall(null);
+      alert('Call was rejected by user');
+    });
   };
 
   const toggleStatus = async () => {
     try {
-      const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/astrologer/status`);
+      const token = localStorage.getItem('token');
+      const res = await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/status`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setProfile(res.data);
     } catch (err) {
-      console.error(err);
+      console.error('Error updating status:', err);
+      alert('Failed to update status');
     }
   };
 
@@ -44,35 +128,21 @@ const AstrologerDashboard = () => {
   const onSubmit = async e => {
     e.preventDefault();
     try {
+      const token = localStorage.getItem('token');
       await axios.put(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`, {
         ...formData,
-        languages: formData.languages.split(','),
-        specialties: formData.specialties.split(',')
+        languages: formData.languages.split(',').map(lang => lang.trim()),
+        specialties: formData.specialties.split(',').map(spec => spec.trim())
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       fetchProfile();
-      alert('Profile updated');
+      alert('Profile updated successfully');
     } catch (err) {
-      console.error(err);
+      console.error('Error updating profile:', err);
       alert('Failed to update profile');
     }
   };
-
-  // Socket & Incoming Call Logic
-  const [incomingCall, setIncomingCall] = useState(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!profile) return;
-
-    socket.emit('join', profile.userId);
-
-    socket.on('callUser', (data) => {
-      console.log("Incoming call data:", data);
-      setIncomingCall(data);
-    });
-
-    return () => socket.off('callUser');
-  }, [profile]);
 
   const acceptCall = () => {
     if (!incomingCall) {
@@ -81,91 +151,401 @@ const AstrologerDashboard = () => {
     }
 
     if (!incomingCall.from) {
-      console.error('Missing caller ID in incoming call:', incomingCall);
-      alert('Error: Missing caller information. Please ask them to try again.');
+      console.error('Missing caller ID');
+      alert('Error: Missing caller information');
       setIncomingCall(null);
       return;
     }
 
-    console.log('Accepting call/chat:', incomingCall);
-    console.log('Sending answerCall to:', incomingCall.from);
+    socket.emit('answerCall', {
+      to: incomingCall.from,
+      callId: incomingCall.callId,
+      astrologerId: profile.userId,
+      astrologerName: profile.name,
+      type: incomingCall.type
+    });
 
-    // Notify caller that call is accepted
-    socket.emit('answerCall', { to: incomingCall.from });
-
-    // Close the modal
     setIncomingCall(null);
 
     if (incomingCall.type === 'chat') {
-        navigate(`/chat/${incomingCall.from}`);
+      navigate(`/chat/${incomingCall.from}`, {
+        state: {
+          callerName: incomingCall.name,
+          callType: 'chat'
+        }
+      });
     } else {
-        // Video call
-        navigate(`/call/${incomingCall.from}?callId=${incomingCall.callId}`);
+      navigate(`/video-call/${incomingCall.from}`, {
+        state: {
+          callerName: incomingCall.name,
+          callId: incomingCall.callId,
+          callType: 'video'
+        }
+      });
     }
   };
 
-  if (!profile) return <div>Loading...</div>;
+  const rejectCall = () => {
+    if (incomingCall && incomingCall.from) {
+      socket.emit('rejectCall', {
+        to: incomingCall.from,
+        astrologerId: profile.userId
+      });
+    }
+    setIncomingCall(null);
+  };
+
+  const updateAvailability = async (day, timeSlots) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/astrologer/schedule`,
+        { day, timeSlots },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchDashboardData();
+      alert('Schedule updated successfully');
+    } catch (err) {
+      console.error('Error updating schedule:', err);
+      alert('Failed to update schedule');
+    }
+  };
+
+  // Tab Components
+  const OverviewTab = () => (
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+          <h3 className="text-gray-500 text-sm font-medium">Today's Earnings</h3>
+          <p className="text-2xl font-bold text-gray-800">₹{earnings.today}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+          <h3 className="text-gray-500 text-sm font-medium">Total Calls</h3>
+          <p className="text-2xl font-bold text-gray-800">{analytics.totalCalls}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-500">
+          <h3 className="text-gray-500 text-sm font-medium">Avg Rating</h3>
+          <p className="text-2xl font-bold text-gray-800">{analytics.avgRating}/5</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
+          <h3 className="text-gray-500 text-sm font-medium">Online Status</h3>
+          <p className={`text-2xl font-bold ${profile?.isOnline ? 'text-green-600' : 'text-red-600'}`}>
+            {profile?.isOnline ? 'Online' : 'Offline'}
+          </p>
+        </div>
+      </div>
+
+      {/* Recent Calls */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Calls</h3>
+        <div className="space-y-3">
+          {callHistory.slice(0, 5).map((call, index) => (
+            <div key={index} className="flex justify-between items-center p-3 border-b">
+              <div>
+                <p className="font-medium">{call.userName}</p>
+                <p className="text-sm text-gray-500">{call.type} • {new Date(call.date).toLocaleDateString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-medium">₹{call.earnings}</p>
+                <p className="text-sm text-gray-500">{call.duration} min</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const ProfileTab = () => (
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Profile Settings</h2>
+      <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="md:col-span-2">
+          <label className="block text-gray-700 font-medium mb-2">Bio</label>
+          <textarea
+            name="bio"
+            value={formData.bio}
+            onChange={onChange}
+            placeholder="Tell clients about your expertise..."
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-32"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Experience</label>
+          <input
+            type="text"
+            name="experience"
+            value={formData.experience}
+            onChange={onChange}
+            placeholder="5+ years in Vedic Astrology"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Education</label>
+          <input
+            type="text"
+            name="education"
+            value={formData.education}
+            onChange={onChange}
+            placeholder="Certified Astrologer"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Languages (comma separated)</label>
+          <input
+            type="text"
+            name="languages"
+            value={formData.languages}
+            onChange={onChange}
+            placeholder="English, Hindi, Tamil"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Specialties (comma separated)</label>
+          <input
+            type="text"
+            name="specialties"
+            value={formData.specialties}
+            onChange={onChange}
+            placeholder="Vedic, Numerology, Tarot"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Rate Per Minute (₹)</label>
+          <input
+            type="number"
+            name="ratePerMinute"
+            value={formData.ratePerMinute}
+            onChange={onChange}
+            min="1"
+            max="1000"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <button
+            type="submit"
+            className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors w-full"
+          >
+            Update Profile
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  const CallHistoryTab = () => (
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Call History</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left p-3">User</th>
+              <th className="text-left p-3">Type</th>
+              <th className="text-left p-3">Date</th>
+              <th className="text-left p-3">Duration</th>
+              <th className="text-left p-3">Earnings</th>
+            </tr>
+          </thead>
+          <tbody>
+            {callHistory.map((call, index) => (
+              <tr key={index} className="border-b hover:bg-gray-50">
+                <td className="p-3">{call.userName}</td>
+                <td className="p-3 capitalize">{call.type}</td>
+                <td className="p-3">{new Date(call.date).toLocaleDateString()}</td>
+                <td className="p-3">{call.duration} min</td>
+                <td className="p-3 font-medium">₹{call.earnings}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const EarningsTab = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+          <h3 className="text-gray-500 text-sm font-medium">Today</h3>
+          <p className="text-2xl font-bold text-gray-800">₹{earnings.today}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+          <h3 className="text-gray-500 text-sm font-medium">This Week</h3>
+          <p className="text-2xl font-bold text-gray-800">₹{earnings.weekly}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+          <h3 className="text-gray-500 text-sm font-medium">This Month</h3>
+          <p className="text-2xl font-bold text-gray-800">₹{earnings.monthly}</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Earnings Breakdown</h3>
+        {/* Add chart or detailed earnings table here */}
+        <p className="text-gray-500">Earnings analytics chart will be implemented here</p>
+      </div>
+    </div>
+  );
+
+  const ReviewsTab = () => (
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Customer Reviews</h3>
+      <div className="space-y-4">
+        {reviews.map((review, index) => (
+          <div key={index} className="border-b pb-4">
+            <div className="flex justify-between items-start mb-2">
+              <h4 className="font-medium">{review.userName}</h4>
+              <div className="flex items-center">
+                <span className="text-yellow-500">⭐</span>
+                <span className="ml-1">{review.rating}/5</span>
+              </div>
+            </div>
+            <p className="text-gray-600">{review.comment}</p>
+            <p className="text-sm text-gray-400 mt-2">{new Date(review.date).toLocaleDateString()}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const ScheduleTab = () => (
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Availability Schedule</h3>
+      <div className="space-y-4">
+        {schedule.map((daySchedule, index) => (
+          <div key={index} className="flex justify-between items-center p-4 border rounded-lg">
+            <span className="font-medium capitalize">{daySchedule.day}</span>
+            <span className="text-gray-600">
+              {daySchedule.slots.length > 0 ? daySchedule.slots.join(', ') : 'Not Available'}
+            </span>
+            <button className="text-indigo-600 hover:text-indigo-800">Edit</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+    </div>
+  );
+
+  if (!profile) return <div className="min-h-screen flex items-center justify-center">Failed to load profile</div>;
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Incoming Call Modal */}
       {incomingCall && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl shadow-2xl text-center">
-            <h2 className="text-2xl font-bold mb-4 text-black">Incoming {incomingCall.type === 'chat' ? 'Chat' : 'Call'}</h2>
-            <p className="mb-6 text-lg text-gray-700">{incomingCall.name} is requesting {incomingCall.type === 'chat' ? 'to chat' : 'a video call'}...</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-md w-full">
+            <div className="w-20 h-20 mx-auto mb-4 bg-indigo-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">📞</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">
+              Incoming {incomingCall.type === 'chat' ? 'Chat' : 'Video Call'}
+            </h2>
+            <p className="text-lg text-gray-600 mb-2">{incomingCall.name}</p>
+            <p className="text-gray-500 mb-6">is requesting to connect with you</p>
+
             <div className="flex gap-4 justify-center">
               <button
-                onClick={acceptCall}
-                className="bg-green-500 text-white px-6 py-3 rounded-full font-bold hover:bg-green-600 animate-pulse"
+                onClick={rejectCall}
+                className="bg-red-500 text-white px-6 py-3 rounded-full font-bold hover:bg-red-600 transition-colors flex items-center gap-2"
               >
-                Accept
+                <span>✕</span> Reject
               </button>
               <button
-                onClick={() => {
-                  socket.emit('rejectCall', { to: incomingCall.from });
-                  setIncomingCall(null);
-                }}
-                className="bg-red-500 text-white px-6 py-3 rounded-full font-bold hover:bg-red-600"
+                onClick={acceptCall}
+                className="bg-green-500 text-white px-6 py-3 rounded-full font-bold hover:bg-green-600 transition-colors animate-pulse flex items-center gap-2"
               >
-                Reject
+                <span>✓</span> Accept
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <h1 className="text-2xl font-bold mb-4">Astrologer Dashboard</h1>
+      <div className="container mx-auto px-4 max-w-7xl py-8">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Astrologer Dashboard</h1>
+            <p className="text-gray-600">Manage your profile and accept client calls</p>
+          </div>
 
-      <div className="bg-white p-6 rounded shadow mb-8 flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-bold">Status: <span className={profile.isOnline ? 'text-green-500' : 'text-red-500'}>{profile.isOnline ? 'Online' : 'Offline'}</span></h2>
+          {/* Status Toggle */}
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${profile.isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className="text-gray-600">
+                  Status: <span className={profile.isOnline ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                    {profile.isOnline ? 'Online' : 'Offline'}
+                  </span>
+                </span>
+              </div>
+              <button
+                onClick={toggleStatus}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  profile.isOnline
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
+              >
+                {profile.isOnline ? 'Go Offline' : 'Go Online'}
+              </button>
+            </div>
+          </div>
         </div>
-        <button onClick={toggleStatus} className={`px-4 py-2 rounded text-white ${profile.isOnline ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}>
-          {profile.isOnline ? 'Go Offline' : 'Go Online'}
-        </button>
-      </div>
 
-      <div className="bg-white p-6 rounded shadow">
-        <h2 className="text-xl font-bold mb-4">Update Profile</h2>
-        <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="block text-gray-700">Languages</label>
-            <input type="text" name="languages" value={formData.languages} onChange={onChange} className="w-full p-2 border rounded" />
+        {/* Tabs Navigation */}
+        <div className="bg-white rounded-xl shadow-sm mb-6 overflow-x-auto">
+          <div className="flex border-b">
+            {[
+              { id: 'overview', label: 'Overview' },
+              { id: 'profile', label: 'Profile' },
+              { id: 'call-history', label: 'Call History' },
+              { id: 'earnings', label: 'Earnings' },
+              { id: 'reviews', label: 'Reviews' },
+              { id: 'schedule', label: 'Schedule' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="block text-gray-700">Specialties</label>
-            <input type="text" name="specialties" value={formData.specialties} onChange={onChange} className="w-full p-2 border rounded" />
-          </div>
-          <div>
-            <label className="block text-gray-700">Rate Per Minute (₹)</label>
-            <input type="number" name="ratePerMinute" value={formData.ratePerMinute} onChange={onChange} className="w-full p-2 border rounded" />
-          </div>
-          <div>
-            <label className="block text-gray-700">Bio</label>
-            <textarea name="bio" value={formData.bio} onChange={onChange} className="w-full p-2 border rounded h-32"></textarea>
-          </div>
-          <button type="submit" className="bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">Update Profile</button>
-        </form>
+        </div>
+
+        {/* Tab Content */}
+        <div className="min-h-96">
+          {activeTab === 'overview' && <OverviewTab />}
+          {activeTab === 'profile' && <ProfileTab />}
+          {activeTab === 'call-history' && <CallHistoryTab />}
+          {activeTab === 'earnings' && <EarningsTab />}
+          {activeTab === 'reviews' && <ReviewsTab />}
+          {activeTab === 'schedule' && <ScheduleTab />}
+        </div>
       </div>
     </div>
   );

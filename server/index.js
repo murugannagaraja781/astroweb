@@ -19,6 +19,9 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Make socket.io instance available to controllers
+app.set('io', io);
+
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/otp', require('./routes/otpRoutes'));
@@ -43,13 +46,27 @@ io.on('connection', (socket) => {
     console.log(`User ${socket.id} joined ${identifier}`);
   });
 
-  socket.on('callUser', ({ userToCall, signalData, from, name, type }) => {
-    io.to(userToCall).emit('callUser', { signal: signalData, from, name, type });
+  socket.on('callUser', ({ userToCall, signalData, from, name, type, callId }) => {
+    io.to(userToCall).emit('callUser', { signal: signalData, from, name, type, callId });
   });
 
-  socket.on('answerCall', (data) => {
+  socket.on('answerCall', async (data) => {
     console.log('Answer call received:', data);
     io.to(data.to).emit('callAccepted', { accepted: true });
+
+    // Update CallLog with accepted time
+    if (data.callId) {
+      try {
+        const CallLog = require('./models/CallLog');
+        await CallLog.findByIdAndUpdate(data.callId, {
+          status: 'active',
+          acceptedTime: new Date()
+        });
+        console.log(`Call ${data.callId} accepted`);
+      } catch (err) {
+        console.error('Error updating call log:', err);
+      }
+    }
   });
 
   socket.on('rejectCall', (data) => {

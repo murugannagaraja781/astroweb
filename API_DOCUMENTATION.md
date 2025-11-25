@@ -1,280 +1,710 @@
-# AstroWeb API Endpoints Documentation
+# AstroWeb API Documentation
 
-## Complete API List - Total: **34 Endpoints**
-
-### Summary by Method:
-- **GET**: 11 endpoints
-- **POST**: 18 endpoints
-- **PUT**: 2 endpoints
-- **DELETE**: 6 endpoints
-- **PATCH**: 0 endpoints
+Complete reference for all API endpoints used in the AstroWeb platform.
 
 ---
 
-## 1. Authentication Routes (`/api/auth`)
-
-| Method | Endpoint | Auth Required | Description |
-|--------|----------|---------------|-------------|
-| POST | `/api/auth/register` | ❌ No | Register new user |
-| POST | `/api/auth/login` | ❌ No | User login |
-| GET | `/api/auth/me` | ✅ Yes | Get current user info |
-| POST | `/api/auth/logout` | ❌ No | User logout |
-
-**Total: 4 endpoints** (3 POST, 1 GET)
+## Base URL
+- **Development**: `http://localhost:5000`
+- **Production**: `https://astroweb-y0i6.onrender.com`
 
 ---
 
-## 2. OTP Routes (`/api/otp`)
+## Authentication
 
-| Method | Endpoint | Auth Required | Description |
-|--------|----------|---------------|-------------|
-| POST | `/api/otp/send` | ❌ No | Send OTP to phone number |
-| POST | `/api/otp/verify` | ❌ No | Verify OTP and login |
-
-**Total: 2 endpoints** (2 POST)
-
----
-
-## 3. Admin Routes (`/api/admin`)
-
-| Method | Endpoint | Auth Required | Role | Description |
-|--------|----------|---------------|------|-------------|
-| POST | `/api/admin/astrologer` | ✅ Yes | Admin | Add new astrologer |
-| DELETE | `/api/admin/astrologer/:id` | ✅ Yes | Admin | Remove astrologer |
-| GET | `/api/admin/astrologers` | ✅ Yes | Any | Get all astrologers |
-| POST | `/api/admin/horoscope` | ✅ Yes | Admin | Add horoscope |
-| GET | `/api/admin/horoscopes` | ✅ Yes | Any | Get all horoscopes |
-| DELETE | `/api/admin/horoscope/:id` | ✅ Yes | Admin | Delete horoscope |
-| GET | `/api/admin/stats` | ✅ Yes | Admin | Get dashboard statistics |
-| GET | `/api/admin/settings` | ✅ Yes | Admin | Get app settings |
-| POST | `/api/admin/settings` | ✅ Yes | Admin | Update app settings |
-| GET | `/api/admin/offers` | ✅ Yes | Admin | Get all offers |
-| POST | `/api/admin/offers` | ✅ Yes | Admin | Add new offer |
-| DELETE | `/api/admin/offers/:id` | ✅ Yes | Admin | Delete offer |
-| GET | `/api/admin/banners` | ✅ Yes | Admin | Get all banners |
-| POST | `/api/admin/banners` | ✅ Yes | Admin | Add new banner |
-| DELETE | `/api/admin/banners/:id` | ✅ Yes | Admin | Delete banner |
-| GET | `/api/admin/recent-logins` | ✅ Yes | Admin | Get recent user logins |
-
-**Total: 16 endpoints** (6 POST, 6 GET, 4 DELETE)
-
----
-
-## 4. Astrologer Routes (`/api/astrologer`)
-
-| Method | Endpoint | Auth Required | Role | Description |
-|--------|----------|---------------|------|-------------|
-| PUT | `/api/astrologer/status` | ✅ Yes | Astrologer | Toggle online/offline status |
-| PUT | `/api/astrologer/profile` | ✅ Yes | Astrologer | Update astrologer profile |
-| GET | `/api/astrologer/profile` | ✅ Yes | Astrologer | Get astrologer profile |
-
-**Total: 3 endpoints** (2 PUT, 1 GET)
-
----
-
-## 5. Call Routes (`/api/call`)
-
-| Method | Endpoint | Auth Required | Description |
-|--------|----------|---------------|-------------|
-| POST | `/api/call/initiate` | ✅ Yes | Initiate a call session |
-| POST | `/api/call/end` | ✅ Yes | End a call session |
-
-**Total: 2 endpoints** (2 POST)
-
----
-
-## 6. Public Routes (`/api/public`)
-
-| Method | Endpoint | Auth Required | Description |
-|--------|----------|---------------|-------------|
-| GET | `/api/public/astrologers` | ❌ No | Get public list of astrologers |
-
-**Total: 1 endpoint** (1 GET)
-
----
-
-## 7. Wallet Routes (`/api/wallet`)
-
-| Method | Endpoint | Auth Required | Description |
-|--------|----------|---------------|-------------|
-| POST | `/api/wallet/add` | ✅ Yes | Add money to wallet |
-| GET | `/api/wallet/balance` | ✅ Yes | Get wallet balance |
-
-**Total: 2 endpoints** (1 POST, 1 GET)
-
----
-
-## 8. Socket.IO Events
-
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `connection` | Server ← Client | User connects to socket |
-| `join` | Server ← Client | Join a room/identifier |
-| `callUser` | Server ← Client | Initiate call to user |
-| `answerCall` | Server ← Client | Answer incoming call |
-| `rejectCall` | Server ← Client | Reject incoming call |
-| `sendMessage` | Server ← Client | Send chat message |
-| `typing` | Server ← Client | User is typing |
-| `stopTyping` | Server ← Client | User stopped typing |
-| `endCall` | Server ← Client | End ongoing call |
-| `disconnect` | Server ← Client | User disconnects |
-| `callUser` | Server → Client | Incoming call notification |
-| `callAccepted` | Server → Client | Call accepted notification |
-| `callRejected` | Server → Client | Call rejected notification |
-| `receiveMessage` | Server → Client | Receive chat message |
-| `displayTyping` | Server → Client | Show typing indicator |
-| `hideTyping` | Server → Client | Hide typing indicator |
-| `callEnded` | Server → Client | Call ended notification |
-
-**Total: 17 socket events**
-
----
-
-## Complete API Breakdown
-
-### By HTTP Method:
-```
-GET:    11 endpoints (32.4%)
-POST:   18 endpoints (52.9%)
-PUT:    2 endpoints  (5.9%)
-DELETE: 6 endpoints  (17.6%)
-PATCH:  0 endpoints  (0%)
-───────────────────────────────
-TOTAL:  34 REST endpoints
-```
-
-### By Authentication:
-```
-Public (No Auth):     6 endpoints (17.6%)
-Protected (Auth):    28 endpoints (82.4%)
-```
-
-### By Role:
-```
-Public:              6 endpoints
-Any Authenticated:   2 endpoints
-Admin Only:         14 endpoints
-Astrologer Only:     3 endpoints
-Client/Any:          9 endpoints
-```
-
----
-
-## Request/Response Examples
-
-### Example 1: Send OTP
-```bash
-POST /api/otp/send
-Content-Type: application/json
-
-{
-  "phoneNumber": "9876543210"
-}
-
-Response (200):
-{
-  "type": "success",
-  "message": "OTP sent successfully"
+All authenticated requests require a JWT token in the Authorization header:
+```javascript
+headers: {
+  'Authorization': `Bearer ${token}`,
+  'Content-Type': 'application/json'
 }
 ```
 
-### Example 2: Get Dashboard Stats
-```bash
-GET /api/admin/stats
-Authorization: Bearer <JWT_TOKEN>
+### POST `/api/auth/register`
+**Purpose**: Register a new user (client/astrologer/admin)
 
-Response (200):
+**Request**:
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "securePassword123",
+  "role": "client"  // "client" | "astrologer" | "admin"
+}
+```
+
+**Response**:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "_id": "user_123",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "client"
+  }
+}
+```
+
+### POST `/api/auth/login`
+**Purpose**: Login existing user
+
+**Request**:
+```json
+{
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
+```
+
+**Response**: Same as register
+
+### GET `/api/auth/me`
+**Purpose**: Get current authenticated user
+**Auth**: Required
+
+**Response**:
+```json
+{
+  "_id": "user_123",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "role": "client"
+}
+```
+
+### POST `/api/auth/logout`
+**Purpose**: Logout user (clears session)
+
+**Response**:
+```json
+{
+  "msg": "Logged out successfully"
+}
+```
+
+---
+
+## OTP Verification
+
+### POST `/api/otp/send`
+**Purpose**: Send OTP to mobile number
+
+**Request**:
+```json
+{
+  "mobile": "+919876543210"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "msg": "OTP sent successfully"
+}
+```
+
+### POST `/api/otp/verify`
+**Purpose**: Verify OTP code
+
+**Request**:
+```json
+{
+  "mobile": "+919876543210",
+  "otp": "123456"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "msg": "OTP verified"
+}
+```
+
+---
+
+## Public Routes
+
+### GET `/api/public/astrologers`
+**Purpose**: Get list of all astrologers (public access)
+
+**Response**:
+```json
+[
+  {
+    "_id": "astro_123",
+    "name": "Guru Sharma",
+    "email": "guru@astro.com",
+    "role": "astrologer",
+    "profile": {
+      "userId": "astro_123",
+      "languages": ["English", "Hindi", "Tamil"],
+      "specialties": ["Vedic", "Numerology"],
+      "ratePerMinute": 50,
+      "bio": "Expert astrologer...",
+      "isOnline": true
+    }
+  }
+]
+```
+
+---
+
+## Wallet Management
+
+### POST `/api/wallet/add`
+**Purpose**: Add money to user wallet
+**Auth**: Required
+
+**Request**:
+```json
+{
+  "amount": 500
+}
+```
+
+**Response**:
+```json
+{
+  "balance": 1500,
+  "msg": "Money added successfully"
+}
+```
+
+### GET `/api/wallet/balance`
+**Purpose**: Get current wallet balance
+**Auth**: Required
+
+**Response**:
+```json
+{
+  "balance": 1500
+}
+```
+
+---
+
+## Astrologer Routes
+
+### PUT `/api/astrologer/status`
+**Purpose**: Toggle astrologer online/offline status
+**Auth**: Required (Astrologer only)
+
+**Response**:
+```json
+{
+  "userId": "astro_123",
+  "languages": ["English", "Hindi"],
+  "specialties": ["Vedic", "Tarot"],
+  "ratePerMinute": 50,
+  "bio": "Expert astrologer...",
+  "isOnline": false,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Socket Event Emitted**: `astrologerStatusUpdate`
+```json
+{
+  "astrologerId": "astro_123",
+  "isOnline": false
+}
+```
+
+### GET `/api/astrologer/profile`
+**Purpose**: Get astrologer profile
+**Auth**: Required (Astrologer only)
+
+**Response**:
+```json
+{
+  "userId": "astro_123",
+  "languages": ["English", "Hindi", "Tamil"],
+  "specialties": ["Vedic", "Numerology", "Tarot"],
+  "ratePerMinute": 50,
+  "bio": "Experienced astrologer with 10+ years...",
+  "isOnline": true
+}
+```
+
+### PUT `/api/astrologer/profile`
+**Purpose**: Update astrologer profile
+**Auth**: Required (Astrologer only)
+
+**Request**:
+```json
+{
+  "languages": ["English", "Hindi", "Tamil"],
+  "specialties": ["Vedic", "Numerology"],
+  "ratePerMinute": 60,
+  "bio": "Updated bio..."
+}
+```
+
+**Response**: Updated profile object
+
+---
+
+## Call Management
+
+### POST `/api/call/initiate`
+**Purpose**: Initiate a call/chat session
+**Auth**: Required
+
+**Request**:
+```json
+{
+  "receiverId": "astro_123",
+  "type": "video"  // "video" | "chat"
+}
+```
+
+**Response**:
+```json
+{
+  "callId": "call_001",
+  "msg": "Call initiated"
+}
+```
+
+### POST `/api/call/end`
+**Purpose**: End call and calculate billing
+**Auth**: Required
+
+**Request**:
+```json
+{
+  "callId": "call_001"
+}
+```
+
+**Response**:
+```json
+{
+  "msg": "Call ended",
+  "cost": 250,
+  "remainingBalance": 1250
+}
+```
+
+**Note**: Duration is calculated from `acceptedTime` to `endTime` on the server
+
+---
+
+## Horoscope
+
+### GET `/api/horoscope/daily`
+**Purpose**: Get daily horoscope for specific zodiac sign
+
+**Query Params**:
+- `sign`: Zodiac sign (e.g., "mesham", "rishabam")
+- `lang`: Language code (default: "ta")
+- `date`: Date in YYYY-MM-DD format (default: today)
+
+**Response**:
+```json
+{
+  "rasi": "Mesham",
+  "date": "2024-01-15",
+  "language": "ta",
+  "overall": "Today is favorable for new beginnings...",
+  "career": "Good day for career advancement...",
+  "money": "Financial gains expected...",
+  "family": "Harmony in family matters...",
+  "love": "Romantic prospects look bright...",
+  "health": "Maintain good health habits...",
+  "remedy": "Wear red color for luck..."
+}
+```
+
+### GET `/api/horoscope/all`
+**Purpose**: Get all horoscopes for today
+
+**Query Params**:
+- `lang`: Language code (default: "ta")
+- `date`: Date in YYYY-MM-DD format (default: today)
+
+**Response**: Array of horoscope objects
+
+### GET `/api/horoscope/signs`
+**Purpose**: Get list of zodiac signs
+
+**Response**:
+```json
+[
+  {
+    "id": "mesham",
+    "name": "மேஷம்",
+    "englishName": "Aries",
+    "icon": "♈"
+  }
+]
+```
+
+---
+
+## Admin Routes
+
+### GET `/api/admin/stats`
+**Purpose**: Get platform statistics
+**Auth**: Required (Admin only)
+
+**Response**:
+```json
 {
   "totalUsers": 1250,
   "totalAstrologers": 45,
-  "totalEarnings": 12500,
-  "activeCalls": 12,
-  "todayEarnings": 2500,
-  "pendingRequests": 8
+  "totalEarnings": 125000,
+  "activeCalls": 8,
+  "todayEarnings": 5000,
+  "pendingRequests": 3
 }
 ```
 
-### Example 3: Toggle Astrologer Status
-```bash
-PUT /api/astrologer/status
-Authorization: Bearer <JWT_TOKEN>
-Content-Type: application/json
+### GET `/api/admin/astrologers`
+**Purpose**: Get all astrologers with profiles
+**Auth**: Required (Admin only)
 
+**Response**: Array of astrologer objects with profiles
+
+### POST `/api/admin/astrologers`
+**Purpose**: Add new astrologer
+**Auth**: Required (Admin only)
+
+**Request**:
+```json
 {
-  "isOnline": true
+  "name": "New Astrologer",
+  "email": "new@astro.com",
+  "password": "password123",
+  "languages": ["English", "Hindi"],
+  "specialties": ["Vedic"],
+  "ratePerMinute": 40,
+  "bio": "Bio text..."
 }
+```
 
-Response (200):
+### DELETE `/api/admin/astrologers/:id`
+**Purpose**: Remove astrologer
+**Auth**: Required (Admin only)
+
+### GET `/api/admin/users`
+**Purpose**: Get all users with wallet balances
+**Auth**: Required (Admin only)
+
+**Response**:
+```json
+[
+  {
+    "_id": "user_123",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "client",
+    "walletBalance": 1500,
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+]
+```
+
+### POST `/api/admin/wallet/add`
+**Purpose**: Add money to user wallet (admin action)
+**Auth**: Required (Admin only)
+
+**Request**:
+```json
 {
-  "msg": "Status updated successfully",
-  "isOnline": true
+  "userId": "user_123",
+  "amount": 500
+}
+```
+
+**Response**:
+```json
+{
+  "msg": "Money added successfully",
+  "balance": 2000
+}
+```
+
+### GET `/api/admin/horoscopes`
+**Purpose**: Get all horoscope entries
+**Auth**: Required (Admin only)
+
+### POST `/api/admin/horoscopes`
+**Purpose**: Add/update horoscope
+**Auth**: Required (Admin only)
+
+**Request**:
+```json
+{
+  "rasi": "Mesham",
+  "type": "daily",
+  "content": "Horoscope content...",
+  "date": "2024-01-15",
+  "language": "tamil"
+}
+```
+
+### DELETE `/api/admin/horoscopes/:id`
+**Purpose**: Delete horoscope entry
+**Auth**: Required (Admin only)
+
+### GET `/api/admin/offers`
+**Purpose**: Get all offers
+**Auth**: Required (Admin only)
+
+### POST `/api/admin/offers`
+**Purpose**: Create new offer
+**Auth**: Required (Admin only)
+
+**Request**:
+```json
+{
+  "title": "New Year Offer",
+  "code": "NEWYEAR2024",
+  "discount": 20,
+  "type": "percentage",
+  "validUntil": "2024-12-31",
+  "description": "20% off on all consultations"
+}
+```
+
+### DELETE `/api/admin/offers/:id`
+**Purpose**: Delete offer
+**Auth**: Required (Admin only)
+
+### GET `/api/admin/banners`
+**Purpose**: Get all banners
+**Auth**: Required (Admin only)
+
+### POST `/api/admin/banners`
+**Purpose**: Create new banner
+**Auth**: Required (Admin only)
+
+**Request**:
+```json
+{
+  "title": "Special Consultation",
+  "subtitle": "Book now!",
+  "image": "https://example.com/banner.jpg",
+  "targetUrl": "/astrologer/123",
+  "isActive": true,
+  "position": "home_top"
+}
+```
+
+### DELETE `/api/admin/banners/:id`
+**Purpose**: Delete banner
+**Auth**: Required (Admin only)
+
+### GET `/api/admin/settings`
+**Purpose**: Get platform settings
+**Auth**: Required (Admin only)
+
+**Response**:
+```json
+{
+  "platformTitle": "AstroElite",
+  "platformLogo": "👑",
+  "primaryColor": "purple",
+  "currency": "₹",
+  "language": "tamil",
+  "timezone": "Asia/Kolkata"
+}
+```
+
+### PUT `/api/admin/settings`
+**Purpose**: Update platform settings
+**Auth**: Required (Admin only)
+
+### GET `/api/admin/recent-logins`
+**Purpose**: Get recent user logins
+**Auth**: Required (Admin only)
+
+**Response**:
+```json
+[
+  {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "timestamp": "2024-01-15T10:30:00.000Z"
+  }
+]
+```
+
+---
+
+## Socket.IO Events
+
+### Client → Server
+
+#### `join`
+**Purpose**: Join a room (user ID or chat room)
+```json
+"user_123"
+```
+
+#### `callUser`
+**Purpose**: Initiate call to another user
+```json
+{
+  "userToCall": "astro_123",
+  "signalData": {},
+  "from": "user_123",
+  "name": "John Doe",
+  "type": "video",
+  "callId": "call_001"
+}
+```
+
+#### `answerCall`
+**Purpose**: Accept incoming call
+```json
+{
+  "to": "user_123",
+  "callId": "call_001"
+}
+```
+
+#### `rejectCall`
+**Purpose**: Reject incoming call
+```json
+{
+  "to": "user_123"
+}
+```
+
+#### `endCall`
+**Purpose**: End active call
+```json
+{
+  "to": "user_123"
+}
+```
+
+#### `sendMessage`
+**Purpose**: Send chat message
+```json
+{
+  "roomId": "room_123",
+  "senderId": "user_123",
+  "text": "Hello!",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "type": "text"
+}
+```
+
+#### `typing`
+**Purpose**: Indicate user is typing
+```json
+{
+  "roomId": "room_123",
+  "name": "John Doe"
+}
+```
+
+#### `stopTyping`
+**Purpose**: Indicate user stopped typing
+```json
+{
+  "roomId": "room_123"
+}
+```
+
+### Server → Client
+
+#### `callUser`
+**Purpose**: Notify user of incoming call
+```json
+{
+  "signal": {},
+  "from": "user_123",
+  "name": "John Doe",
+  "type": "video",
+  "callId": "call_001"
+}
+```
+
+#### `callAccepted`
+**Purpose**: Notify caller that call was accepted
+```json
+{
+  "accepted": true
+}
+```
+
+#### `callRejected`
+**Purpose**: Notify caller that call was rejected
+
+#### `callEnded`
+**Purpose**: Notify user that call ended
+
+#### `receiveMessage`
+**Purpose**: Receive chat message
+```json
+{
+  "roomId": "room_123",
+  "senderId": "user_123",
+  "text": "Hello!",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "type": "text"
+}
+```
+
+#### `displayTyping`
+**Purpose**: Show typing indicator
+```json
+{
+  "name": "John Doe"
+}
+```
+
+#### `hideTyping`
+**Purpose**: Hide typing indicator
+
+#### `astrologerStatusUpdate`
+**Purpose**: Real-time astrologer status change
+```json
+{
+  "astrologerId": "astro_123",
+  "isOnline": false
 }
 ```
 
 ---
 
-## Middleware Used
+## Error Responses
 
-### 1. `auth` Middleware
-- **Purpose**: Verify JWT token
-- **Location**: All protected routes
-- **Adds**: `req.user` with user ID and role
-
-### 2. `adminCheck` Middleware
-- **Purpose**: Ensure user is admin
-- **Location**: Admin-only routes
-- **Requires**: `auth` middleware first
-
-### 3. `astrologerCheck` Middleware
-- **Purpose**: Ensure user is astrologer
-- **Location**: Astrologer-only routes
-- **Requires**: `auth` middleware first
-
----
-
-## Error Codes
-
-| Code | Description |
-|------|-------------|
-| 200 | Success |
-| 201 | Created |
-| 400 | Bad Request |
-| 401 | Unauthorized (Invalid/Missing token) |
-| 403 | Forbidden (Insufficient permissions) |
-| 404 | Not Found |
-| 500 | Internal Server Error |
-
----
-
-## Testing APIs
-
-### Using cURL:
-```bash
-# Send OTP
-curl -X POST http://localhost:9001/api/otp/send \
-  -H "Content-Type: application/json" \
-  -d '{"phoneNumber":"9876543210"}'
-
-# Login
-curl -X POST http://localhost:9001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
-
-# Get Protected Resource
-curl -X GET http://localhost:9001/api/wallet/balance \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+All error responses follow this format:
+```json
+{
+  "msg": "Error description",
+  "error": "Detailed error message"
+}
 ```
 
-### Using Postman:
-1. Import collection with all endpoints
-2. Set environment variable for base URL: `http://localhost:9001`
-3. Set authorization header after login
-4. Test each endpoint
+Common HTTP Status Codes:
+- `200`: Success
+- `400`: Bad Request
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Not Found
+- `500`: Server Error
 
 ---
 
-## API Version: 1.0
-## Base URL: `http://localhost:9001` (Development)
-## Production URL: `https://astroweb-y0i6.onrender.com` (Production)
+## Notes
 
-**Last Updated**: Nov 24, 2025
+1. **Billing Logic**: Calls/chats are billed only from the moment the astrologer accepts (`acceptedTime`), not from initiation.
+
+2. **Real-time Updates**: Astrologer status changes emit socket events to update all connected clients instantly.
+
+3. **Authentication**: Most routes require JWT authentication. Include the token in the Authorization header.
+
+4. **Wallet Transactions**: All wallet operations create transaction records for audit purposes.
+
+5. **Socket Connections**: Clients should connect to the socket server on mount and join their user ID room for receiving events.

@@ -23,7 +23,7 @@ const VideoCallContent = ({ callId, receiverId, setCallActive, callActive, userR
 
   const [duration, setDuration] = useState(0);
   const [cost, setCost] = useState(0);
-  const [rate, setRate] = useState(10); // Default rate
+  const [rate, setRate] = useState(1); // Fixed rate: ₹1 per minute
   const [balance, setBalance] = useState(0);
   const timerRef = useRef(null);
 

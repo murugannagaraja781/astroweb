@@ -25,8 +25,9 @@ exports.initiateCall = async (req, res) => {
       return res.status(404).json({ msg: 'Astrologer not found' });
     }
 
-    if (wallet.balance < astrologerProfile.ratePerMinute) {
-      return res.status(400).json({ msg: `Insufficient balance. Required: ${astrologerProfile.ratePerMinute}` });
+    // Check if user has at least ₹1 balance (₹1 per minute rate)
+    if (wallet.balance < 1) {
+      return res.status(400).json({ msg: 'Insufficient balance. Minimum ₹1 required to start call/chat.' });
     }
 
     const newCall = new CallLog({
@@ -47,18 +48,36 @@ exports.initiateCall = async (req, res) => {
 
 exports.endCall = async (req, res) => {
   try {
-    const { callId, duration } = req.body; // duration in seconds
+    const { callId } = req.body;
     const callLog = await CallLog.findById(callId);
 
     if (!callLog) return res.status(404).json({ msg: 'Call log not found' });
 
     const receiverProfile = await AstrologerProfile.findOne({ userId: callLog.receiverId });
-    const cost = (duration / 60) * receiverProfile.ratePerMinute;
 
-    callLog.endTime = new Date();
-    callLog.duration = duration;
-    callLog.cost = cost;
-    callLog.status = 'completed';
+    let duration = 0;
+    let cost = 0;
+
+    if (callLog.acceptedTime) {
+      // Calculate duration from accepted time
+      const endTime = new Date();
+      duration = (endTime - new Date(callLog.acceptedTime)) / 1000; // in seconds
+
+      // Fixed rate: ₹1 per minute for all calls/chats
+      cost = (duration / 60) * 1;
+
+      callLog.endTime = endTime;
+      callLog.duration = duration;
+      callLog.cost = cost;
+      callLog.status = 'completed';
+    } else {
+      // Call was never accepted
+      callLog.status = 'missed';
+      callLog.endTime = new Date();
+      callLog.duration = 0;
+      callLog.cost = 0;
+    }
+
     await callLog.save();
 
     // Deduct from caller

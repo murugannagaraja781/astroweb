@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import io from 'socket.io-client';
 import MobileHome from './mobile/MobileHome';
 import DesktopHome from './desktop/DesktopHome';
 
@@ -9,6 +10,28 @@ const Home = () => {
 
   useEffect(() => {
     fetchAstrologers();
+
+    // Socket connection for real-time updates
+    const socket = io(import.meta.env.VITE_API_URL);
+
+    socket.on('astrologerStatusUpdate', ({ astrologerId, isOnline }) => {
+      setAstrologers(prev => prev.map(astro => {
+        if (astro._id === astrologerId) {
+          return {
+            ...astro,
+            profile: {
+              ...astro.profile,
+              isOnline
+            }
+          };
+        }
+        return astro;
+      }));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const fetchAstrologers = async () => {

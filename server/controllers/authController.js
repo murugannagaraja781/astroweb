@@ -25,6 +25,18 @@ exports.register = async (req, res) => {
 
     // Create Wallet for every user
     const wallet = new Wallet({ userId: user._id });
+
+    // Add ₹20 welcome bonus for new clients
+    if (role === 'client') {
+      wallet.balance = 20;
+      wallet.transactions.push({
+        amount: 20,
+        type: 'credit',
+        description: 'Welcome Bonus',
+        date: new Date()
+      });
+    }
+
     await wallet.save();
 
     // If Astrologer, create profile

@@ -8,6 +8,13 @@ exports.toggleStatus = async (req, res) => {
     profile.isOnline = !profile.isOnline;
     await profile.save();
 
+    // Emit socket event for real-time update
+    const io = req.app.get('io');
+    io.emit('astrologerStatusUpdate', {
+      astrologerId: req.user.id,
+      isOnline: profile.isOnline
+    });
+
     res.json(profile);
   } catch (err) {
     console.error(err.message);

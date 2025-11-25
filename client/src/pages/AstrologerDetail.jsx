@@ -10,10 +10,23 @@ const AstrologerDetail = () => {
   const navigate = useNavigate();
   const [astrologer, setAstrologer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState(0);
 
   useEffect(() => {
     fetchAstrologer();
-  }, [id]);
+    if (user) {
+      fetchBalance();
+    }
+  }, [id, user]);
+
+  const fetchBalance = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
+      setBalance(res.data.balance);
+    } catch (err) {
+      console.error('Error fetching balance:', err);
+    }
+  };
 
   const fetchAstrologer = async () => {
     try {
@@ -37,16 +50,30 @@ const AstrologerDetail = () => {
   };
 
   const handleAction = (action) => {
+    // Check if user is logged in
     if (!user) {
       alert('Please login to continue');
       navigate('/login');
       return;
     }
 
+    // Check if user has sufficient balance (minimum ₹1)
+    if (balance < 1) {
+      alert('Insufficient balance! Please add money to your wallet. Minimum ₹1 required.');
+      navigate('/dashboard');
+      return;
+    }
+
+    // Check if astrologer is online
+    if (!astrologer.isOnline) {
+      alert('This astrologer is currently offline. Please try again later.');
+      return;
+    }
+
     if (action === 'call') {
       navigate(`/call/${id}`);
     } else if (action === 'chat') {
-      navigate('/dashboard'); // Navigate to dashboard which will handle chat initiation
+      navigate(`/chat/${id}`);
     }
   };
 
