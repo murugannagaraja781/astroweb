@@ -61,6 +61,11 @@ const AdminDashboard = () => {
   });
   const [recentLogins, setRecentLogins] = useState([]);
 
+  // Tab Data
+  const [offers, setOffers] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [horoscopes, setHoroscopes] = useState([]);
+
   useEffect(() => {
     fetchStats();
     fetchSettings();

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const AstrologerProfile = require('../models/AstrologerProfile');
+const Banner = require('../models/Banner');
 
 exports.getPublicAstrologers = async (req, res) => {
     try {
@@ -15,6 +16,33 @@ exports.getPublicAstrologers = async (req, res) => {
         }));
 
         res.json(result);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+exports.getBanners = async (req, res) => {
+    try {
+        const { deviceType = 'all', position = 'home_top' } = req.query;
+
+        const query = { isActive: true };
+
+        // Filter by device type
+        if (deviceType !== 'all') {
+            query.$or = [
+                { deviceType: deviceType },
+                { deviceType: 'all' }
+            ];
+        }
+
+        // Filter by position
+        if (position) {
+            query.position = position;
+        }
+
+        const banners = await Banner.find(query).sort({ priority: -1, createdAt: -1 }).limit(5);
+        res.json(banners);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
