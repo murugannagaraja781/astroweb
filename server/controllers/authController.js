@@ -8,6 +8,35 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
+    // Validation
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({
+        msg: 'Please provide all required fields',
+        missing: {
+          name: !name,
+          email: !email,
+          password: !password,
+          role: !role
+        }
+      });
+    }
+
+    // Validate role
+    if (!['client', 'astrologer', 'admin'].includes(role)) {
+      return res.status(400).json({ msg: 'Invalid role. Must be client, astrologer, or admin' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ msg: 'Invalid email format' });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({ msg: 'Password must be at least 6 characters long' });
+    }
+
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ msg: 'User already exists' });
 
@@ -52,8 +81,8 @@ exports.register = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Registration error:', err.message);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 };
 
