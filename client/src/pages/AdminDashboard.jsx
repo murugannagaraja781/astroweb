@@ -52,6 +52,15 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [walletAmount, setWalletAmount] = useState('');
 
+  // Stats and Activity
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalAstrologers: 0,
+    totalEarnings: 0,
+    activeCalls: 0
+  });
+  const [recentLogins, setRecentLogins] = useState([]);
+
   useEffect(() => {
     fetchStats();
     fetchSettings();
