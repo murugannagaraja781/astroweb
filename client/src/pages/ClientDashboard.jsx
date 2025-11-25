@@ -1,357 +1,701 @@
-import { useState, useEffect, useContext } from 'react';
+ import { useState, useEffect } from 'react';
 import axios from 'axios';
-import AuthContext from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Wallet, Video, MessageCircle, Sparkles } from 'lucide-react';
 import { io } from 'socket.io-client';
+import { useNavigate } from 'react-router-dom';
 
 const socket = io(import.meta.env.VITE_API_URL);
 
-const ClientDashboard = () => {
-  const [astrologers, setAstrologers] = useState([]);
-  const [wallet, setWallet] = useState(null);
-  const [amount, setAmount] = useState('');
-  const { user } = useContext(AuthContext);
+const AstrologerDashboard = () => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [profile, setProfile] = useState(null);
+  const [formData, setFormData] = useState({
+    languages: '', specialties: '', ratePerMinute: 10, bio: '', experience: '', education: ''
+  });
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [callHistory, setCallHistory] = useState([]);
+  const [earnings, setEarnings] = useState({ today: 0, weekly: 0, monthly: 0 });
+  const [reviews, setReviews] = useState([]);
+  const [schedule, setSchedule] = useState([]);
+  const [analytics, setAnalytics] = useState({ totalCalls: 0, avgRating: 0, totalEarnings: 0 });
   const navigate = useNavigate();
 
-  const [waitingForAcceptance, setWaitingForAcceptance] = useState(false);
-
   useEffect(() => {
-    fetchAstrologers();
-    fetchWallet();
-
-    if (user) {
-      socket.emit('join', user.id);
-    }
+    fetchProfile();
+    fetchDashboardData();
+    setupSocketListeners();
 
     return () => {
-      // Clean up
+      socket.off('callUser');
+      socket.off('callEnded');
     };
-  }, [user]);
+  }, []);
 
-  const [currentChatTarget, setCurrentChatTarget] = useState(null);
-  const [connectionTimeout, setConnectionTimeout] = useState(null);
-
-  useEffect(() => {
-    if (currentChatTarget) {
-       console.log('Setting up chat acceptance listeners for:', currentChatTarget);
-
-       const handleAccept = () => {
-           console.log('Chat accepted! Navigating to chat...');
-           if (connectionTimeout) clearTimeout(connectionTimeout);
-           setWaitingForAcceptance(false);
-           navigate(`/chat/${currentChatTarget}`);
-           setCurrentChatTarget(null);
-       };
-
-       const handleReject = () => {
-           console.log('Chat rejected');
-           if (connectionTimeout) clearTimeout(connectionTimeout);
-           setWaitingForAcceptance(false);
-           alert("Astrologer is busy or rejected your request.");
-           setCurrentChatTarget(null);
-       };
-
-       socket.on('callAccepted', handleAccept);
-       socket.on('callRejected', handleReject);
-
-       // Set timeout for 60 seconds (increased from 30)
-       const timeout = setTimeout(() => {
-           console.log('Connection timeout - no response from astrologer');
-           setWaitingForAcceptance(false);
-           setCurrentChatTarget(null);
-           alert("Connection timeout. The astrologer didn't respond. Please try again.");
-       }, 60000);
-
-       setConnectionTimeout(timeout);
-
-       return () => {
-           socket.off('callAccepted', handleAccept);
-           socket.off('callRejected', handleReject);
-           if (timeout) clearTimeout(timeout);
-       };
-    }
-  }, [currentChatTarget, navigate]);
-
-  const fetchAstrologers = async () => {
+  const fetchProfile = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/astrologers`);
-      setAstrologers(res.data);
-    } catch (err) {
-      console.error('Error fetching astrologers:', err);
-    }
-  };
-
-  const fetchWallet = async () => {
-    try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
-      setWallet(res.data);
-    } catch (err) {
-      console.error('Error fetching wallet:', err);
-    }
-  };
-
-  const addMoney = async () => {
-    if (!amount || amount <= 0) {
-      alert('Please enter a valid amount');
-      return;
-    }
-    try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/wallet/add`, {
-        amount: parseInt(amount)
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      fetchWallet();
-      setAmount('');
-      alert('Money added successfully');
+      setProfile(res.data);
+      setFormData({
+        languages: res.data.languages?.join(',') || '',
+        specialties: res.data.specialties?.join(',') || '',
+        ratePerMinute: res.data.ratePerMinute || 10,
+        bio: res.data.bio || '',
+        experience: res.data.experience || '',
+        education: res.data.education || ''
+      });
     } catch (err) {
-      console.error('Error adding money:', err);
-      alert('Failed to add money');
+      console.error('Error fetching profile:', err);
+      alert('Failed to load profile');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const startCall = (astrologerId, rate) => {
-    const numericRate = Number(rate) || 0;
-    const numericBalance = Number(wallet?.balance) || 0;
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token');
 
-    if (!wallet || numericBalance < numericRate) {
-      alert(`Insufficient balance (₹${numericBalance}). Required: ₹${numericRate}/min. Please add money.`);
-      return;
+      // Fetch call history
+      const callsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/call-history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCallHistory(callsRes.data);
+
+      // Fetch earnings
+      const earningsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/earnings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEarnings(earningsRes.data);
+
+      // Fetch reviews
+      const reviewsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/reviews`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReviews(reviewsRes.data);
+
+      // Fetch analytics
+      const analyticsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/analytics`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAnalytics(analyticsRes.data);
+
+      // Fetch schedule
+      const scheduleRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/schedule`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSchedule(scheduleRes.data);
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      // Set mock data for demonstration
+      setMockData();
     }
-    navigate(`/call/${astrologerId}`);
   };
 
-  const startChat = (astrologerId, rate) => {
-    const numericRate = Number(rate) || 0;
-    const numericBalance = Number(wallet?.balance) || 0;
+  const setMockData = () => {
+    setCallHistory([
+      {
+        callId: "call_001",
+        userId: "user_123",
+        userName: "Alice Johnson",
+        type: "video",
+        date: "2024-01-15T10:30:00Z",
+        duration: 15,
+        earnings: 750,
+        status: "completed",
+        rating: 5
+      },
+      {
+        callId: "call_002",
+        userId: "user_456",
+        userName: "Bob Smith",
+        type: "chat",
+        date: "2024-01-14T14:20:00Z",
+        duration: 10,
+        earnings: 300,
+        status: "completed",
+        rating: 4
+      }
+    ]);
 
-    if (!wallet || numericBalance < numericRate) {
-      alert(`Insufficient balance (₹${numericBalance}). Required: ₹${numericRate}/min. Please add money.`);
+    setEarnings({
+      today: 1250,
+      weekly: 8500,
+      monthly: 32500,
+      totalEarnings: 187500,
+      currency: "INR"
+    });
+
+    setReviews([
+      {
+        reviewId: "rev_001",
+        userId: "user_123",
+        userName: "Alice Johnson",
+        rating: 5,
+        comment: "Excellent guidance! Very accurate predictions.",
+        date: "2024-01-15T11:00:00Z",
+        callId: "call_001"
+      },
+      {
+        reviewId: "rev_002",
+        userId: "user_456",
+        userName: "Bob Smith",
+        rating: 4,
+        comment: "Good consultation, helped me understand my career path.",
+        date: "2024-01-14T15:00:00Z",
+        callId: "call_002"
+      }
+    ]);
+
+    setSchedule([
+      { day: "monday", slots: ["09:00-12:00", "14:00-18:00"], isAvailable: true },
+      { day: "tuesday", slots: ["10:00-13:00", "15:00-19:00"], isAvailable: true },
+      { day: "wednesday", slots: [], isAvailable: false },
+      { day: "thursday", slots: ["09:00-17:00"], isAvailable: true },
+      { day: "friday", slots: ["11:00-15:00"], isAvailable: true },
+      { day: "saturday", slots: ["09:00-12:00"], isAvailable: true },
+      { day: "sunday", slots: [], isAvailable: false }
+    ]);
+
+    setAnalytics({
+      totalCalls: 150,
+      totalEarnings: 187500,
+      avgRating: 4.8,
+      avgCallDuration: 12.5,
+      successRate: 95.2
+    });
+  };
+
+  const setupSocketListeners = () => {
+    socket.on('callUser', (data) => {
+      console.log("Incoming call data:", data);
+      setIncomingCall(data);
+    });
+
+    socket.on('callEnded', () => {
+      setIncomingCall(null);
+    });
+
+    socket.on('callRejected', () => {
+      setIncomingCall(null);
+      alert('Call was rejected by user');
+    });
+  };
+
+  const toggleStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/status`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProfile(res.data);
+    } catch (err) {
+      console.error('Error updating status:', err);
+      alert('Failed to update status');
+    }
+  };
+
+  const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const onSubmit = async e => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`, {
+        ...formData,
+        languages: formData.languages.split(',').map(lang => lang.trim()),
+        specialties: formData.specialties.split(',').map(spec => spec.trim())
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchProfile();
+      alert('Profile updated successfully');
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      alert('Failed to update profile');
+    }
+  };
+
+  const acceptCall = () => {
+    if (!incomingCall) {
+      console.error('No incoming call data');
       return;
     }
 
-    if (!user || !user.id) {
-      alert('User session error. Please refresh and login again.');
+    if (!incomingCall.from) {
+      console.error('Missing caller ID');
+      alert('Error: Missing caller information');
+      setIncomingCall(null);
       return;
     }
 
-    console.log('Starting chat with:', astrologerId);
-    console.log('User ID:', user.id);
-    console.log('User name:', user.name);
-    console.log('Socket connected:', socket.connected);
+    socket.emit('answerCall', {
+      to: incomingCall.from,
+      callId: incomingCall.callId,
+      astrologerId: profile.userId,
+      astrologerName: profile.name,
+      type: incomingCall.type
+    });
 
-    if (!socket.connected) {
-      alert('Connection error. Please refresh the page and try again.');
-      return;
+    setIncomingCall(null);
+
+    if (incomingCall.type === 'chat') {
+      navigate(`/chat/${incomingCall.from}`, {
+        state: {
+          callerName: incomingCall.name,
+          callType: 'chat'
+        }
+      });
+    } else {
+      navigate(`/video-call/${incomingCall.from}`, {
+        state: {
+          callerName: incomingCall.name,
+          callId: incomingCall.callId,
+          callType: 'video'
+        }
+      });
     }
+  };
 
-    const callData = {
-        userToCall: astrologerId,
-        from: user.id,
-        name: user.name || 'Client',
-        type: 'chat'
+  const rejectCall = () => {
+    if (incomingCall && incomingCall.from) {
+      socket.emit('rejectCall', {
+        to: incomingCall.from,
+        astrologerId: profile.userId
+      });
+    }
+    setIncomingCall(null);
+  };
+
+  const updateAvailability = async (day, timeSlots) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/astrologer/schedule`,
+        { day, timeSlots },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchDashboardData();
+      alert('Schedule updated successfully');
+    } catch (err) {
+      console.error('Error updating schedule:', err);
+      alert('Failed to update schedule');
+    }
+  };
+
+  // Tab Components
+  const OverviewTab = () => (
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+          <h3 className="text-gray-500 text-sm font-medium">Today's Earnings</h3>
+          <p className="text-2xl font-bold text-gray-800">₹{earnings.today}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+          <h3 className="text-gray-500 text-sm font-medium">Total Calls</h3>
+          <p className="text-2xl font-bold text-gray-800">{analytics.totalCalls}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-500">
+          <h3 className="text-gray-500 text-sm font-medium">Avg Rating</h3>
+          <p className="text-2xl font-bold text-gray-800">{analytics.avgRating}/5</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
+          <h3 className="text-gray-500 text-sm font-medium">Online Status</h3>
+          <p className={`text-2xl font-bold ${profile?.isOnline ? 'text-green-600' : 'text-red-600'}`}>
+            {profile?.isOnline ? 'Online' : 'Offline'}
+          </p>
+        </div>
+      </div>
+
+      {/* Recent Calls */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Calls</h3>
+        <div className="space-y-3">
+          {callHistory.slice(0, 5).map((call, index) => (
+            <div key={index} className="flex justify-between items-center p-3 border-b">
+              <div>
+                <p className="font-medium">{call.userName}</p>
+                <p className="text-sm text-gray-500 capitalize">{call.type} • {new Date(call.date).toLocaleDateString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-medium">₹{call.earnings}</p>
+                <p className="text-sm text-gray-500">{call.duration} min</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const ProfileTab = () => (
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Profile Settings</h2>
+      <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="md:col-span-2">
+          <label className="block text-gray-700 font-medium mb-2">Bio</label>
+          <textarea
+            name="bio"
+            value={formData.bio}
+            onChange={onChange}
+            placeholder="Tell clients about your expertise..."
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-32"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Experience</label>
+          <input
+            type="text"
+            name="experience"
+            value={formData.experience}
+            onChange={onChange}
+            placeholder="5+ years in Vedic Astrology"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Education</label>
+          <input
+            type="text"
+            name="education"
+            value={formData.education}
+            onChange={onChange}
+            placeholder="Certified Astrologer"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Languages (comma separated)</label>
+          <input
+            type="text"
+            name="languages"
+            value={formData.languages}
+            onChange={onChange}
+            placeholder="English, Hindi, Tamil"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Specialties (comma separated)</label>
+          <input
+            type="text"
+            name="specialties"
+            value={formData.specialties}
+            onChange={onChange}
+            placeholder="Vedic, Numerology, Tarot"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Rate Per Minute (₹)</label>
+          <input
+            type="number"
+            name="ratePerMinute"
+            value={formData.ratePerMinute}
+            onChange={onChange}
+            min="1"
+            max="1000"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <button
+            type="submit"
+            className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors w-full"
+          >
+            Update Profile
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  const CallHistoryTab = () => (
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Call History</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left p-3">User</th>
+              <th className="text-left p-3">Type</th>
+              <th className="text-left p-3">Date</th>
+              <th className="text-left p-3">Duration</th>
+              <th className="text-left p-3">Earnings</th>
+              <th className="text-left p-3">Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            {callHistory.map((call, index) => (
+              <tr key={index} className="border-b hover:bg-gray-50">
+                <td className="p-3">{call.userName}</td>
+                <td className="p-3 capitalize">{call.type}</td>
+                <td className="p-3">{new Date(call.date).toLocaleDateString()}</td>
+                <td className="p-3">{call.duration} min</td>
+                <td className="p-3 font-medium">₹{call.earnings}</td>
+                <td className="p-3">
+                  <div className="flex items-center">
+                    <span className="text-yellow-500">⭐</span>
+                    <span className="ml-1">{call.rating}/5</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const EarningsTab = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+          <h3 className="text-gray-500 text-sm font-medium">Today</h3>
+          <p className="text-2xl font-bold text-gray-800">₹{earnings.today}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+          <h3 className="text-gray-500 text-sm font-medium">This Week</h3>
+          <p className="text-2xl font-bold text-gray-800">₹{earnings.weekly}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+          <h3 className="text-gray-500 text-sm font-medium">This Month</h3>
+          <p className="text-2xl font-bold text-gray-800">₹{earnings.monthly}</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Transactions</h3>
+        <div className="space-y-3">
+          {callHistory.slice(0, 10).map((call, index) => (
+            <div key={index} className="flex justify-between items-center p-3 border-b">
+              <div>
+                <p className="font-medium">{call.userName}</p>
+                <p className="text-sm text-gray-500">{new Date(call.date).toLocaleDateString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-medium text-green-600">+₹{call.earnings}</p>
+                <p className="text-sm text-gray-500">{call.duration} min • {call.type}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const ReviewsTab = () => (
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Customer Reviews</h3>
+      <div className="space-y-4">
+        {reviews.map((review, index) => (
+          <div key={index} className="border-b pb-4">
+            <div className="flex justify-between items-start mb-2">
+              <h4 className="font-medium">{review.userName}</h4>
+              <div className="flex items-center">
+                <span className="text-yellow-500">⭐</span>
+                <span className="ml-1">{review.rating}/5</span>
+              </div>
+            </div>
+            <p className="text-gray-600">{review.comment}</p>
+            <p className="text-sm text-gray-400 mt-2">{new Date(review.date).toLocaleDateString()}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const ScheduleTab = () => {
+    const [editingDay, setEditingDay] = useState(null);
+    const [timeSlots, setTimeSlots] = useState('');
+
+    const handleSaveSchedule = (day) => {
+      const slots = timeSlots.split(',').map(slot => slot.trim()).filter(slot => slot);
+      updateAvailability(day, slots);
+      setEditingDay(null);
+      setTimeSlots('');
     };
 
-    console.log('Emitting callUser with data:', callData);
-    socket.emit('callUser', callData);
+    return (
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Availability Schedule</h3>
+        <div className="space-y-4">
+          {schedule.map((daySchedule, index) => (
+            <div key={index} className="flex justify-between items-center p-4 border rounded-lg">
+              <span className="font-medium capitalize">{daySchedule.day}</span>
+              <span className="text-gray-600">
+                {daySchedule.slots.length > 0 ? daySchedule.slots.join(', ') : 'Not Available'}
+              </span>
+              <button
+                onClick={() => {
+                  setEditingDay(daySchedule.day);
+                  setTimeSlots(daySchedule.slots.join(', '));
+                }}
+                className="text-indigo-600 hover:text-indigo-800"
+              >
+                Edit
+              </button>
+            </div>
+          ))}
+        </div>
 
-    setCurrentChatTarget(astrologerId);
-    setWaitingForAcceptance(true);
+        {/* Edit Modal */}
+        {editingDay && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white p-6 rounded-xl max-w-md w-full">
+              <h3 className="text-xl font-semibold mb-4">Edit {editingDay} Schedule</h3>
+              <input
+                type="text"
+                value={timeSlots}
+                onChange={(e) => setTimeSlots(e.target.value)}
+                placeholder="09:00-12:00, 14:00-18:00"
+                className="w-full p-3 border border-gray-300 rounded-lg mb-4"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSaveSchedule(editingDay)}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex-1"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditingDay(null)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
-  const getInitials = (name) => {
-    if (!name) return '??';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
-  };
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+    </div>
+  );
 
-  const onlineAstrologers = astrologers.filter(a => a.profile?.isOnline);
+  if (!profile) return <div className="min-h-screen flex items-center justify-center">Failed to load profile</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
-      {/* Waiting Modal */}
-      {waitingForAcceptance && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm mx-4 transform animate-scaleIn">
-            <div className="mb-4">
-              <Sparkles className="w-16 h-16 text-orange-500 mx-auto animate-pulse" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Incoming Call Modal */}
+      {incomingCall && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-md w-full">
+            <div className="w-20 h-20 mx-auto mb-4 bg-indigo-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">📞</span>
             </div>
-            <h2 className="text-2xl font-bold mb-2 text-gray-800">Connecting...</h2>
-            <p className="text-gray-600 mb-6">Waiting for astrologer to accept</p>
-            <div className="flex justify-center mb-6">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-600"></div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">
+              Incoming {incomingCall.type === 'chat' ? 'Chat' : 'Video Call'}
+            </h2>
+            <p className="text-lg text-gray-600 mb-2">{incomingCall.name}</p>
+            <p className="text-gray-500 mb-6">is requesting to connect with you</p>
+
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={rejectCall}
+                className="bg-red-500 text-white px-6 py-3 rounded-full font-bold hover:bg-red-600 transition-colors flex items-center gap-2"
+              >
+                <span>✕</span> Reject
+              </button>
+              <button
+                onClick={acceptCall}
+                className="bg-green-500 text-white px-6 py-3 rounded-full font-bold hover:bg-green-600 transition-colors animate-pulse flex items-center gap-2"
+              >
+                <span>✓</span> Accept
+              </button>
             </div>
-            <button
-              onClick={() => setWaitingForAcceptance(false)}
-              className="text-red-500 font-semibold hover:text-red-700 transition-colors"
-            >
-              Cancel Request
-            </button>
           </div>
         </div>
       )}
 
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white pt-12 pb-16 px-4 shadow-lg">
-        <div className="container mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <Sparkles className="w-8 h-8" />
-            <h1 className="text-4xl font-bold">AstroConnect</h1>
+      <div className="container mx-auto px-4 max-w-7xl py-8">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Astrologer Dashboard</h1>
+            <p className="text-gray-600">Manage your profile and accept client calls</p>
           </div>
-          <p className="text-orange-100 text-lg">Connect with expert astrologers instantly2</p>
-        </div>
-      </div>
 
-      <div className="container mx-auto px-4 -mt-8">
-        {/* Wallet Card - Elevated */}
-        <div className="mb-8 bg-white rounded-2xl shadow-xl p-6 border border-orange-100 transform hover:scale-[1.02] transition-transform">
-          <div className="flex justify-between items-center">
+          {/* Status Toggle */}
+          <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg">
-                <Wallet className="w-7 h-7 text-white" />
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${profile.isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className="text-gray-600">
+                  Status: <span className={profile.isOnline ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                    {profile.isOnline ? 'Online' : 'Offline'}
+                  </span>
+                </span>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 font-medium mb-1">Wallet Balance</p>
-                <p className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
-                  ₹{wallet?.balance || 0}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className="p-3 border-2 border-orange-200 rounded-xl w-28 focus:outline-none focus:border-orange-500 text-sm transition-colors"
-                placeholder="Amount"
-                min="1"
-              />
               <button
-                onClick={addMoney}
-                className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                onClick={toggleStatus}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  profile.isOnline
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
               >
-                <Plus size={22} />
+                {profile.isOnline ? 'Go Offline' : 'Go Online'}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Online Astrologers Section */}
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
-            <h2 className="text-2xl font-bold text-gray-800">Available Now</h2>
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          </div>
-
-          <div className="flex overflow-x-auto gap-5 pb-4 scrollbar-hide">
-            {onlineAstrologers.length > 0 ? onlineAstrologers.map(astro => (
-              <div
-                key={astro._id}
-                className="flex flex-col items-center min-w-[100px] cursor-pointer group"
-                onClick={() => startChat(astro._id, astro.profile?.ratePerMinute)}
+        {/* Tabs Navigation */}
+        <div className="bg-white rounded-xl shadow-sm mb-6 overflow-x-auto">
+          <div className="flex border-b">
+            {[
+              { id: 'overview', label: 'Overview' },
+              { id: 'profile', label: 'Profile' },
+              { id: 'call-history', label: 'Call History' },
+              { id: 'earnings', label: 'Earnings' },
+              { id: 'reviews', label: 'Reviews' },
+              { id: 'schedule', label: 'Schedule' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
               >
-                <div className="relative mb-3">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg group-hover:shadow-2xl transition-all transform group-hover:scale-110 border-4 border-white">
-                    <span className="text-white text-2xl font-bold">
-                      {getInitials(astro.name)}
-                    </span>
-                  </div>
-                  <span className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 border-4 border-white rounded-full animate-pulse"></span>
-                </div>
-                <span className="text-sm font-semibold text-gray-800 text-center truncate w-full mb-1">
-                  {astro.name?.split(' ')[0] || 'Astrologer'}
-                </span>
-                <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                  Online
-                </span>
-              </div>
-            )) : (
-              <div className="text-gray-500 text-sm py-8 text-center w-full">
-                <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                <p>No astrologers online at the moment</p>
-              </div>
-            )}
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* All Astrologers Section */}
-        <div className="pb-8">
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-            <h2 className="text-2xl font-bold text-gray-800">All Astrologers</h2>
-          </div>
-
-          <div className="space-y-4">
-            {astrologers.length > 0 ? astrologers.map(astro => (
-              <div
-                key={astro._id}
-                className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-md hover:shadow-xl transition-all border border-gray-100 transform hover:scale-[1.01]"
-              >
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg">
-                    <span className="text-white text-xl font-bold">
-                      {getInitials(astro.name)}
-                    </span>
-                  </div>
-                  {astro.profile?.isOnline && (
-                    <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-3 border-white rounded-full"></span>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-800 truncate">
-                        {astro.name}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        ₹{astro.profile?.ratePerMinute || 0}/min
-                      </p>
-                    </div>
-                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                      astro.profile?.isOnline
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {astro.profile?.isOnline ? 'Online' : 'Offline'}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 transform hover:scale-105"
-                      onClick={() => startCall(astro._id, astro.profile?.ratePerMinute)}
-                    >
-                      <Video size={16} />
-                      Video Call
-                    </button>
-                    <button
-                      className="flex-1 bg-white text-orange-600 border-2 border-orange-500 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-orange-50 transition-all flex items-center justify-center gap-2 transform hover:scale-105"
-                      onClick={() => startChat(astro._id, astro.profile?.ratePerMinute)}
-                    >
-                      <MessageCircle size={16} />
-                      Chat
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )) : (
-              <div className="text-center py-16 text-gray-500">
-                <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                <p className="text-lg">No astrologers available</p>
-              </div>
-            )}
-          </div>
+        {/* Tab Content */}
+        <div className="min-h-96">
+          {activeTab === 'overview' && <OverviewTab />}
+          {activeTab === 'profile' && <ProfileTab />}
+          {activeTab === 'call-history' && <CallHistoryTab />}
+          {activeTab === 'earnings' && <EarningsTab />}
+          {activeTab === 'reviews' && <ReviewsTab />}
+          {activeTab === 'schedule' && <ScheduleTab />}
         </div>
       </div>
     </div>
   );
 };
 
-export default ClientDashboard;
+export default AstrologerDashboard;
