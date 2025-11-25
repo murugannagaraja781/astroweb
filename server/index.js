@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
 const { Server } = require('socket.io');
+const BillingTracker = require('./services/billingTracker');
 
 dotenv.config();
 
@@ -29,70 +30,35 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/wallet', require('./routes/walletRoutes'));
 app.use('/api/astrologer', require('./routes/astrologerRoutes'));
 app.use('/api/call', require('./routes/callRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes')); // NEW: Chat routes
 app.use('/api/public', require('./routes/publicRoutes'));
 app.use('/api/horoscope', require('./routes/horoscopeRoutes'));
 
 // Database Connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log(err));
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.log('❌ MongoDB Error:', err));
 
-// Socket.io
-io.on('connection', (socket) => {
-  console.log('User Connected:', socket.id);
+// Socket.IO Setup (Modular Handlers)
+require('./socket')(io);
 
-  socket.on('join', (identifier) => {
-    socket.join(identifier);
-    console.log(`User ${socket.id} joined ${identifier}`);
-  });
+// Start Billing Tracker (Server-side time tracking)
+const billingTracker = new BillingTracker(io);
+billingTracker.start();
 
-  socket.on('callUser', ({ userToCall, signalData, from, name, type, callId }) => {
-    io.to(userToCall).emit('callUser', { signal: signalData, from, name, type, callId });
-  });
-
-  socket.on('answerCall', async (data) => {
-    console.log('Answer call received:', data);
-    io.to(data.to).emit('callAccepted', { accepted: true });
-
-    // Update CallLog with accepted time
-    if (data.callId) {
-      try {
-        const CallLog = require('./models/CallLog');
-        await CallLog.findByIdAndUpdate(data.callId, {
-          status: 'active',
-          acceptedTime: new Date()
-        });
-        console.log(`Call ${data.callId} accepted`);
-      } catch (err) {
-        console.error('Error updating call log:', err);
-      }
-    }
-  });
-
-  socket.on('rejectCall', (data) => {
-    io.to(data.to).emit('callRejected');
-  });
-
-  socket.on('sendMessage', (data) => {
-    io.to(data.roomId).emit('receiveMessage', data);
-  });
-
-  socket.on('typing', (data) => {
-    socket.to(data.roomId).emit('displayTyping', data);
-  });
-
-  socket.on('stopTyping', (data) => {
-    socket.to(data.roomId).emit('hideTyping');
-  });
-
-  socket.on('endCall', ({ to }) => {
-    io.to(to).emit('callEnded');
-  });
-
-  socket.on('disconnect', () => {
-    socket.broadcast.emit('callEnded');
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  billingTracker.stop();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
   });
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Socket.IO ready`);
+  console.log(`💰 Billing Tracker active`);
+});
