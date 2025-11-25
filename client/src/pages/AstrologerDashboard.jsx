@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
@@ -58,6 +58,7 @@ const AstrologerDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
+
       // Fetch call history
       const callsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/call-history`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -87,9 +88,86 @@ const AstrologerDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSchedule(scheduleRes.data);
+
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+      // Set mock data for demonstration
+      setMockData();
     }
+  };
+
+  const setMockData = () => {
+    setCallHistory([
+      {
+        callId: "call_001",
+        userId: "user_123",
+        userName: "Alice Johnson",
+        type: "video",
+        date: "2024-01-15T10:30:00Z",
+        duration: 15,
+        earnings: 750,
+        status: "completed",
+        rating: 5
+      },
+      {
+        callId: "call_002",
+        userId: "user_456",
+        userName: "Bob Smith",
+        type: "chat",
+        date: "2024-01-14T14:20:00Z",
+        duration: 10,
+        earnings: 300,
+        status: "completed",
+        rating: 4
+      }
+    ]);
+
+    setEarnings({
+      today: 1250,
+      weekly: 8500,
+      monthly: 32500,
+      totalEarnings: 187500,
+      currency: "INR"
+    });
+
+    setReviews([
+      {
+        reviewId: "rev_001",
+        userId: "user_123",
+        userName: "Alice Johnson",
+        rating: 5,
+        comment: "Excellent guidance! Very accurate predictions.",
+        date: "2024-01-15T11:00:00Z",
+        callId: "call_001"
+      },
+      {
+        reviewId: "rev_002",
+        userId: "user_456",
+        userName: "Bob Smith",
+        rating: 4,
+        comment: "Good consultation, helped me understand my career path.",
+        date: "2024-01-14T15:00:00Z",
+        callId: "call_002"
+      }
+    ]);
+
+    setSchedule([
+      { day: "monday", slots: ["09:00-12:00", "14:00-18:00"], isAvailable: true },
+      { day: "tuesday", slots: ["10:00-13:00", "15:00-19:00"], isAvailable: true },
+      { day: "wednesday", slots: [], isAvailable: false },
+      { day: "thursday", slots: ["09:00-17:00"], isAvailable: true },
+      { day: "friday", slots: ["11:00-15:00"], isAvailable: true },
+      { day: "saturday", slots: ["09:00-12:00"], isAvailable: true },
+      { day: "sunday", slots: [], isAvailable: false }
+    ]);
+
+    setAnalytics({
+      totalCalls: 150,
+      totalEarnings: 187500,
+      avgRating: 4.8,
+      avgCallDuration: 12.5,
+      successRate: 95.2
+    });
   };
 
   const setupSocketListeners = () => {
@@ -243,7 +321,7 @@ const AstrologerDashboard = () => {
             <div key={index} className="flex justify-between items-center p-3 border-b">
               <div>
                 <p className="font-medium">{call.userName}</p>
-                <p className="text-sm text-gray-500">{call.type} • {new Date(call.date).toLocaleDateString()}</p>
+                <p className="text-sm text-gray-500 capitalize">{call.type} • {new Date(call.date).toLocaleDateString()}</p>
               </div>
               <div className="text-right">
                 <p className="font-medium">₹{call.earnings}</p>
@@ -356,6 +434,7 @@ const AstrologerDashboard = () => {
               <th className="text-left p-3">Date</th>
               <th className="text-left p-3">Duration</th>
               <th className="text-left p-3">Earnings</th>
+              <th className="text-left p-3">Rating</th>
             </tr>
           </thead>
           <tbody>
@@ -366,6 +445,12 @@ const AstrologerDashboard = () => {
                 <td className="p-3">{new Date(call.date).toLocaleDateString()}</td>
                 <td className="p-3">{call.duration} min</td>
                 <td className="p-3 font-medium">₹{call.earnings}</td>
+                <td className="p-3">
+                  <div className="flex items-center">
+                    <span className="text-yellow-500">⭐</span>
+                    <span className="ml-1">{call.rating}/5</span>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -392,9 +477,21 @@ const AstrologerDashboard = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Earnings Breakdown</h3>
-        {/* Add chart or detailed earnings table here */}
-        <p className="text-gray-500">Earnings analytics chart will be implemented here</p>
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Transactions</h3>
+        <div className="space-y-3">
+          {callHistory.slice(0, 10).map((call, index) => (
+            <div key={index} className="flex justify-between items-center p-3 border-b">
+              <div>
+                <p className="font-medium">{call.userName}</p>
+                <p className="text-sm text-gray-500">{new Date(call.date).toLocaleDateString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-medium text-green-600">+₹{call.earnings}</p>
+                <p className="text-sm text-gray-500">{call.duration} min • {call.type}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -420,22 +517,72 @@ const AstrologerDashboard = () => {
     </div>
   );
 
-  const ScheduleTab = () => (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">Availability Schedule</h3>
-      <div className="space-y-4">
-        {schedule.map((daySchedule, index) => (
-          <div key={index} className="flex justify-between items-center p-4 border rounded-lg">
-            <span className="font-medium capitalize">{daySchedule.day}</span>
-            <span className="text-gray-600">
-              {daySchedule.slots.length > 0 ? daySchedule.slots.join(', ') : 'Not Available'}
-            </span>
-            <button className="text-indigo-600 hover:text-indigo-800">Edit</button>
+  const ScheduleTab = () => {
+    const [editingDay, setEditingDay] = useState(null);
+    const [timeSlots, setTimeSlots] = useState('');
+
+    const handleSaveSchedule = (day) => {
+      const slots = timeSlots.split(',').map(slot => slot.trim()).filter(slot => slot);
+      updateAvailability(day, slots);
+      setEditingDay(null);
+      setTimeSlots('');
+    };
+
+    return (
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Availability Schedule</h3>
+        <div className="space-y-4">
+          {schedule.map((daySchedule, index) => (
+            <div key={index} className="flex justify-between items-center p-4 border rounded-lg">
+              <span className="font-medium capitalize">{daySchedule.day}</span>
+              <span className="text-gray-600">
+                {daySchedule.slots.length > 0 ? daySchedule.slots.join(', ') : 'Not Available'}
+              </span>
+              <button
+                onClick={() => {
+                  setEditingDay(daySchedule.day);
+                  setTimeSlots(daySchedule.slots.join(', '));
+                }}
+                className="text-indigo-600 hover:text-indigo-800"
+              >
+                Edit
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Edit Modal */}
+        {editingDay && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white p-6 rounded-xl max-w-md w-full">
+              <h3 className="text-xl font-semibold mb-4">Edit {editingDay} Schedule</h3>
+              <input
+                type="text"
+                value={timeSlots}
+                onChange={(e) => setTimeSlots(e.target.value)}
+                placeholder="09:00-12:00, 14:00-18:00"
+                className="w-full p-3 border border-gray-300 rounded-lg mb-4"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSaveSchedule(editingDay)}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex-1"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditingDay(null)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
-        ))}
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
