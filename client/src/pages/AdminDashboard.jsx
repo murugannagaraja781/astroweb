@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 
 const AdminDashboard = () => {
+  const { user } = useContext(AuthContext);
   const [astrologers, setAstrologers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
