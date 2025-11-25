@@ -1,11 +1,28 @@
  import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutDashboard, MessageCircle, Video, LogOut, LogIn, User, UserPlus, Sparkles } from "lucide-react";
-import { useContext } from "react";
+import { Home, LayoutDashboard, MessageCircle, Video, LogOut, LogIn, User, UserPlus, Sparkles, Wallet } from "lucide-react";
+import { useContext, useState, useEffect } from "react";
 import AuthContext from "../../context/AuthContext";
+import axios from "axios";
 
 const DesktopHeader = () => {
   const location = useLocation();
   const { user, logout } = useContext(AuthContext);
+  const [walletBalance, setWalletBalance] = useState(null);
+
+  useEffect(() => {
+    if (user && user.role === 'client') {
+      fetchWalletBalance();
+    }
+  }, [user]);
+
+  const fetchWalletBalance = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
+      setWalletBalance(res.data.balance);
+    } catch (err) {
+      console.error('Error fetching wallet:', err);
+    }
+  };
 
   const getDashboardLink = () => {
     if (!user) return "/";
@@ -75,6 +92,17 @@ const DesktopHeader = () => {
       <div className="flex items-center gap-4">
         {user ? (
           <div className="flex items-center gap-4">
+            {/* Wallet Balance for clients */}
+            {user.role === 'client' && walletBalance !== null && (
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                <Wallet className="text-white" size={18} />
+                <span className="text-white font-bold">₹{walletBalance}</span>
+              </Link>
+            )}
+
             {/* User info */}
             <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
               <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
