@@ -32,7 +32,7 @@ module.exports = (io, socket) => {
             console.log('Answer call received:', data);
             const { to, callId } = data;
 
-            io.to(to).emit('callAccepted', { accepted: true });
+            io.to(to).emit('callAccepted', { accepted: true, callId });
 
             // Update CallLog with accepted time
             if (callId) {

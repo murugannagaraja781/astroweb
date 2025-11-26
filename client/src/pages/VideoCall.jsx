@@ -6,7 +6,7 @@ import React, {
   useState,
   useContext,
 } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import axios from "axios";
@@ -84,6 +84,8 @@ export default function VideoCall() {
     }
   }, []);
 
+  const location = useLocation();
+
   // --- Socket setup ---
   useEffect(() => {
     if (!user) return;
@@ -122,11 +124,19 @@ export default function VideoCall() {
       leaveCall();
     });
 
+    // Billing updates
+    socket.on("billingUpdate", ({ duration: dur, cost, balance: bal, earnings }) => {
+       if (dur) setDuration(dur);
+       if (bal !== undefined) setBalance(bal);
+       // For astrologer, we could show earnings if we wanted, but balance is for client
+    });
+
     return () => {
       socket.off("connect");
       socket.off("callAccepted");
       socket.off("callRejected");
       socket.off("endCall");
+      socket.off("billingUpdate");
       socket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -218,10 +228,12 @@ export default function VideoCall() {
         client.on("user-published", handleUserPublished);
         client.on("user-unpublished", handleUserUnpublished);
 
-        // start timer
-        timerRef.current = setInterval(() => {
-          setDuration((d) => d + 1);
-        }, 1000);
+        // start timer - handled by billing update now, but keep as fallback/local
+        if (!timerRef.current) {
+             timerRef.current = setInterval(() => {
+               setDuration((d) => d + 1);
+             }, 1000);
+        }
       } catch (err) {
         console.error("Agora join/publish failed", err);
         addToast("Video call setup failed", "error");
@@ -238,6 +250,7 @@ export default function VideoCall() {
       if (joined) {
         // cleanup handled by leaveCall if it runs; but ensure no interval leak
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -274,10 +287,11 @@ export default function VideoCall() {
     }
   }, [otherUserId, user, fetchRtcToken, addToast]);
 
-  // --- For astrologer: accept incoming call (incomingCallId from query) ---
+  // --- For astrologer: accept incoming call (incomingCallId from query or state) ---
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
-    const incomingCallId = query.get("callId");
+    const incomingCallId = query.get("callId") || location.state?.callId;
+
     if (user && user.role === "astrologer" && incomingCallId) {
       (async () => {
         setCallId(incomingCallId);
@@ -290,7 +304,7 @@ export default function VideoCall() {
         }
       })();
     }
-  }, [user, fetchRtcToken, addToast]);
+  }, [user, fetchRtcToken, addToast, location.state]);
 
   // --- Leave call ---
   const leaveCall = useCallback(async () => {
