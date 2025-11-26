@@ -97,6 +97,50 @@ exports.uploadImage = async (req, res) => {
 };
 
 /**
+ * Get list of chat sessions (users chatted with)
+ */
+exports.getChatSessions = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Find all messages where user is sender or receiver
+        const messages = await ChatMessage.find({
+            $or: [{ sender: userId }, { receiver: userId }]
+        })
+            .sort({ timestamp: -1 })
+            .populate('sender', 'name role')
+            .populate('receiver', 'name role');
+
+        // Group by peer
+        const sessions = {};
+        messages.forEach(msg => {
+            const peer = msg.sender._id.toString() === userId ? msg.receiver : msg.sender;
+            const peerId = peer._id.toString();
+
+            if (!sessions[peerId]) {
+                sessions[peerId] = {
+                    peerId: peerId,
+                    name: peer.name,
+                    role: peer.role,
+                    lastMessage: msg.message || (msg.type === 'image' ? '📷 Image' : '🎤 Voice Note'),
+                    timestamp: msg.timestamp,
+                    unreadCount: 0
+                };
+            }
+
+            if (msg.receiver._id.toString() === userId && !msg.delivered) {
+                sessions[peerId].unreadCount++;
+            }
+        });
+
+        res.json(Object.values(sessions));
+    } catch (err) {
+        console.error('Error fetching chat sessions:', err);
+        res.status(500).json({ msg: 'Server error' });
+    }
+};
+
+/**
  * Upload voice note for chat
  */
 exports.uploadVoiceNote = async (req, res) => {

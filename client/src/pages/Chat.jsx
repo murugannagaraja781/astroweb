@@ -3,15 +3,48 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
-import { Send, Mic, Square, Play, Pause } from 'lucide-react';
+import { Send, Mic, Square, Play, Pause, ArrowLeft } from 'lucide-react';
+import ChatHistoryList from '../components/ChatHistoryList';
+import OnlineAstrologers from '../components/OnlineAstrologers';
+import OffersList from '../components/OffersList';
+import { useToast } from '../context/ToastContext';
 
 const socket = io('https://astroweb-y0i6.onrender.com');
+
+// Helper component to fetch and display astrologers
+const OnlineAstrologersWrapper = () => {
+  const [astrologers, setAstrologers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAstrologers = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/astrologers`);
+        setAstrologers(res.data);
+      } catch (err) {
+        console.error("Failed to fetch astrologers", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAstrologers();
+  }, []);
+
+  if (loading) return <div className="h-24 flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div></div>;
+  return <OnlineAstrologers astrologers={astrologers} />;
+};
 
 const Chat = () => {
   const { id: receiverId } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
+  // State for Chat History View
+  const [chatSessions, setChatSessions] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  // State for Active Chat View
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const [balance, setBalance] = useState(0);
@@ -19,7 +52,7 @@ const Chat = () => {
   const [cost, setCost] = useState(0);
   const rate = 1; // Chat rate: ₹1 per minute
   const timerRef = useRef(null);
-  const [chatActive, setChatActive] = useState(false); // Default to false, wait for accept
+  const [chatActive, setChatActive] = useState(false);
   const [chatId, setChatId] = useState(null);
 
   // Voice recording states
@@ -30,19 +63,32 @@ const Chat = () => {
   const recordingTimerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to bottom
-  const scrollToBottom = () => {
+  // --- EFFECT: Fetch Chat History if ID is 0 ---
+  useEffect(() => {
+    if (receiverId === '0' && user) {
+      const fetchSessions = async () => {
+        try {
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/sessions`);
+          setChatSessions(res.data);
+          setLoadingHistory(false);
+        } catch (err) {
+          console.error("Error fetching chat sessions:", err);
+          setLoadingHistory(false);
+        }
+      };
+      fetchSessions();
+    }
+  }, [receiverId, user]);
+
+  // --- EFFECT: Active Chat Logic (Only if ID != 0) ---
+  useEffect(() => {
+    if (!user || !receiverId || receiverId === '0') return;
+
+    // Auto-scroll
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    if (!user || !receiverId) return;
-
-    // Fetch wallet balance
+    // Fetch wallet balance only for non-admin users
+  if (user && user.role !== 'admin') {
     const fetchBalance = async () => {
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
@@ -52,6 +98,10 @@ const Chat = () => {
       }
     };
     fetchBalance();
+  } else {
+    // Admin (super admin) has unlimited balance
+    setBalance(Infinity);
+  }
 
     // Initiate Chat Session for Billing (Client Only)
     const initChat = async () => {
@@ -72,11 +122,13 @@ const Chat = () => {
 
         } catch (err) {
           console.error("Failed to initiate chat billing", err);
-          alert("Insufficient balance or error starting chat");
+          addToast("Insufficient balance or error starting chat", "error");
           navigate('/dashboard');
         }
       } else if (user && user.role === 'astrologer') {
-        // Astrologer joins, assume active if they are here (accepted via dashboard)
+        setChatActive(true);
+      } else if (user && user.role === 'admin') {
+        // Super admin can chat without billing
         setChatActive(true);
       }
     };
@@ -89,13 +141,13 @@ const Chat = () => {
 
     // Listen for messages & call acceptance
     const handleReceiveMessage = (msg) => {
-      console.log('Message received:', msg);
       setMessages(prev => [...prev, msg]);
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const handleCallAccepted = () => {
-      console.log('Chat accepted by astrologer');
       setChatActive(true);
+      addToast("Astrologer connected! Chat started.", "success");
     };
 
     socket.on('receiveMessage', handleReceiveMessage);
@@ -113,15 +165,18 @@ const Chat = () => {
     const numericBalance = Number(balance) || 0;
     const numericRate = Number(rate) || 0;
 
-    if (chatActive && numericBalance > 0 && chatId && user.role === 'client') {
-      const maxDuration = (numericBalance / numericRate) * 60;
+    // Allow admin (super admin) unlimited chat duration
+    if (chatActive && (numericBalance > 0 || user?.role === 'admin') && (chatId || user?.role === 'admin')) {
+      const maxDuration = user?.role === 'admin' ? Infinity : (numericBalance / numericRate) * 60;
 
       timerRef.current = setInterval(() => {
         setDuration(prev => {
           const newDuration = prev + 1;
           if (newDuration >= maxDuration) {
-            endChat();
-            alert("Chat ended due to insufficient balance.");
+            if (user?.role !== 'admin') {
+              endChat();
+              addToast("Chat ended due to insufficient balance.", "warning");
+            }
             return prev;
           }
           return newDuration;
@@ -139,6 +194,7 @@ const Chat = () => {
   const typingTimeoutRef = useRef(null);
 
   const handleTyping = () => {
+    if (receiverId === '0') return;
     const roomId = [user.id, receiverId].sort().join('-');
     socket.emit('typing', { roomId, name: user.name });
 
@@ -167,6 +223,7 @@ const Chat = () => {
 
   const sendMessage = (e) => {
     e.preventDefault();
+    if (receiverId === '0') return;
     const roomId = [user.id, receiverId].sort().join('-');
 
     if (message.trim() && roomId) {
@@ -177,10 +234,7 @@ const Chat = () => {
         timestamp: new Date(),
         type: 'text'
       };
-      console.log('Sending message:', msgData);
       socket.emit('sendMessage', msgData);
-      // Optimistically adding the message locally caused duplicate entries because the server broadcasts the same message back.
-      // Rely on the 'receiveMessage' listener to update the UI.
       setMessage('');
       socket.emit('stopTyping', { roomId });
     }
@@ -208,14 +262,13 @@ const Chat = () => {
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Recording timer
       recordingTimerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
 
     } catch (err) {
       console.error('Error accessing microphone:', err);
-      alert('Could not access microphone. Please grant permission.');
+      addToast('Could not access microphone. Please grant permission.', 'error');
     }
   };
 
@@ -228,7 +281,7 @@ const Chat = () => {
   };
 
   const sendVoiceMessage = () => {
-    if (!audioBlob) return;
+    if (!audioBlob || receiverId === '0') return;
 
     const roomId = [user.id, receiverId].sort().join('-');
     const reader = new FileReader();
@@ -244,9 +297,7 @@ const Chat = () => {
         type: 'audio'
       };
 
-      console.log('Sending voice message');
       socket.emit('sendMessage', msgData);
-      // Do not add the voice message locally to avoid duplication; it will be received via the socket listener.
       setAudioBlob(null);
       setRecordingTime(0);
     };
@@ -270,7 +321,7 @@ const Chat = () => {
     if (chatId) {
       try {
         await axios.post(`${import.meta.env.VITE_API_URL}/api/call/end`, { callId: chatId, duration });
-        alert(`Chat ended. Cost: ₹${cost.toFixed(2)}`);
+        addToast(`Chat ended. Cost: ₹${cost.toFixed(2)}`, 'info');
       } catch (err) {
         console.error(err);
       }
@@ -283,20 +334,72 @@ const Chat = () => {
     }
   };
 
+  // --- RENDER: History View (ID = 0) ---
+  if (receiverId === '0') {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-24">
+        <div className="bg-white p-4 shadow-sm border-b border-gray-100 sticky top-0 z-10">
+          <h1 className="text-xl font-bold text-gray-800">Chat with Astrologers</h1>
+        </div>
+
+        <div className="p-4 max-w-4xl mx-auto">
+          {/* Online Astrologers Section */}
+          <div className="mb-8">
+            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              Online Now
+            </h2>
+            <OnlineAstrologersWrapper />
+          </div>
+
+          {/* Offers Section */}
+          <OffersList />
+
+          {/* History Section (Only for logged in users) */}
+          {user ? (
+            <div className="mt-8">
+              <h2 className="text-lg font-bold text-gray-800 mb-4">Your Chats</h2>
+              {loadingHistory ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                </div>
+              ) : (
+                <ChatHistoryList sessions={chatSessions} />
+              )}
+            </div>
+          ) : (
+             <div className="mt-8 p-6 bg-purple-50 rounded-xl text-center border border-purple-100">
+                <p className="text-gray-600 mb-4">Login to view your chat history and consult with top astrologers.</p>
+                <button onClick={() => navigate('/login')} className="bg-purple-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-purple-700 transition-colors">
+                  Login Now
+                </button>
+             </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDER: Active Chat View (ID != 0) ---
   return (
     <div className="h-screen flex flex-col bg-orange-50">
       {/* Header */}
       <div className="bg-orange-600 p-4 shadow flex justify-between items-center text-white">
-        <div>
-          <h2 className="text-xl font-bold">Chat Session</h2>
-          {isTyping && <p className="text-sm text-orange-200 italic">Typing...</p>}
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/chat/0')} className="p-1 hover:bg-orange-500 rounded-full">
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h2 className="text-xl font-bold">Chat Session</h2>
+            {isTyping && <p className="text-sm text-orange-200 italic">Typing...</p>}
+          </div>
         </div>
         <div className="text-right">
           <p className="text-orange-100">Time: {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}</p>
           <p className="text-orange-100">Cost: ₹{cost.toFixed(2)}</p>
         </div>
-        <button onClick={endChat} className="bg-white text-orange-600 px-4 py-2 rounded hover:bg-orange-100 font-bold">
-          End Chat
+        <button onClick={endChat} className="bg-white text-orange-600 px-4 py-2 rounded hover:bg-orange-100 font-bold text-sm">
+          End
         </button>
       </div>
 

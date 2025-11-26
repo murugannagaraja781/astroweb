@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const AstrologerProfile = require('../models/AstrologerProfile');
 const Banner = require('../models/Banner');
+const Offer = require('../models/Offer');
 
 exports.getPublicAstrologers = async (req, res) => {
     try {
@@ -43,6 +44,19 @@ exports.getBanners = async (req, res) => {
 
         const banners = await Banner.find(query).sort({ priority: -1, createdAt: -1 }).limit(5);
         res.json(banners);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+exports.getOffers = async (req, res) => {
+    try {
+        const currentDate = new Date();
+        const offers = await Offer.find({
+            validUntil: { $gte: currentDate }
+        }).sort({ createdAt: -1 });
+        res.json(offers);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');

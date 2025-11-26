@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { lazy, Suspense, useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import AuthContext from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 
 // Eager load critical components (above the fold)
 import MobileNav from './components/mobile/MobileNav.jsx';
@@ -105,27 +106,33 @@ const AppLayout = ({ children }) => {
   );
 };
 
+import { ThemeProvider } from './context/ThemeContext';
+
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppLayout>
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/horoscope/:sign" element={<HoroscopeDetail />} />
-              <Route path="/astrologer/:id" element={<AstrologerDetail />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/astrologer-dashboard" element={<AstrologerDashboard />} />
-              <Route path="/admin-dashboard" element={<AdminDashboard />} />
-              <Route path="/call/:id" element={<VideoCall />} />
-              <Route path="/chat/:id" element={<Chat />} />
-            </Routes>
-          </Suspense>
-        </AppLayout>
-      </Router>
+      <ToastProvider>
+        <ThemeProvider>
+          <Router>
+            <AppLayout>
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/horoscope/:sign" element={<HoroscopeDetail />} />
+                  <Route path="/astrologer/:id" element={<AstrologerDetail />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/astrologer-dashboard" element={<AstrologerDashboard />} />
+                  <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                  <Route path="/call/:id" element={<VideoCall />} />
+                  <Route path="/chat/:id" element={<Chat />} />
+                </Routes>
+              </Suspense>
+            </AppLayout>
+          </Router>
+        </ThemeProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }

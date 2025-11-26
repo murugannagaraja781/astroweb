@@ -1,12 +1,14 @@
- import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutDashboard, MessageCircle, Video, LogOut, LogIn, User, UserPlus, Sparkles, Wallet } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Home, LayoutDashboard, MessageCircle, Video, LogOut, LogIn, User, UserPlus, Wallet, Moon, Star } from "lucide-react";
 import { useContext, useState, useEffect } from "react";
 import AuthContext from "../../context/AuthContext";
+import ThemeContext from "../../context/ThemeContext";
 import axios from "axios";
 
 const DesktopHeader = () => {
   const location = useLocation();
   const { user, logout } = useContext(AuthContext);
+  const { theme } = useContext(ThemeContext);
   const [walletBalance, setWalletBalance] = useState(null);
 
   useEffect(() => {
@@ -39,118 +41,172 @@ const DesktopHeader = () => {
   ];
 
   return (
-    <header className="hidden md:flex items-center justify-between bg-gradient-to-r from-purple-900 to-indigo-800 px-8 py-4 shadow-2xl sticky top-0 z-50 backdrop-blur-lg bg-white/5 border-b border-white/10">
-      {/* Logo with enhanced design */}
-      <Link
-        to="/"
-        className="flex items-center gap-3 group"
-      >
-        <div className="relative">
-          <div className="p-2 bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-            <Sparkles className="text-white" size={24} />
-          </div>
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-cyan-400 rounded-full animate-pulse"></div>
-        </div>
-        <div className="flex flex-col">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
-            AstroConnect
-          </h1>
-          <p className="text-xs text-indigo-200 opacity-80">Divine Guidance</p>
-        </div>
-      </Link>
+    <header className="hidden md:block sticky top-0 z-50 border-b border-white/10" style={{
+      background: `linear-gradient(135deg, #0a0015 0%, #1a0033 50%, ${theme.hex}20 100%)`,
+      boxShadow: `0 4px 30px ${theme.hex}30, 0 0 20px ${theme.hex}20`
+    }}>
+      {/* Cosmic Stars Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute w-1 h-1 bg-yellow-300 rounded-full top-4 left-1/4 animate-pulse"></div>
+        <div className="absolute w-1 h-1 bg-purple-300 rounded-full top-6 right-1/3 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-0.5 h-0.5 bg-white rounded-full top-8 left-2/3 animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
 
-      {/* Navigation with modern design */}
-      <nav className="flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-2xl p-1 border border-white/20 shadow-lg">
-        {navItems.map(({ to, icon: Icon, label }) => {
-          const isActive = location.pathname === to;
-          return (
-            <Link
-              key={to}
-              to={to}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all duration-300 group relative ${
-                isActive
-                  ? "bg-white text-purple-700 shadow-lg font-semibold"
-                  : "text-white/80 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              <Icon
-                size={18}
-                className={isActive ? "text-purple-600" : "group-hover:scale-110 transition-transform"}
-              />
-              <span className="font-medium">{label}</span>
+      <div className="container mx-auto px-6 py-4 relative">
+        <div className="flex items-center justify-between">
+          {/* Logo - Mystical Astrology Theme */}
+          <Link to="/" className="flex items-center gap-3 group relative">
+            <div className="relative">
+              {/* Glowing orb effect */}
+              <div className="absolute inset-0 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity" style={{ background: `linear-gradient(to right, #d4af37, ${theme.hex})` }}></div>
 
-              {/* Active indicator */}
-              {isActive && (
-                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-orange-400 rounded-full animate-pulse"></div>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Auth Section with enhanced design */}
-      <div className="flex items-center gap-4">
-        {user ? (
-          <div className="flex items-center gap-4">
-            {/* Wallet Balance for clients */}
-            {user.role === 'client' && walletBalance !== null && (
-              <Link
-                to="/dashboard"
-                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-              >
-                <Wallet className="text-white" size={18} />
-                <span className="text-white font-bold">₹{walletBalance}</span>
-              </Link>
-            )}
-
-            {/* User info */}
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
-              <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                <User className="text-white" size={16} />
-              </div>
-              <div className="text-right">
-                <p className="text-white font-medium text-sm">{user.name || "User"}</p>
-                <p className="text-indigo-200 text-xs capitalize">{user.role}</p>
+              {/* Main icon container */}
+              <div className="relative w-12 h-12 rounded-full flex items-center justify-center" style={{
+                background: `linear-gradient(135deg, #d4af37 0%, ${theme.hex} 100%)`,
+                boxShadow: `0 0 20px #d4af3780, inset 0 0 20px ${theme.hex}50`
+              }}>
+                <Moon className="text-white w-6 h-6" />
+                <Star className="absolute -top-1 -right-1 text-yellow-300 w-4 h-4 animate-pulse" />
               </div>
             </div>
 
-            {/* Logout button */}
-            <button
-              onClick={() => {
-                logout();
-                window.location.href = "/";
-              }}
-              className="flex items-center gap-2 px-4 py-3 text-red-200 hover:text-white hover:bg-red-500/20 rounded-xl transition-all duration-300 group border border-red-500/30 hover:border-red-500/50"
-            >
-              <LogOut size={18} className="group-hover:scale-110 transition-transform" />
-              <span className="font-medium">Logout</span>
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            {/* Login button */}
-            <Link
-              to="/login"
-              className="flex items-center gap-2 px-6 py-3 text-white border border-green-500/50 hover:border-green-400 rounded-xl transition-all duration-300 group hover:bg-green-500/20 backdrop-blur-md"
-            >
-              <LogIn size={18} className="group-hover:scale-110 transition-transform" />
-              <span className="font-medium">Login</span>
-            </Link>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-bold tracking-wide" style={{
+                background: 'linear-gradient(135deg, #d4af37 0%, #f4e5c2 50%, #d4af37 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow: '0 0 30px rgba(212, 175, 55, 0.5)'
+              }}>
+                AstroConnect
+              </h1>
+              <p className="text-xs text-purple-300 tracking-widest">✨ DIVINE GUIDANCE ✨</p>
+            </div>
+          </Link>
 
-            {/* Register button with prominent style */}
-            <Link
-              to="/register"
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-cyan-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group hover:scale-105 font-semibold"
-            >
-              <UserPlus size={18} className="group-hover:scale-110 transition-transform" />
-              <span>Register</span>
-            </Link>
+          {/* Navigation - Mystical Pills */}
+          <nav className="flex items-center gap-2">
+            {navItems.map(({ to, icon: Icon, label }) => {
+              const isActive = location.pathname === to;
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300 relative group ${
+                    isActive
+                      ? "text-gray-900 font-semibold"
+                      : "text-purple-200 hover:text-white"
+                  }`}
+                  style={isActive ? {
+                    background: `linear-gradient(135deg, #d4af37 0%, ${theme.hex} 100%)`,
+                    boxShadow: `0 4px 15px #d4af3760, 0 0 20px ${theme.hex}40`
+                  } : {
+                    background: `${theme.hex}10`,
+                    border: `1px solid ${theme.hex}30`
+                  }}
+                >
+                  <Icon size={16} className={isActive ? "text-gray-900" : "group-hover:scale-110 transition-transform"} />
+                  <span className="text-sm font-medium">{label}</span>
+
+                  {isActive && (
+                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: theme.hex }}></div>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* User Section */}
+          <div className="flex items-center gap-3">
+            {user ? (
+              <>
+                {/* Wallet Balance - Mystical Gold */}
+                {user.role === 'client' && walletBalance !== null && (
+                  <Link
+                    to="/dashboard"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all duration-300 hover:scale-105"
+                    style={{
+                      background: 'linear-gradient(135deg, #d4af37 0%, #f4e5c2 50%, #d4af37 100%)',
+                      boxShadow: '0 4px 15px rgba(212, 175, 55, 0.4), 0 0 20px rgba(212, 175, 55, 0.3)',
+                      color: '#2d1b4e'
+                    }}
+                  >
+                    <Wallet size={16} />
+                    <span>₹{Number(walletBalance).toFixed(2)}</span>
+                  </Link>
+                )}
+
+                {/* User Info - Cosmic Card */}
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{
+                  background: 'rgba(138, 43, 226, 0.2)',
+                  border: '1px solid rgba(212, 175, 55, 0.3)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{
+                    background: 'linear-gradient(135deg, #8a2be2, #9370db)'
+                  }}>
+                    <User className="text-white" size={14} />
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white font-medium text-sm">{user.name || "User"}</p>
+                    <p className="text-purple-300 text-xs capitalize">{user.role}</p>
+                  </div>
+                </div>
+
+                {/* Logout - Mystical Red */}
+                <button
+                  onClick={() => {
+                    logout();
+                    window.location.href = "/";
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-red-200 hover:text-white transition-all duration-300 group"
+                  style={{
+                    background: 'rgba(220, 38, 38, 0.1)',
+                    border: '1px solid rgba(220, 38, 38, 0.3)'
+                  }}
+                >
+                  <LogOut size={16} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-medium">Logout</span>
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Login Button */}
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2 px-5 py-2 rounded-full transition-all duration-300 group"
+                  style={{
+                    background: 'rgba(138, 43, 226, 0.2)',
+                    border: '1px solid rgba(212, 175, 55, 0.4)'
+                  }}
+                >
+                  <LogIn size={16} className="text-purple-300 group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-medium text-purple-200 group-hover:text-white">Login</span>
+                </Link>
+
+                {/* Register Button - Prominent Gold */}
+                <Link
+                  to="/register"
+                  className="flex items-center gap-2 px-5 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(135deg, #d4af37 0%, #f4e5c2 100%)',
+                    boxShadow: '0 4px 15px rgba(212, 175, 55, 0.4)',
+                    color: '#2d1b4e'
+                  }}
+                >
+                  <UserPlus size={16} />
+                  <span className="text-sm">Register</span>
+                </Link>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Decorative elements */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500"></div>
+      {/* Bottom Mystical Border */}
+      <div className="h-0.5 w-full" style={{
+        background: 'linear-gradient(90deg, transparent 0%, #d4af37 50%, transparent 100%)',
+        boxShadow: '0 0 10px rgba(212, 175, 55, 0.5)'
+      }}></div>
     </header>
   );
 };

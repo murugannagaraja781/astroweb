@@ -19,14 +19,19 @@ exports.initiateCall = async (req, res) => {
     const astrologerProfile = await AstrologerProfile.findOne({ userId: receiverId });
 
     if (!wallet) {
+      console.error(`Wallet not found for user ${callerId}`);
       return res.status(404).json({ msg: 'Wallet not found' });
     }
+
+    console.log(`User ${callerId} balance: ${wallet.balance}`);
+
     if (!astrologerProfile) {
       return res.status(404).json({ msg: 'Astrologer not found' });
     }
 
     // Check if user has at least ₹1 balance (₹1 per minute rate)
     if (wallet.balance < 1) {
+      console.warn(`Insufficient balance for user ${callerId}: ${wallet.balance}`);
       return res.status(400).json({ msg: 'Insufficient balance. Minimum ₹1 required to start call/chat.' });
     }
 
@@ -43,6 +48,23 @@ exports.initiateCall = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');
+  }
+};
+
+exports.getCallHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const calls = await CallLog.find({
+      $or: [{ callerId: userId }, { receiverId: userId }]
+    })
+      .sort({ startTime: -1 })
+      .populate('callerId', 'name')
+      .populate('receiverId', 'name');
+
+    res.json(calls);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 };
 
