@@ -17,9 +17,8 @@ import OffersList from "../components/OffersList";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL;
-const APP_ID =
-  import.meta.env.VITE_AGORA_APP_ID || import.meta.env.VITE_APP_ID || "";
+const SOCKET_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || process.env.VITE_API_URL || '';
+const APP_ID = (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_AGORA_APP_ID || import.meta.env.VITE_APP_ID)) || process.env.VITE_AGORA_APP_ID || process.env.VITE_APP_ID || '';
 const socket = io(SOCKET_URL, { autoConnect: false });
 
 // Small helper to format duration mm:ss
