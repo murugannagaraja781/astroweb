@@ -3,16 +3,19 @@ const path = require("path");
 const parse = require("csv-parse/sync").parse;
 const axios = require("axios");
 
+// Load CSV once
 let rows = [];
 try {
   const csvPath = path.join(__dirname, "./city.csv");
+
   if (fs.existsSync(csvPath)) {
     rows = parse(fs.readFileSync(csvPath), {
       columns: true,
       skip_empty_lines: true,
     });
+    console.log("Loaded city.csv");
   } else {
-    console.warn("places.csv not found, using mock data");
+    console.warn("city.csv not found, loading mock data");
     rows = [
       {
         place: "Chennai",
@@ -35,53 +38,50 @@ try {
         lat: 28.7041,
         lon: 77.1025,
       },
-      {
-        place: "Bangalore",
-        state: "Karnataka",
-        district: "Bangalore",
-        lat: 12.9716,
-        lon: 77.5946,
-      },
-      {
-        place: "Kolkata",
-        state: "West Bengal",
-        district: "Kolkata",
-        lat: 22.5726,
-        lon: 88.3639,
-      },
     ];
   }
 } catch (e) {
-  console.error("Error loading places.csv", e);
+  console.error("Error loading CSV:", e);
 }
 
+// FIXED FUNCTION
 async function findPlace(q) {
   if (!q) return [];
-  const hasLocal = rows && rows.length > 0;
-  if (hasLocal) {
-    const qq = q.toLowerCase();
-    return rows
-      .filter((r) => (r.place || r.name || "").toLowerCase().includes(qq))
-      .slice(0, 10)
-      .map((r) => ({
-        place: r.place,
-        state: r.state,
-        district: r.district,
-        lat: parseFloat(r.lat),
-        lon: parseFloat(r.lon),
-      }));
+
+  const qq = q.toLowerCase();
+
+  // STEP 1 — Search CSV
+  const localMatches = rows
+    .filter((r) => (r.place || "").toLowerCase().includes(qq))
+    .slice(0, 10)
+    .map((r) => ({
+      place: r.place,
+      state: r.state,
+      district: r.district,
+      lat: parseFloat(r.lat),
+      lon: parseFloat(r.lon),
+    }));
+
+  // If found locally → return
+  if (localMatches.length > 0) {
+    return localMatches;
   }
+
+  // STEP 2 — Fallback to Nominatim (API lookup)
   try {
     const res = await axios.get("https://nominatim.openstreetmap.org/search", {
       params: {
         format: "json",
         limit: 10,
+        q: q,
         countrycodes: "in",
         addressdetails: 1,
-        q,
       },
-      headers: { "User-Agent": "AstroWeb/1.0 (contact: support@example.com)" },
+      headers: {
+        "User-Agent": "PlaceLookup/1.0 (contact: example@example.com)",
+      },
     });
+
     return (res.data || []).map((item) => ({
       place: item.display_name?.split(",")[0] || q,
       state: item.address?.state || "",
@@ -90,6 +90,7 @@ async function findPlace(q) {
       lon: parseFloat(item.lon),
     }));
   } catch (e) {
+    console.error("API lookup failed", e);
     return [];
   }
 }
