@@ -44,23 +44,28 @@ try {
   console.error("Error loading CSV:", e);
 }
 
+function normalizeRow(r) {
+  const place = r.place || r.name || r.iPlace || "";
+  const state = r.state || r.iState || "";
+  const district = r.district || r.iDistrict || r.icountry || "";
+  const latVal = r.lat ?? r.latitude ?? r.iLatitude ?? r.ilatitudeindia;
+  const lonVal = r.lon ?? r.longitude ?? r.iLongitude ?? r.iLongitudeindia;
+  const lat = latVal !== undefined ? parseFloat(latVal) : undefined;
+  const lon = lonVal !== undefined ? parseFloat(lonVal) : undefined;
+  return { place, state, district, lat, lon };
+}
+
 // FIXED FUNCTION
 async function findPlace(q) {
   if (!q) return [];
 
   const qq = q.toLowerCase();
 
-  // STEP 1 — Search CSV
+  // STEP 1 — Search CSV (supports custom headers like iPlace/iState/...)
   const localMatches = rows
+    .map(normalizeRow)
     .filter((r) => (r.place || "").toLowerCase().includes(qq))
-    .slice(0, 10)
-    .map((r) => ({
-      place: r.place,
-      state: r.state,
-      district: r.district,
-      lat: parseFloat(r.lat),
-      lon: parseFloat(r.lon),
-    }));
+    .slice(0, 10);
 
   // If found locally → return
   if (localMatches.length > 0) {
