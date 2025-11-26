@@ -1,4 +1,4 @@
-const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
+const { RtcTokenBuilder, RtcRole } = require("agora-token");
 
 exports.generateToken = (req, res) => {
   const appID = process.env.AGORA_APP_ID;
