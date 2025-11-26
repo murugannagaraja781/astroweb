@@ -1,18 +1,30 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { getChatHistory, uploadImage, uploadVoiceNote, getChatSessions } = require('../controllers/chatController');
-const auth = require('../middleware/auth');
+const {
+    getChatHistory,
+    getChatSessions,
+    uploadImage,
+    uploadVoiceNote,
+    initiateChat,
+    endChat,
+    saveMessage
+} = require("../controllers/chatController");
 
-// Get chat history between two users
-router.get('/history/:userId/:peerId', auth, getChatHistory);
+const auth = require("../middleware/auth");
 
-// Get all chat sessions
-router.get('/sessions', auth, getChatSessions);
+// CHAT
+router.post("/initiate", auth, initiateChat);
+router.post("/end", auth, endChat);
 
-// Upload image for chat
-router.post('/upload/image', auth, uploadImage);
+// HISTORY + SESSIONS
+router.get("/history/:userId/:peerId", auth, getChatHistory);
+router.get("/sessions", auth, getChatSessions);
 
-// Upload voice note for chat
-router.post('/upload/voice', auth, uploadVoiceNote);
+// MEDIA
+router.post("/upload/image", auth, uploadImage);
+router.post("/upload/voice", auth, uploadVoiceNote);
+
+// FOR MESSAGE SAVE (FROM SOCKET)
+router.post("/save", auth, saveMessage);
 
 module.exports = router;

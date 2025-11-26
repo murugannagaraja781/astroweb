@@ -183,3 +183,79 @@ exports.uploadVoiceNote = async (req, res) => {
         res.status(500).json({ msg: 'Upload failed' });
     }
 };
+
+/**
+ * Initiate a chat session
+ */
+exports.initiateChat = async (req, res) => {
+    try {
+        const { receiverId } = req.body;
+        const senderId = req.user.id;
+
+        if (!receiverId) {
+            return res.status(400).json({ msg: 'Receiver ID is required' });
+        }
+
+        // Create a consistent room ID
+        const chatId = [senderId, receiverId].sort().join('-');
+
+        res.json({ chatId });
+    } catch (err) {
+        console.error("Error initiating chat:", err);
+        res.status(500).json({ msg: "Server error" });
+    }
+};
+
+/**
+ * End a chat session
+ */
+exports.endChat = async (req, res) => {
+    try {
+        // In a more complex app, we might update a session status here
+        res.json({ success: true, msg: "Chat ended" });
+    } catch (err) {
+        console.error("Error ending chat:", err);
+        res.status(500).json({ msg: "Server error" });
+    }
+};
+
+/**
+ * Save a chat message
+ */
+exports.saveMessage = async (req, res) => {
+    try {
+        const { roomId, text, type, mediaUrl, duration, receiverId } = req.body;
+        const senderId = req.user.id;
+
+        let finalReceiverId = receiverId;
+
+        // If receiverId is not provided, try to extract from roomId
+        if (!finalReceiverId && roomId) {
+            const parts = roomId.split('-');
+            if (parts.length === 2) {
+                finalReceiverId = parts[0] === senderId ? parts[1] : parts[0];
+            }
+        }
+
+        if (!finalReceiverId) {
+            return res.status(400).json({ msg: 'Receiver ID could not be determined' });
+        }
+
+        const message = new ChatMessage({
+            sender: senderId,
+            receiver: finalReceiverId,
+            roomId,
+            message: text || '',
+            type: type || 'text',
+            mediaUrl,
+            duration,
+            timestamp: new Date()
+        });
+
+        await message.save();
+        res.json(message);
+    } catch (err) {
+        console.error("Error saving message:", err);
+        res.status(500).json({ msg: "Server error" });
+    }
+};
