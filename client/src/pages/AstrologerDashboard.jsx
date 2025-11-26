@@ -1,15 +1,20 @@
- import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { io } from 'socket.io-client';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { io } from "socket.io-client";
+import { useNavigate } from "react-router-dom";
 
 const socket = io(import.meta.env.VITE_API_URL);
 
 const AstrologerDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [profile, setProfile] = useState(null);
   const [formData, setFormData] = useState({
-    languages: '', specialties: '', ratePerMinute: 10, bio: '', experience: '', education: ''
+    languages: "",
+    specialties: "",
+    ratePerMinute: 10,
+    bio: "",
+    experience: "",
+    education: "",
   });
   const [incomingCall, setIncomingCall] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -17,7 +22,11 @@ const AstrologerDashboard = () => {
   const [earnings, setEarnings] = useState({ today: 0, weekly: 0, monthly: 0 });
   const [reviews, setReviews] = useState([]);
   const [schedule, setSchedule] = useState([]);
-  const [analytics, setAnalytics] = useState({ totalCalls: 0, avgRating: 0, totalEarnings: 0 });
+  const [analytics, setAnalytics] = useState({
+    totalCalls: 0,
+    avgRating: 0,
+    totalEarnings: 0,
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,30 +35,33 @@ const AstrologerDashboard = () => {
     setupSocketListeners();
 
     return () => {
-      socket.off('callUser');
-      socket.off('callEnded');
+      socket.off("callUser");
+      socket.off("callEnded");
     };
   }, []);
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/profile`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setProfile(res.data);
       setFormData({
-        languages: res.data.languages?.join(',') || '',
-        specialties: res.data.specialties?.join(',') || '',
+        languages: res.data.languages?.join(",") || "",
+        specialties: res.data.specialties?.join(",") || "",
         ratePerMinute: res.data.ratePerMinute || 10,
-        bio: res.data.bio || '',
-        experience: res.data.experience || '',
-        education: res.data.education || ''
+        bio: res.data.bio || "",
+        experience: res.data.experience || "",
+        education: res.data.education || "",
       });
     } catch (err) {
-      console.error('Error fetching profile:', err);
-      alert('Failed to load profile');
+      console.error("Error fetching profile:", err);
+      alert("Failed to load profile");
     } finally {
       setLoading(false);
     }
@@ -57,40 +69,54 @@ const AstrologerDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
 
       // Fetch call history
-      const callsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/call-history`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const callsRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/call-history`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setCallHistory(callsRes.data);
 
       // Fetch earnings
-      const earningsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/earnings`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const earningsRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/earnings`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setEarnings(earningsRes.data);
 
       // Fetch reviews
-      const reviewsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/reviews`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const reviewsRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/reviews`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setReviews(reviewsRes.data);
 
       // Fetch analytics
-      const analyticsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/analytics`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const analyticsRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/analytics`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setAnalytics(analyticsRes.data);
 
       // Fetch schedule
-      const scheduleRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/schedule`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const scheduleRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/schedule`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setSchedule(scheduleRes.data);
-
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
+      console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration
       setMockData();
     }
@@ -107,7 +133,7 @@ const AstrologerDashboard = () => {
         duration: 15,
         earnings: 750,
         status: "completed",
-        rating: 5
+        rating: 5,
       },
       {
         callId: "call_002",
@@ -118,8 +144,8 @@ const AstrologerDashboard = () => {
         duration: 10,
         earnings: 300,
         status: "completed",
-        rating: 4
-      }
+        rating: 4,
+      },
     ]);
 
     setEarnings({
@@ -127,7 +153,7 @@ const AstrologerDashboard = () => {
       weekly: 8500,
       monthly: 32500,
       totalEarnings: 187500,
-      currency: "INR"
+      currency: "INR",
     });
 
     setReviews([
@@ -138,7 +164,7 @@ const AstrologerDashboard = () => {
         rating: 5,
         comment: "Excellent guidance! Very accurate predictions.",
         date: "2024-01-15T11:00:00Z",
-        callId: "call_001"
+        callId: "call_001",
       },
       {
         reviewId: "rev_002",
@@ -147,18 +173,26 @@ const AstrologerDashboard = () => {
         rating: 4,
         comment: "Good consultation, helped me understand my career path.",
         date: "2024-01-14T15:00:00Z",
-        callId: "call_002"
-      }
+        callId: "call_002",
+      },
     ]);
 
     setSchedule([
-      { day: "monday", slots: ["09:00-12:00", "14:00-18:00"], isAvailable: true },
-      { day: "tuesday", slots: ["10:00-13:00", "15:00-19:00"], isAvailable: true },
+      {
+        day: "monday",
+        slots: ["09:00-12:00", "14:00-18:00"],
+        isAvailable: true,
+      },
+      {
+        day: "tuesday",
+        slots: ["10:00-13:00", "15:00-19:00"],
+        isAvailable: true,
+      },
       { day: "wednesday", slots: [], isAvailable: false },
       { day: "thursday", slots: ["09:00-17:00"], isAvailable: true },
       { day: "friday", slots: ["11:00-15:00"], isAvailable: true },
       { day: "saturday", slots: ["09:00-12:00"], isAvailable: true },
-      { day: "sunday", slots: [], isAvailable: false }
+      { day: "sunday", slots: [], isAvailable: false },
     ]);
 
     setAnalytics({
@@ -166,29 +200,29 @@ const AstrologerDashboard = () => {
       totalEarnings: 187500,
       avgRating: 4.8,
       avgCallDuration: 12.5,
-      successRate: 95.2
+      successRate: 95.2,
     });
   };
 
   const setupSocketListeners = () => {
-    socket.on('callUser', (data) => {
+    socket.on("callUser", (data) => {
       console.log("Incoming call data:", data);
       setIncomingCall(data);
     });
 
-    socket.on('callEnded', () => {
+    socket.on("callEnded", () => {
       setIncomingCall(null);
     });
 
-    socket.on('callRejected', () => {
+    socket.on("callRejected", () => {
       setIncomingCall(null);
-      alert('Call was rejected by user');
+      alert("Call was rejected by user");
     });
   };
 
   const toggleStatus = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const res = await axios.put(
         `${import.meta.env.VITE_API_URL}/api/astrologer/status`,
         {},
@@ -196,78 +230,86 @@ const AstrologerDashboard = () => {
       );
       setProfile(res.data);
     } catch (err) {
-      console.error('Error updating status:', err);
-      alert('Failed to update status');
+      console.error("Error updating status:", err);
+      alert("Failed to update status");
     }
   };
 
-  const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const onChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const onSubmit = async e => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`, {
-        ...formData,
-        languages: formData.languages.split(',').map(lang => lang.trim()),
-        specialties: formData.specialties.split(',').map(spec => spec.trim())
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/profile`,
+        {
+          ...formData,
+          languages: formData.languages.split(",").map((lang) => lang.trim()),
+          specialties: formData.specialties
+            .split(",")
+            .map((spec) => spec.trim()),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchProfile();
-      alert('Profile updated successfully');
+      alert("Profile updated successfully");
     } catch (err) {
-      console.error('Error updating profile:', err);
-      alert('Failed to update profile');
+      console.error("Error updating profile:", err);
+      alert("Failed to update profile");
     }
   };
 
   const acceptCall = () => {
     if (!incomingCall) {
-      console.error('No incoming call data');
+      console.error("No incoming call data");
       return;
     }
 
     if (!incomingCall.from) {
-      console.error('Missing caller ID');
-      alert('Error: Missing caller information');
+      console.error("Missing caller ID");
+      alert("Error: Missing caller information");
       setIncomingCall(null);
       return;
     }
 
-    socket.emit('answerCall', {
+    socket.emit("answerCall", {
       to: incomingCall.from,
       callId: incomingCall.callId,
       astrologerId: profile.userId,
       astrologerName: profile.name,
-      type: incomingCall.type
+      type: incomingCall.type,
     });
 
     setIncomingCall(null);
 
-    if (incomingCall.type === 'chat') {
+    if (incomingCall.type === "chat") {
       navigate(`/chat/${incomingCall.from}`, {
         state: {
           callerName: incomingCall.name,
-          callType: 'chat'
-        }
+          callType: "chat",
+        },
       });
     } else {
-      navigate(`/video-call/${incomingCall.from}`, {
+      // `VideoCall` route expects `/call/:id`, not `/video-call/` — fix path
+      navigate(`/call/${incomingCall.from}`, {
         state: {
           callerName: incomingCall.name,
           callId: incomingCall.callId,
-          callType: 'video'
-        }
+          callType: "video",
+        },
       });
     }
   };
 
   const rejectCall = () => {
     if (incomingCall && incomingCall.from) {
-      socket.emit('rejectCall', {
+      socket.emit("rejectCall", {
         to: incomingCall.from,
-        astrologerId: profile.userId
+        astrologerId: profile.userId,
       });
     }
     setIncomingCall(null);
@@ -275,16 +317,17 @@ const AstrologerDashboard = () => {
 
   const updateAvailability = async (day, timeSlots) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/astrologer/schedule`,
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/schedule`,
         { day, timeSlots },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchDashboardData();
-      alert('Schedule updated successfully');
+      alert("Schedule updated successfully");
     } catch (err) {
-      console.error('Error updating schedule:', err);
-      alert('Failed to update schedule');
+      console.error("Error updating schedule:", err);
+      alert("Failed to update schedule");
     }
   };
 
@@ -294,34 +337,51 @@ const AstrologerDashboard = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
-          <h3 className="text-gray-500 text-sm font-medium">Today's Earnings</h3>
+          <h3 className="text-gray-500 text-sm font-medium">
+            Today's Earnings
+          </h3>
           <p className="text-2xl font-bold text-gray-800">₹{earnings.today}</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
           <h3 className="text-gray-500 text-sm font-medium">Total Calls</h3>
-          <p className="text-2xl font-bold text-gray-800">{analytics.totalCalls}</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {analytics.totalCalls}
+          </p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-500">
           <h3 className="text-gray-500 text-sm font-medium">Avg Rating</h3>
-          <p className="text-2xl font-bold text-gray-800">{analytics.avgRating}/5</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {analytics.avgRating}/5
+          </p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
           <h3 className="text-gray-500 text-sm font-medium">Online Status</h3>
-          <p className={`text-2xl font-bold ${profile?.isOnline ? 'text-green-600' : 'text-red-600'}`}>
-            {profile?.isOnline ? 'Online' : 'Offline'}
+          <p
+            className={`text-2xl font-bold ${
+              profile?.isOnline ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {profile?.isOnline ? "Online" : "Offline"}
           </p>
         </div>
       </div>
 
       {/* Recent Calls */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Calls</h3>
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+          Recent Calls
+        </h3>
         <div className="space-y-3">
           {callHistory.slice(0, 5).map((call, index) => (
-            <div key={index} className="flex justify-between items-center p-3 border-b">
+            <div
+              key={index}
+              className="flex justify-between items-center p-3 border-b"
+            >
               <div>
                 <p className="font-medium">{call.userName}</p>
-                <p className="text-sm text-gray-500 capitalize">{call.type} • {new Date(call.date).toLocaleDateString()}</p>
+                <p className="text-sm text-gray-500 capitalize">
+                  {call.type} • {new Date(call.date).toLocaleDateString()}
+                </p>
               </div>
               <div className="text-right">
                 <p className="font-medium">₹{call.earnings}</p>
@@ -336,8 +396,13 @@ const AstrologerDashboard = () => {
 
   const ProfileTab = () => (
     <div className="bg-white rounded-xl shadow-sm p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Profile Settings</h2>
-      <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        Profile Settings
+      </h2>
+      <form
+        onSubmit={onSubmit}
+        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+      >
         <div className="md:col-span-2">
           <label className="block text-gray-700 font-medium mb-2">Bio</label>
           <textarea
@@ -350,7 +415,9 @@ const AstrologerDashboard = () => {
         </div>
 
         <div>
-          <label className="block text-gray-700 font-medium mb-2">Experience</label>
+          <label className="block text-gray-700 font-medium mb-2">
+            Experience
+          </label>
           <input
             type="text"
             name="experience"
@@ -362,7 +429,9 @@ const AstrologerDashboard = () => {
         </div>
 
         <div>
-          <label className="block text-gray-700 font-medium mb-2">Education</label>
+          <label className="block text-gray-700 font-medium mb-2">
+            Education
+          </label>
           <input
             type="text"
             name="education"
@@ -374,7 +443,9 @@ const AstrologerDashboard = () => {
         </div>
 
         <div>
-          <label className="block text-gray-700 font-medium mb-2">Languages (comma separated)</label>
+          <label className="block text-gray-700 font-medium mb-2">
+            Languages (comma separated)
+          </label>
           <input
             type="text"
             name="languages"
@@ -386,7 +457,9 @@ const AstrologerDashboard = () => {
         </div>
 
         <div>
-          <label className="block text-gray-700 font-medium mb-2">Specialties (comma separated)</label>
+          <label className="block text-gray-700 font-medium mb-2">
+            Specialties (comma separated)
+          </label>
           <input
             type="text"
             name="specialties"
@@ -398,7 +471,9 @@ const AstrologerDashboard = () => {
         </div>
 
         <div>
-          <label className="block text-gray-700 font-medium mb-2">Rate Per Minute (₹)</label>
+          <label className="block text-gray-700 font-medium mb-2">
+            Rate Per Minute (₹)
+          </label>
           <input
             type="number"
             name="ratePerMinute"
@@ -442,7 +517,9 @@ const AstrologerDashboard = () => {
               <tr key={index} className="border-b hover:bg-gray-50">
                 <td className="p-3">{call.userName}</td>
                 <td className="p-3 capitalize">{call.type}</td>
-                <td className="p-3">{new Date(call.date).toLocaleDateString()}</td>
+                <td className="p-3">
+                  {new Date(call.date).toLocaleDateString()}
+                </td>
                 <td className="p-3">{call.duration} min</td>
                 <td className="p-3 font-medium">₹{call.earnings}</td>
                 <td className="p-3">
@@ -472,22 +549,33 @@ const AstrologerDashboard = () => {
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm">
           <h3 className="text-gray-500 text-sm font-medium">This Month</h3>
-          <p className="text-2xl font-bold text-gray-800">₹{earnings.monthly}</p>
+          <p className="text-2xl font-bold text-gray-800">
+            ₹{earnings.monthly}
+          </p>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Transactions</h3>
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+          Recent Transactions
+        </h3>
         <div className="space-y-3">
           {callHistory.slice(0, 10).map((call, index) => (
-            <div key={index} className="flex justify-between items-center p-3 border-b">
+            <div
+              key={index}
+              className="flex justify-between items-center p-3 border-b"
+            >
               <div>
                 <p className="font-medium">{call.userName}</p>
-                <p className="text-sm text-gray-500">{new Date(call.date).toLocaleDateString()}</p>
+                <p className="text-sm text-gray-500">
+                  {new Date(call.date).toLocaleDateString()}
+                </p>
               </div>
               <div className="text-right">
                 <p className="font-medium text-green-600">+₹{call.earnings}</p>
-                <p className="text-sm text-gray-500">{call.duration} min • {call.type}</p>
+                <p className="text-sm text-gray-500">
+                  {call.duration} min • {call.type}
+                </p>
               </div>
             </div>
           ))}
@@ -498,7 +586,9 @@ const AstrologerDashboard = () => {
 
   const ReviewsTab = () => (
     <div className="bg-white rounded-xl shadow-sm p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">Customer Reviews</h3>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">
+        Customer Reviews
+      </h3>
       <div className="space-y-4">
         {reviews.map((review, index) => (
           <div key={index} className="border-b pb-4">
@@ -510,7 +600,9 @@ const AstrologerDashboard = () => {
               </div>
             </div>
             <p className="text-gray-600">{review.comment}</p>
-            <p className="text-sm text-gray-400 mt-2">{new Date(review.date).toLocaleDateString()}</p>
+            <p className="text-sm text-gray-400 mt-2">
+              {new Date(review.date).toLocaleDateString()}
+            </p>
           </div>
         ))}
       </div>
@@ -519,29 +611,39 @@ const AstrologerDashboard = () => {
 
   const ScheduleTab = () => {
     const [editingDay, setEditingDay] = useState(null);
-    const [timeSlots, setTimeSlots] = useState('');
+    const [timeSlots, setTimeSlots] = useState("");
 
     const handleSaveSchedule = (day) => {
-      const slots = timeSlots.split(',').map(slot => slot.trim()).filter(slot => slot);
+      const slots = timeSlots
+        .split(",")
+        .map((slot) => slot.trim())
+        .filter((slot) => slot);
       updateAvailability(day, slots);
       setEditingDay(null);
-      setTimeSlots('');
+      setTimeSlots("");
     };
 
     return (
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Availability Schedule</h3>
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+          Availability Schedule
+        </h3>
         <div className="space-y-4">
           {schedule.map((daySchedule, index) => (
-            <div key={index} className="flex justify-between items-center p-4 border rounded-lg">
+            <div
+              key={index}
+              className="flex justify-between items-center p-4 border rounded-lg"
+            >
               <span className="font-medium capitalize">{daySchedule.day}</span>
               <span className="text-gray-600">
-                {daySchedule.slots.length > 0 ? daySchedule.slots.join(', ') : 'Not Available'}
+                {daySchedule.slots.length > 0
+                  ? daySchedule.slots.join(", ")
+                  : "Not Available"}
               </span>
               <button
                 onClick={() => {
                   setEditingDay(daySchedule.day);
-                  setTimeSlots(daySchedule.slots.join(', '));
+                  setTimeSlots(daySchedule.slots.join(", "));
                 }}
                 className="text-indigo-600 hover:text-indigo-800"
               >
@@ -555,7 +657,9 @@ const AstrologerDashboard = () => {
         {editingDay && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white p-6 rounded-xl max-w-md w-full">
-              <h3 className="text-xl font-semibold mb-4">Edit {editingDay} Schedule</h3>
+              <h3 className="text-xl font-semibold mb-4">
+                Edit {editingDay} Schedule
+              </h3>
               <input
                 type="text"
                 value={timeSlots}
@@ -584,13 +688,19 @@ const AstrologerDashboard = () => {
     );
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
 
-  if (!profile) return <div className="min-h-screen flex items-center justify-center">Failed to load profile</div>;
+  if (!profile)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Failed to load profile
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -602,10 +712,12 @@ const AstrologerDashboard = () => {
               <span className="text-2xl">📞</span>
             </div>
             <h2 className="text-2xl font-bold mb-2 text-gray-800">
-              Incoming {incomingCall.type === 'chat' ? 'Chat' : 'Video Call'}
+              Incoming {incomingCall.type === "chat" ? "Chat" : "Video Call"}
             </h2>
             <p className="text-lg text-gray-600 mb-2">{incomingCall.name}</p>
-            <p className="text-gray-500 mb-6">is requesting to connect with you</p>
+            <p className="text-gray-500 mb-6">
+              is requesting to connect with you
+            </p>
 
             <div className="flex gap-4 justify-center">
               <button
@@ -629,18 +741,33 @@ const AstrologerDashboard = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Astrologer Dashboard</h1>
-            <p className="text-gray-600">Manage your profile and accept client calls</p>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Astrologer Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Manage your profile and accept client calls
+            </p>
           </div>
 
           {/* Status Toggle */}
           <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${profile.isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    profile.isOnline ? "bg-green-500" : "bg-red-500"
+                  }`}
+                ></div>
                 <span className="text-gray-600">
-                  Status: <span className={profile.isOnline ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                    {profile.isOnline ? 'Online' : 'Offline'}
+                  Status:{" "}
+                  <span
+                    className={
+                      profile.isOnline
+                        ? "text-green-600 font-medium"
+                        : "text-red-600 font-medium"
+                    }
+                  >
+                    {profile.isOnline ? "Online" : "Offline"}
                   </span>
                 </span>
               </div>
@@ -648,11 +775,11 @@ const AstrologerDashboard = () => {
                 onClick={toggleStatus}
                 className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
                   profile.isOnline
-                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : 'bg-green-500 hover:bg-green-600 text-white'
+                    ? "bg-red-500 hover:bg-red-600 text-white"
+                    : "bg-green-500 hover:bg-green-600 text-white"
                 }`}
               >
-                {profile.isOnline ? 'Go Offline' : 'Go Online'}
+                {profile.isOnline ? "Go Offline" : "Go Online"}
               </button>
             </div>
           </div>
@@ -662,20 +789,20 @@ const AstrologerDashboard = () => {
         <div className="bg-white rounded-xl shadow-sm mb-6 overflow-x-auto">
           <div className="flex border-b">
             {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'profile', label: 'Profile' },
-              { id: 'call-history', label: 'Call History' },
-              { id: 'earnings', label: 'Earnings' },
-              { id: 'reviews', label: 'Reviews' },
-              { id: 'schedule', label: 'Schedule' }
-            ].map(tab => (
+              { id: "overview", label: "Overview" },
+              { id: "profile", label: "Profile" },
+              { id: "call-history", label: "Call History" },
+              { id: "earnings", label: "Earnings" },
+              { id: "reviews", label: "Reviews" },
+              { id: "schedule", label: "Schedule" },
+            ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? "border-indigo-500 text-indigo-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
                 {tab.label}
@@ -686,12 +813,12 @@ const AstrologerDashboard = () => {
 
         {/* Tab Content */}
         <div className="min-h-96">
-          {activeTab === 'overview' && <OverviewTab />}
-          {activeTab === 'profile' && <ProfileTab />}
-          {activeTab === 'call-history' && <CallHistoryTab />}
-          {activeTab === 'earnings' && <EarningsTab />}
-          {activeTab === 'reviews' && <ReviewsTab />}
-          {activeTab === 'schedule' && <ScheduleTab />}
+          {activeTab === "overview" && <OverviewTab />}
+          {activeTab === "profile" && <ProfileTab />}
+          {activeTab === "call-history" && <CallHistoryTab />}
+          {activeTab === "earnings" && <EarningsTab />}
+          {activeTab === "reviews" && <ReviewsTab />}
+          {activeTab === "schedule" && <ScheduleTab />}
         </div>
       </div>
     </div>
