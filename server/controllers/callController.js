@@ -135,17 +135,21 @@ exports.endCall = async (req, res) => {
 
     await callLog.save();
 
-    // Deduct from caller
+    // Deduct from caller (minus any prepaid amount from ActiveCall)
     const callerWallet = await Wallet.findOne({ userId: callLog.callerId });
-    callerWallet.balance -= cost;
+    const activeCall = await require('../models/ActiveCall').findOne({ callId: callLog._id });
+    const prepaid = activeCall?.prepaid || 0;
+    const netCost = Math.max(cost - prepaid, 0);
+    callerWallet.balance -= netCost;
     await callerWallet.save();
 
-    // Add to receiver (optional, or just track earnings)
+    // Add to receiver earnings (90%) and consider commission on net amount
     const receiverWallet = await Wallet.findOne({ userId: callLog.receiverId });
-    receiverWallet.balance += cost;
+    const expertEarning = netCost * 0.9;
+    receiverWallet.balance += expertEarning;
     await receiverWallet.save();
 
-    res.json({ msg: 'Call ended', cost, remainingBalance: callerWallet.balance });
+    res.json({ msg: 'Call ended', cost, charged: netCost, remainingBalance: callerWallet.balance });
 
   } catch (err) {
     console.error(err.message);
