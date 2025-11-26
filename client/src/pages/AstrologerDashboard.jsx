@@ -40,6 +40,12 @@ const AstrologerDashboard = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (profile?.userId) {
+      socket.emit("join", profile.userId);
+    }
+  }, [profile?.userId]);
+
   const fetchProfile = async () => {
     try {
       setLoading(true);
