@@ -36,7 +36,7 @@ describe("placeLookup", () => {
       ],
     });
     const { findPlace } = require("../utils/placeLookup");
-    const results = await findPlace("Che");
+    const results = await findPlace("Xyz");
     expect(axios.get).toHaveBeenCalled();
     expect(results[0]).toMatchObject({ place: "Chennai", state: "Tamil Nadu" });
   });
