@@ -22,16 +22,20 @@ const generateHoroscope = async (req, res) => {
     if (!date || !time || !place)
       return res.status(400).json({ error: "date,time,place required" });
 
-    const candidates = findPlace(place);
+    const candidates = await findPlace(place);
     if (!candidates || candidates.length === 0)
       return res.status(404).json({ error: "place not found" });
     const best = candidates[0];
 
-    // Use geo-tz to find timezone if possible, else default to UTC or IST
+    // Determine timezone safely
     let tz = "UTC";
     try {
       const geoTz = require("geo-tz");
-      tz = geoTz.find(best.lat, best.lon)[0] || "UTC";
+      const arr =
+        typeof geoTz === "function"
+          ? geoTz(best.lat, best.lon)
+          : geoTz.find(best.lat, best.lon);
+      tz = arr && arr[0] ? arr[0] : "UTC";
     } catch (e) {
       console.warn("geo-tz error", e);
     }
@@ -129,14 +133,21 @@ const matchCharts = async (req, res) => {
       if (details.planets) return details; // already has planets
       // Generate
       const { date, time, place } = details;
-      const candidates = findPlace(place);
+      const candidates = await findPlace(place);
       const best = candidates[0] || { lat: 0, lon: 0 };
       let tz = "UTC";
       try {
         const geoTz = require("geo-tz");
-        tz = geoTz.find(best.lat, best.lon)[0] || "UTC";
+        const arr =
+          typeof geoTz === "function"
+            ? geoTz(best.lat, best.lon)
+            : geoTz.find(best.lat, best.lon);
+        tz = arr && arr[0] ? arr[0] : "UTC";
       } catch (e) {}
-      const dt = moment.tz(`${date} ${time}`, tz);
+      let dt = moment.tz(`${date} ${time}`, tz);
+      if (!dt.isValid()) {
+        dt = moment.utc(`${date}T${time}:00`);
+      }
       const jd = julianDayFromDate(dt.toDate());
       const planets = await computePlanets(jd);
       return { planets };
