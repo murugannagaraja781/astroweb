@@ -1,98 +1,59 @@
-# Git Push Permission Error - Fix Guide
-
-## Error
-```
-remote: Permission to murugannagaraja781/astroweb.git denied to nagarajanewlife.
-fatal: unable to access 'https://github.com/murugannagaraja781/astroweb.git/': The requested URL returned error: 403
-```
+# Git Push Fix Guide
 
 ## Problem
-Git is using the wrong GitHub account (`nagarajanewlife`) instead of `murugannagaraja781`.
-
----
-
-## Solution Options
-
-### Option 1: Update Git Credentials (Recommended)
-
-```bash
-# 1. Update Git config to use correct username
-cd /Users/wohozo/astroweb
-git config user.name "murugannagaraja781"
-git config user.email "your-email@example.com"
-
-# 2. Update remote URL to use SSH (more secure)
-git remote set-url origin git@github.com:murugannagaraja781/astroweb.git
-
-# 3. Push
-git push origin main
+Git push failing with permission error:
 ```
+Permission to murugannagaraja781/astroweb.git denied to nagarajanewlife
+```
+
+## Quick Fixes
+
+### Option 1: Use GitHub Desktop (Easiest)
+1. Open **GitHub Desktop**
+2. It will show the commit: "Deploy: Trigger deployment with admin/astrologer bypass fixes"
+3. Click **"Push origin"** button
+4. Done! Render will auto-deploy
 
 ### Option 2: Use Personal Access Token
-
+1. Go to GitHub → Settings → Developer settings → Personal access tokens
+2. Generate new token (classic) with `repo` scope
+3. Copy the token
+4. Run:
 ```bash
-# 1. Create Personal Access Token on GitHub
-# Go to: GitHub → Settings → Developer settings → Personal access tokens → Generate new token
-# Select scopes: repo (all)
-
-# 2. Push with token
-git push https://YOUR_TOKEN@github.com/murugannagaraja781/astroweb.git main
-```
-
-### Option 3: Fix Credential Helper
-
-```bash
-# 1. Clear stored credentials
-git credential-osxkeychain erase
-host=github.com
-protocol=https
-[Press Enter twice]
-
-# 2. Push (will prompt for credentials)
+git remote set-url origin https://YOUR_TOKEN@github.com/murugannagaraja781/astroweb.git
 git push origin main
-# Enter username: murugannagaraja781
-# Enter password: YOUR_PERSONAL_ACCESS_TOKEN
 ```
 
----
-
-## Quick Fix (Easiest)
-
+### Option 3: Use SSH Instead of HTTPS
+1. Set up SSH key if not already done
+2. Change remote to SSH:
 ```bash
-cd /Users/wohozo/astroweb
-
-# Update remote to SSH
 git remote set-url origin git@github.com:murugannagaraja781/astroweb.git
-
-# Push
 git push origin main
 ```
 
-**Note**: This requires SSH key to be set up on GitHub. If not set up, use Option 2 (Personal Access Token).
+### Option 4: Use VS Code
+1. Open VS Code
+2. Go to Source Control panel (Ctrl/Cmd + Shift + G)
+3. Click the **"..."** menu → Push
+4. VS Code will handle authentication
 
----
+## After Successful Push
 
-## After Fixing
+Render will automatically:
+1. Detect the new commit
+2. Pull the latest code
+3. Build and deploy (takes 2-5 minutes)
+4. Your admin bypass will be live!
 
-Once push succeeds:
-1. ✅ GitHub will receive the changes
-2. ✅ Vercel will auto-deploy (if connected)
-3. ✅ Wait 2-3 minutes for deployment
-4. ✅ Visit https://astroweb-beryl.vercel.app
-5. ✅ Login as client and see new dashboard!
+## Verify Deployment
 
----
+After 2-5 minutes, test:
+```bash
+curl -X POST https://astroweb-y0i6.onrender.com/api/call/initiate \
+  -H "Content-Type: application/json" \
+  -H "x-auth-token: YOUR_ADMIN_JWT" \
+  -d '{"receiverId":"ASTROLOGER_ID","type":"video"}'
+```
 
-## Alternative: Manual Deploy on Vercel
-
-If Git push is difficult:
-
-1. Go to Vercel Dashboard
-2. Select your project
-3. Click "Deployments"
-4. Click "Redeploy" on latest deployment
-5. Or: Upload files manually
-
----
-
-*Choose the option that works best for your setup!*
+Expected: `{"callId":"...","msg":"Call initiated (Admin)"}`

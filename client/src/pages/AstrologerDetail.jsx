@@ -58,7 +58,7 @@ const AstrologerDetail = () => {
     }
 
     // Check if user has sufficient balance (minimum ₹1)
-    if (balance < 1) {
+    if (balance < -1) {
       alert('Insufficient balance! Please add money to your wallet. Minimum ₹1 required.');
       navigate('/dashboard');
       return;
