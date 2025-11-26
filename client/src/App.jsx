@@ -128,7 +128,7 @@ function App() {
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
                   <Route path="/call/:id" element={<VideoCall />} />
                   <Route path="/chat/:id" element={<Chat />} />
-                  <Route path="/astrology" element={<AstrologyDashboard />} />
+                  <Route path="/astrology" element={<ProtectedAstrology />} />
                 </Routes>
               </Suspense>
             </AppLayout>
@@ -140,3 +140,12 @@ function App() {
 }
 
 export default App;
+// Role-protected wrapper for AstrologyDashboard
+const ProtectedAstrology = () => {
+  const { user } = useContext(AuthContext);
+  if (!user) return <Navigate to="/login" />;
+  if (user.role === 'admin' || user.role === 'astrologer') {
+    return <AstrologyDashboard />;
+  }
+  return <Navigate to="/" />;
+};

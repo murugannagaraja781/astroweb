@@ -36,7 +36,10 @@ const DesktopHeader = () => {
   const navItems = [
     { to: "/", icon: Home, label: "Home" },
     { to: getDashboardLink(), icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/astrology", icon: Star, label: "Astrology" },
+    // Show Astrology only for admin or astrologer
+    ...(user && (user.role === "admin" || user.role === "astrologer")
+      ? [{ to: "/astrology", icon: Star, label: "Astrology" }]
+      : []),
     { to: "/chat/0", icon: MessageCircle, label: "Chat" },
     { to: "/call/0", icon: Video, label: "Call" },
   ];

@@ -8,9 +8,10 @@ const { getPanchangam } = require('../utils/panchangam');
 const { matchHoroscopes } = require('../utils/matching');
 
 // GET /api/horoscope/places?q=Chennai
-const searchPlaces = (req, res) => {
+const searchPlaces = async (req, res) => {
     const q = req.query.q || '';
-    return res.json(findPlace(q));
+    const results = await findPlace(q);
+    return res.json(results);
 };
 
 // POST /api/horoscope/generate

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const parse = require('csv-parse/sync').parse;
+const axios = require('axios');
 
 let rows = [];
 try {
@@ -21,10 +22,31 @@ try {
     console.error("Error loading places.csv", e);
 }
 
-function findPlace(q) {
+async function findPlace(q) {
     if (!q) return [];
-    q = q.toLowerCase();
-    return rows.filter(r => (r.place || r.name || '').toLowerCase().includes(q)).slice(0, 10).map(r => ({ place: r.place, state: r.state, district: r.district, lat: parseFloat(r.lat), lon: parseFloat(r.lon) }));
+    const hasLocal = rows && rows.length > 0;
+    if (hasLocal) {
+        const qq = q.toLowerCase();
+        return rows
+            .filter(r => (r.place || r.name || '').toLowerCase().includes(qq))
+            .slice(0, 10)
+            .map(r => ({ place: r.place, state: r.state, district: r.district, lat: parseFloat(r.lat), lon: parseFloat(r.lon) }));
+    }
+    try {
+        const res = await axios.get('https://nominatim.openstreetmap.org/search', {
+            params: { format: 'json', limit: 10, countrycodes: 'in', q },
+            headers: { 'User-Agent': 'AstroWeb/1.0 (contact: support@example.com)' }
+        });
+        return (res.data || []).map(item => ({
+            place: item.display_name?.split(',')[0] || q,
+            state: item.address?.state || '',
+            district: item.address?.county || item.address?.state_district || '',
+            lat: parseFloat(item.lat),
+            lon: parseFloat(item.lon)
+        }));
+    } catch (e) {
+        return [];
+    }
 }
 
 module.exports = { findPlace };
