@@ -5,7 +5,7 @@ const axios = require("axios");
 
 let rows = [];
 try {
-  const csvPath = path.join(__dirname, "../places.csv");
+  const csvPath = path.join(__dirname, "./city.csv");
   if (fs.existsSync(csvPath)) {
     rows = parse(fs.readFileSync(csvPath), {
       columns: true,
