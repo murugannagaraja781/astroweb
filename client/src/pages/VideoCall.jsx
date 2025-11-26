@@ -10,7 +10,7 @@ import OffersList from '../components/OffersList';
 import { ArrowLeft } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
-const socket = io('https://astroweb-y0i6.onrender.com');
+const socket = io(import.meta.env.VITE_API_URL);
 
 // Helper component to fetch and display astrologers
 const OnlineAstrologersWrapper = () => {
@@ -61,18 +61,21 @@ const VideoCallContent = ({ callId, receiverId, setCallActive, callActive, userR
     if (user && user.role !== 'admin') {
       const fetchBalance = async () => {
         try {
-          const res = await axios.get('https://astroweb-y0i6.onrender.com/api/wallet/balance');
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
           setBalance(res.data.balance);
+          console.log(`✅ Balance fetched: ₹${res.data.balance}`);
         } catch (err) {
-          console.error("Failed to fetch balance", err);
+          console.error("❌ Failed to fetch balance:", err);
+          addToast("Failed to fetch wallet balance", "error");
         }
       };
       fetchBalance();
     } else {
       // Admin (super admin) has unlimited balance
+      console.log('✅ Admin user - unlimited balance');
       setBalance(Infinity);
     }
-  }, [user]);
+  }, [user, addToast]);
 
   useEffect(() => {
     if (callActive && balance > 0) {
