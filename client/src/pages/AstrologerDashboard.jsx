@@ -69,8 +69,16 @@ const AstrologerDashboard = () => {
         const token = localStorage.getItem("token");
         const res = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Cache-Control': 'no-cache',
+            },
+            // Bypass cache with a timestamp query param
+            params: { _t: Date.now() },
+          }
         );
+        // No need to filter – server already returns only this astrologer's sessions
         setPendingSessions(res.data);
         console.log('[DEBUG] Fetched pending sessions', res.data);
       } catch (err) {
