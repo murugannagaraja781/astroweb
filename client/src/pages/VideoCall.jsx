@@ -19,7 +19,11 @@ import { useToast } from "../context/ToastContext";
 
 const SOCKET_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || process.env.VITE_API_URL || '';
 const APP_ID = (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_AGORA_APP_ID || import.meta.env.VITE_APP_ID)) || process.env.VITE_AGORA_APP_ID || process.env.VITE_APP_ID || '';
-const socket = io(SOCKET_URL, { autoConnect: false });
+
+const AGORA_DEBUG = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_AGORA_DEBUG) || process.env.VITE_AGORA_DEBUG;
+if (AGORA_DEBUG) {
+  try { AgoraRTC.setLogLevel(4); } catch (e) {}
+}
 
 // Small helper to format duration mm:ss
 const formatDuration = (sec) =>
@@ -30,6 +34,9 @@ export default function VideoCall() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { addToast } = useToast();
+
+  // Socket state
+  const [socket, setSocket] = useState(null);
 
   // Agora client - memoized so it doesn't recreate on every render
   const client = useMemo(
@@ -87,9 +94,20 @@ export default function VideoCall() {
 
   // --- Socket setup ---
   useEffect(() => {
-    if (!user) return;
-    socket.auth = { userId: user.id };
-    socket.connect();
+    const token = localStorage.getItem('token');
+    const newSocket = io(SOCKET_URL, {
+      auth: { token }
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user || !socket) return;
 
     // Events
     socket.on("connect", () => console.log("socket connected", socket.id));
@@ -136,10 +154,9 @@ export default function VideoCall() {
       socket.off("callRejected");
       socket.off("endCall");
       socket.off("billingUpdate");
-      socket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, callId, fetchRtcToken]);
+  }, [user, callId, fetchRtcToken, socket]);
 
   // --- Fetch call history when otherUserId === '0' ---
   useEffect(() => {
@@ -257,7 +274,7 @@ export default function VideoCall() {
 
   // --- Initiate a call (client -> astrologer) ---
   const initiateCall = useCallback(async () => {
-    if (!user || !otherUserId) return;
+    if (!user || !otherUserId || !socket) return;
     try {
       const res = await axios.post(`${SOCKET_URL}/api/call/initiate`, {
         receiverId: otherUserId,
@@ -284,7 +301,7 @@ export default function VideoCall() {
       console.error("Initiate call failed", err);
       addToast("Failed to start call", "error");
     }
-  }, [otherUserId, user, fetchRtcToken, addToast]);
+  }, [otherUserId, user, fetchRtcToken, addToast, socket]);
 
   // --- For astrologer: accept incoming call (incomingCallId from query or state) ---
   useEffect(() => {
@@ -346,7 +363,7 @@ export default function VideoCall() {
       setCallActive(false);
 
       // notify backend
-      if (callId) {
+      if (callId && socket) {
         try {
           await axios.post(`${SOCKET_URL}/api/call/end`, { callId, duration });
           socket.emit("endCall", { to: otherUserId });
@@ -362,7 +379,7 @@ export default function VideoCall() {
     } catch (err) {
       console.error("Error leaving call", err);
     }
-  }, [client, callId, otherUserId, navigate, user?.role]);
+  }, [client, callId, otherUserId, navigate, user?.role, socket]);
 
   // --- Render views ---
   if (otherUserId === "0") {
@@ -422,7 +439,7 @@ export default function VideoCall() {
     <div
       className={user?.role === "astrologer" ? "theme-orange" : "theme-dark"}
     >
-      <div className="h-screen flex flex-col items-center justify-center text-white">
+      <div className="h-screen flex flex-col items-center justify-center text-white bg-slate-900">
         <div className="absolute top-4 left-4 z-10">
           <button
             onClick={() => navigate(`/call/0`)}

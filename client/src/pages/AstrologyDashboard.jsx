@@ -8,9 +8,12 @@ import {
   Heart,
   Star,
   Activity,
+  ArrowRight
 } from "lucide-react";
+import SouthIndianChart from "../components/SouthIndianChart";
+import NorthIndianChart from "../components/NorthIndianChart";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:9001";
 
 const PlaceSearch = ({ value, onChange, onSelect }) => {
   const [suggestions, setSuggestions] = useState([]);
@@ -38,28 +41,28 @@ const PlaceSearch = ({ value, onChange, onSelect }) => {
 
   return (
     <div className="relative">
-      <div className="flex items-center border rounded-lg px-3 py-2 bg-white focus-within:ring-2 ring-purple-500">
+      <div className="flex items-center border border-slate-600 rounded-lg px-3 py-2 bg-slate-700 focus-within:ring-2 ring-purple-500">
         <MapPin className="text-gray-400 w-5 h-5 mr-2" />
         <input
           type="text"
           value={value}
           onChange={(e) => handleSearch(e.target.value)}
           placeholder="Enter City"
-          className="w-full outline-none"
+          className="w-full outline-none bg-transparent text-white placeholder-gray-400"
         />
       </div>
       {show && suggestions.length > 0 && (
-        <div className="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-10 w-full bg-slate-800 border border-slate-600 rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto">
           {suggestions.map((place, i) => (
             <div
               key={i}
-              className="px-4 py-2 hover:bg-purple-50 cursor-pointer text-sm"
+              className="px-4 py-2 hover:bg-purple-900/50 cursor-pointer text-sm text-gray-200"
               onClick={() => {
                 onSelect(place);
                 setShow(false);
               }}
             >
-              <span className="font-medium">{place.place}</span>, {place.state}
+              <span className="font-medium text-white">{place.place}</span>, {place.state}
             </div>
           ))}
         </div>
@@ -86,32 +89,35 @@ const ChartForm = ({ onSubmit, title = "Enter Birth Details" }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100"
+      className="space-y-4 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700"
     >
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <Star className="w-4 h-4 text-purple-400" /> {title}
+      </h3>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-400 mb-1">
           Name
         </label>
         <input
           type="text"
           required
-          className="w-full border rounded-lg px-3 py-2 focus:ring-2 ring-purple-500 outline-none"
+          className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700 text-white focus:ring-2 ring-purple-500 outline-none placeholder-gray-500"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Enter full name"
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-400 mb-1">
             Date
           </label>
-          <div className="flex items-center border rounded-lg px-3 py-2 bg-white">
+          <div className="flex items-center border border-slate-600 rounded-lg px-3 py-2 bg-slate-700">
             <Calendar className="text-gray-400 w-4 h-4 mr-2" />
             <input
               type="date"
               required
-              className="w-full outline-none"
+              className="w-full outline-none bg-transparent text-white"
               value={formData.date}
               onChange={(e) =>
                 setFormData({ ...formData, date: e.target.value })
@@ -120,15 +126,15 @@ const ChartForm = ({ onSubmit, title = "Enter Birth Details" }) => {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-400 mb-1">
             Time
           </label>
-          <div className="flex items-center border rounded-lg px-3 py-2 bg-white">
+          <div className="flex items-center border border-slate-600 rounded-lg px-3 py-2 bg-slate-700">
             <Clock className="text-gray-400 w-4 h-4 mr-2" />
             <input
               type="time"
               required
-              className="w-full outline-none"
+              className="w-full outline-none bg-transparent text-white"
               value={formData.time}
               onChange={(e) =>
                 setFormData({ ...formData, time: e.target.value })
@@ -138,7 +144,7 @@ const ChartForm = ({ onSubmit, title = "Enter Birth Details" }) => {
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-400 mb-1">
           Place of Birth
         </label>
         <PlaceSearch
@@ -152,30 +158,30 @@ const ChartForm = ({ onSubmit, title = "Enter Birth Details" }) => {
       </div>
       <button
         type="submit"
-        className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+        className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all shadow-lg shadow-purple-900/20 flex items-center justify-center gap-2"
       >
-        Generate
+        Generate Chart <ArrowRight size={16} />
       </button>
     </form>
   );
 };
 
 const PlanetTable = ({ planets }) => (
-  <div className="overflow-x-auto">
-    <table className="min-w-full text-sm">
-      <thead className="bg-gray-50">
+  <div className="overflow-x-auto rounded-lg border border-slate-700">
+    <table className="min-w-full text-sm text-left">
+      <thead className="bg-slate-700 text-gray-300">
         <tr>
-          <th className="px-4 py-2 text-left">Planet</th>
-          <th className="px-4 py-2 text-left">Longitude</th>
-          <th className="px-4 py-2 text-left">Speed</th>
+          <th className="px-4 py-3 font-medium">Planet</th>
+          <th className="px-4 py-3 font-medium">Longitude</th>
+          <th className="px-4 py-3 font-medium">Speed</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody className="divide-y divide-slate-700 bg-slate-800">
         {Object.entries(planets).map(([name, data]) => (
-          <tr key={name} className="border-t">
-            <td className="px-4 py-2 font-medium">{name}</td>
-            <td className="px-4 py-2">{data.lon.toFixed(2)}°</td>
-            <td className="px-4 py-2">{data.speed?.toFixed(2) || "-"}</td>
+          <tr key={name} className="hover:bg-slate-700/50 transition-colors">
+            <td className="px-4 py-3 font-medium text-purple-300 capitalize">{name}</td>
+            <td className="px-4 py-3 text-gray-300">{data.lon.toFixed(2)}°</td>
+            <td className="px-4 py-3 text-gray-400">{data.speed?.toFixed(2) || "-"}</td>
           </tr>
         ))}
       </tbody>
@@ -224,23 +230,23 @@ const AstrologyDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 pb-24">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-          <Star className="text-purple-600" /> Astrology Engine
+    <div className="min-h-screen bg-slate-900 py-8 pb-24 text-gray-100">
+      <div className="container mx-auto px-4 max-w-5xl">
+        <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
+          <Star className="text-purple-500 fill-purple-500" /> Astrology Engine
         </h1>
-        <p className="text-gray-600 mb-8">
+        <p className="text-gray-400 mb-8">
           Generate detailed horoscopes and check compatibility
         </p>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-8 bg-slate-800 p-1 rounded-full w-fit border border-slate-700">
           <button
             onClick={() => setActiveTab("chart")}
             className={`px-6 py-2 rounded-full font-semibold transition-all ${
               activeTab === "chart"
-                ? "bg-purple-600 text-white"
-                : "bg-white text-gray-600 border"
+                ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50"
+                : "text-gray-400 hover:text-white"
             }`}
           >
             Generate Chart
@@ -249,8 +255,8 @@ const AstrologyDashboard = () => {
             onClick={() => setActiveTab("match")}
             className={`px-6 py-2 rounded-full font-semibold transition-all ${
               activeTab === "match"
-                ? "bg-pink-600 text-white"
-                : "bg-white text-gray-600 border"
+                ? "bg-pink-600 text-white shadow-lg shadow-pink-900/50"
+                : "text-gray-400 hover:text-white"
             }`}
           >
             Match Making
@@ -258,75 +264,115 @@ const AstrologyDashboard = () => {
         </div>
 
         {activeTab === "chart" && (
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
+          <div className="grid md:grid-cols-12 gap-8">
+            <div className="md:col-span-4">
               <ChartForm
                 onSubmit={handleGenerate}
-                title="Enter Birth Details"
+                title="Birth Details"
               />
             </div>
-            <div>
-              {loading && <div className="text-center py-10">Loading...</div>}
+            <div className="md:col-span-8">
+              {loading && (
+                <div className="text-center py-20">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                  <p className="text-purple-400">Calculating planetary positions...</p>
+                </div>
+              )}
+
+              {!loading && !chartData && (
+                <div className="bg-slate-800 rounded-xl border border-slate-700 p-10 text-center text-gray-500">
+                  <Activity className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                  <p>Enter birth details to generate a comprehensive horoscope report.</p>
+                </div>
+              )}
+
               {chartData && !loading && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">
-                    Horoscope Details
-                  </h3>
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-500">
-                      Name:{" "}
-                      <span className="font-medium text-gray-800">
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  {/* Header Info */}
+                  <div className="bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-700 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-1">
                         {chartData.name}
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Date:{" "}
-                      <span className="font-medium text-gray-800">
-                        {chartData.input.date} {chartData.input.time}
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Place:{" "}
-                      <span className="font-medium text-gray-800">
-                        {chartData.input.place.place}
-                      </span>
-                    </p>
+                      </h3>
+                      <p className="text-sm text-gray-400">
+                        {chartData.input.date} at {chartData.input.time} • {chartData.input.place.place}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Ascendant</div>
+                      <div className="text-lg font-bold text-purple-400">{chartData.houses.ascendant.sign}</div>
+                    </div>
                   </div>
 
-                  <div className="mb-6">
-                    <h4 className="font-semibold text-purple-700 mb-2">
+                  {/* Charts Grid */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                      <h4 className="font-semibold text-purple-400 mb-4 text-center">
+                        South Indian Style
+                      </h4>
+                      <SouthIndianChart
+                        planets={chartData.planets}
+                        ascendant={chartData.houses.ascendant}
+                      />
+                    </div>
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                      <h4 className="font-semibold text-purple-400 mb-4 text-center">
+                        North Indian Style
+                      </h4>
+                      <NorthIndianChart
+                        planets={chartData.planets}
+                        houses={chartData.houses}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Planetary Positions */}
+                  <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <h4 className="font-semibold text-purple-400 mb-4">
                       Planetary Positions
                     </h4>
                     <PlanetTable planets={chartData.planets} />
                   </div>
 
-                  <div className="mb-6">
-                    <h4 className="font-semibold text-purple-700 mb-2">
-                      Panchangam
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="bg-gray-50 p-2 rounded">
-                        <span className="text-gray-500 block">Tithi</span>
-                        <span className="font-medium">
-                          {chartData.panchangam.tithi.tithiApprox}
-                        </span>
-                      </div>
-                      <div className="bg-gray-50 p-2 rounded">
-                        <span className="text-gray-500 block">Nakshatra</span>
-                        <span className="font-medium">
-                          {chartData.panchangam.nakshatra.name}
-                        </span>
+                  {/* Panchangam & Dasa */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                      <h4 className="font-semibold text-purple-400 mb-4">
+                        Panchangam
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between p-3 bg-slate-700/50 rounded-lg">
+                          <span className="text-gray-400">Tithi</span>
+                          <span className="font-medium text-white">
+                            {chartData.panchangam.tithi.tithiApprox}
+                          </span>
+                        </div>
+                        <div className="flex justify-between p-3 bg-slate-700/50 rounded-lg">
+                          <span className="text-gray-400">Nakshatra</span>
+                          <span className="font-medium text-white">
+                            {chartData.panchangam.nakshatra.name}
+                          </span>
+                        </div>
+                        <div className="flex justify-between p-3 bg-slate-700/50 rounded-lg">
+                          <span className="text-gray-400">Yoga</span>
+                          <span className="font-medium text-white">
+                            {chartData.panchangam.yoga.name}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <h4 className="font-semibold text-purple-700 mb-2">
-                      Current Dasa
-                    </h4>
-                    <div className="bg-purple-50 p-3 rounded-lg text-purple-800 font-medium">
-                      {chartData.dasa.current?.planet} Dasa (Balance:{" "}
-                      {chartData.dasa.current?.years.toFixed(1)} years)
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                      <h4 className="font-semibold text-purple-400 mb-4">
+                        Vimshottari Dasa
+                      </h4>
+                      <div className="bg-purple-900/20 border border-purple-500/30 p-4 rounded-lg text-center">
+                        <div className="text-sm text-purple-300 mb-1">Current Mahadasa</div>
+                        <div className="text-2xl font-bold text-white mb-2">{chartData.dasa.current?.planet}</div>
+                        <div className="text-sm text-gray-400">
+                          Balance: {chartData.dasa.current?.years.toFixed(1)} years
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -336,7 +382,7 @@ const AstrologyDashboard = () => {
         )}
 
         {activeTab === "match" && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-in fade-in zoom-in duration-300">
             <div className="grid md:grid-cols-2 gap-8">
               <ChartForm onSubmit={setMaleData} title="Boy's Details" />
               <ChartForm onSubmit={setFemaleData} title="Girl's Details" />
@@ -346,10 +392,10 @@ const AstrologyDashboard = () => {
               <button
                 onClick={handleMatch}
                 disabled={!maleData || !femaleData}
-                className={`px-8 py-3 rounded-full font-bold text-lg shadow-lg transition-transform hover:scale-105 ${
+                className={`px-10 py-4 rounded-full font-bold text-lg shadow-lg transition-all hover:scale-105 ${
                   maleData && femaleData
-                    ? "bg-pink-600 text-white"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    ? "bg-pink-600 text-white shadow-pink-900/50 hover:bg-pink-700"
+                    : "bg-slate-700 text-gray-500 cursor-not-allowed"
                 }`}
               >
                 Check Compatibility
@@ -357,42 +403,42 @@ const AstrologyDashboard = () => {
             </div>
 
             {matchResult && (
-              <div className="bg-white p-8 rounded-2xl shadow-lg border border-pink-100 text-center animate-fadeIn">
-                <Heart className="w-16 h-16 text-pink-500 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+              <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-pink-500/30 text-center max-w-2xl mx-auto">
+                <Heart className="w-16 h-16 text-pink-500 mx-auto mb-4 animate-pulse" />
+                <h3 className="text-2xl font-bold text-white mb-2">
                   Compatibility Score
                 </h3>
-                <div className="text-5xl font-black text-pink-600 mb-4">
-                  {matchResult.score} / 2
+                <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 mb-4">
+                  {matchResult.score} <span className="text-2xl text-gray-500">/ 36</span>
                 </div>
-                <p className="text-xl font-medium text-gray-600 mb-6">
+                <p className="text-xl font-medium text-gray-300 mb-8">
                   {matchResult.recommendation}
                 </p>
 
-                <div className="grid grid-cols-2 gap-4 max-w-md mx-auto text-left">
-                  <div className="bg-pink-50 p-4 rounded-xl">
-                    <span className="text-gray-500 text-sm block">
+                <div className="grid grid-cols-2 gap-4 text-left">
+                  <div className="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
+                    <span className="text-gray-400 text-sm block mb-1">
                       Dina Porutham
                     </span>
                     <span
-                      className={`font-bold ${
+                      className={`font-bold text-lg ${
                         matchResult.porutham.din
-                          ? "text-green-600"
-                          : "text-red-500"
+                          ? "text-green-400"
+                          : "text-red-400"
                       }`}
                     >
                       {matchResult.porutham.din ? "Good" : "Bad"}
                     </span>
                   </div>
-                  <div className="bg-pink-50 p-4 rounded-xl">
-                    <span className="text-gray-500 text-sm block">
+                  <div className="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
+                    <span className="text-gray-400 text-sm block mb-1">
                       Gana Porutham
                     </span>
                     <span
-                      className={`font-bold ${
+                      className={`font-bold text-lg ${
                         matchResult.porutham.gana
-                          ? "text-green-600"
-                          : "text-red-500"
+                          ? "text-green-400"
+                          : "text-red-400"
                       }`}
                     >
                       {matchResult.porutham.gana ? "Good" : "Bad"}

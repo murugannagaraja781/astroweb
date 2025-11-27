@@ -4,6 +4,7 @@ import { lazy, Suspense, useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import AuthContext from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Eager load critical components (above the fold)
 import MobileNav from './components/mobile/MobileNav.jsx';
@@ -26,7 +27,7 @@ const AstrologyDashboard = lazy(() => import('./pages/AstrologyDashboard'));
 
 // Loading component
 const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-space-900 via-purple-900 to-space-900">
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
     <div className="text-center">
       <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
       <p className="text-white text-sm">Loading...</p>
@@ -36,12 +37,27 @@ const LoadingFallback = () => (
 
 // Dashboard Router
 const Dashboard = () => {
-  const { user } = useContext(AuthContext);
+  const { user, loading } = useContext(AuthContext);
+
+  if (loading) return <LoadingFallback />;
   if (!user) return <Navigate to="/login" />;
 
   if (user.role === 'admin') return <AdminDashboard />;
   if (user.role === 'astrologer') return <AstrologerDashboard />;
   return <ClientDashboard />;
+};
+
+// Role-protected wrapper for AstrologyDashboard
+const ProtectedAstrology = () => {
+  const { user, loading } = useContext(AuthContext);
+
+  if (loading) return <LoadingFallback />;
+  if (!user) return <Navigate to="/login" />;
+
+  if (user.role === 'admin' || user.role === 'astrologer') {
+    return <AstrologyDashboard />;
+  }
+  return <Navigate to="/" />;
 };
 
 const AppLayout = ({ children }) => {
@@ -107,8 +123,6 @@ const AppLayout = ({ children }) => {
   );
 };
 
-import { ThemeProvider } from './context/ThemeContext';
-
 function App() {
   return (
     <AuthProvider>
@@ -140,12 +154,3 @@ function App() {
 }
 
 export default App;
-// Role-protected wrapper for AstrologyDashboard
-const ProtectedAstrology = () => {
-  const { user } = useContext(AuthContext);
-  if (!user) return <Navigate to="/login" />;
-  if (user.role === 'admin' || user.role === 'astrologer') {
-    return <AstrologyDashboard />;
-  }
-  return <Navigate to="/" />;
-};
