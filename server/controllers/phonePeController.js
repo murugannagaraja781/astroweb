@@ -14,9 +14,24 @@ exports.initiatePhonePePayment = async (req, res) => {
     try {
         const { amount, userId, userName, mobileNumber } = req.body;
 
+        // Validate environment variables
+        if (!PHONEPE_SALT_KEY) {
+            console.error('❌ PHONEPE_AUTH_KEY is not configured in environment variables');
+            return res.status(500).json({
+                error: 'Payment gateway not configured',
+                details: 'PHONEPE_AUTH_KEY missing in server environment'
+            });
+        }
+
         if (!amount || amount <= 0) {
             return res.status(400).json({ error: 'Invalid amount' });
         }
+
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        console.log('💳 Initiating PhonePe payment:', { amount, userId, userName });
 
         // Generate unique transaction ID
         const merchantTransactionId = `TXN_${Date.now()}_${userId}`;
@@ -28,14 +43,16 @@ exports.initiatePhonePePayment = async (req, res) => {
             merchantTransactionId: merchantTransactionId,
             merchantUserId: merchantUserId,
             amount: amount * 100, // Convert to paise
-            redirectUrl: `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment/callback`,
+            redirectUrl: `${process.env.CLIENT_URL || 'https://astroweb-y0i6.onrender.com'}/payment/callback`,
             redirectMode: 'POST',
-            callbackUrl: `${process.env.VITE_API_URL || 'http://localhost:9001'}/api/payment/phonepe/callback`,
+            callbackUrl: `${process.env.VITE_API_URL || 'https://astroweb-y0i6.onrender.com'}/api/payment/phonepe/callback`,
             mobileNumber: mobileNumber || '9999999999',
             paymentInstrument: {
                 type: 'PAY_PAGE'
             }
         };
+
+        console.log('📦 Payment payload:', JSON.stringify(paymentPayload, null, 2));
 
         // Encode payload to base64
         const base64Payload = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
@@ -43,6 +60,8 @@ exports.initiatePhonePePayment = async (req, res) => {
         // Generate checksum: base64Payload + "/pg/v1/pay" + saltKey
         const checksumString = base64Payload + '/pg/v1/pay' + PHONEPE_SALT_KEY;
         const checksum = crypto.createHash('sha256').update(checksumString).digest('hex') + '###' + PHONEPE_SALT_INDEX;
+
+        console.log('🔐 Checksum generated');
 
         // Make request to PhonePe
         const response = await axios.post(
@@ -69,9 +88,11 @@ exports.initiatePhonePePayment = async (req, res) => {
 
     } catch (error) {
         console.error('❌ PhonePe Payment Error:', error.response?.data || error.message);
+        console.error('Error stack:', error.stack);
         res.status(500).json({
             error: 'Payment initiation failed',
-            details: error.response?.data || error.message
+            details: error.response?.data || error.message,
+            message: error.message
         });
     }
 };
