@@ -85,6 +85,7 @@ const AstrologerDetail = () => {
         ratePerMinute: astrologer.profile?.ratePerMinute || 1
       });
       socket.once('chat:joined', ({ sessionId }) => {
+        console.log("[DEBUG] Client received chat:joined:", sessionId);
         setWaiting(false);
         navigate(`/chat/${sessionId}`);
       });

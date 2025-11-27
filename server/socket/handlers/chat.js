@@ -292,4 +292,11 @@ module.exports = (io, socket) => {
             socket.emit('chatHistoryError', { error: 'Failed to load messages' });
         }
     });
+
+    // Explicit join chat room
+    socket.on('join_chat', ({ sessionId }) => {
+        if (!sessionId) return;
+        socket.join(sessionId);
+        console.log(`[DEBUG] Socket ${socket.id} joined chat session ${sessionId}`);
+    });
 };

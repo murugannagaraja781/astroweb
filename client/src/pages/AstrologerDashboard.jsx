@@ -278,6 +278,7 @@ const AstrologerDashboard = () => {
       alert("Call was rejected by user");
     });
     socket.on("chat:request", (payload) => {
+      console.log("[DEBUG] Dashboard received chat:request:", payload);
       setIncomingCall({
         from: payload.clientId,
         name: "",
@@ -288,9 +289,13 @@ const AstrologerDashboard = () => {
       fetchDashboardData();
     });
     socket.on("chat:joined", ({ sessionId }) => {
+      console.log("[DEBUG] Dashboard received chat:joined:", sessionId);
       navigate(`/chat/${sessionId}`);
     });
     socket.on("chat:request", (payload) => {
+       // Duplicate listener found in original code, merging logic or keeping as is but adding log
+       // The original code had duplicate listeners. I will keep the structure but add logs.
+       console.log("[DEBUG] Dashboard received chat:request (duplicate handler):", payload);
       setIncomingCall({
         from: payload.clientId,
         name: "",
@@ -317,6 +322,7 @@ const AstrologerDashboard = () => {
     });
 
     socket.on("chat:joined", ({ sessionId }) => {
+      console.log("[DEBUG] Dashboard received chat:joined (duplicate handler):", sessionId);
       setPendingSessions((prev) =>
         prev.filter((s) => s.sessionId !== sessionId)
       );

@@ -42,6 +42,11 @@ const Chat = () => {
   }, [id]);
 
   useEffect(() => {
+    if (id) {
+      console.log(`[Chat] Joining session: ${id}`);
+      socket.emit("join_chat", { sessionId: id });
+    }
+
     fetchChat();
 
     socket.on("chat:message", (newMessage) => {
