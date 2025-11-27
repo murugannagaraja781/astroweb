@@ -10,41 +10,14 @@ const sessionTimers = new Map();
  * Handles all chat-related socket events
  */
 
-module.exports = (io, socket) => {
+// Helper to start chat session (shared by auto-accept and manual accept)
+const startChatSession = async (io, sessionId) => {
+    try {
+        const s = await ChatSession.findOne({ sessionId });
+        if (!s) return;
 
-    socket.on('chat:request', async (data) => {
-        try {
-            const { clientId, astrologerId, ratePerMinute } = data;
-            console.log(`[DEBUG] chat:request received for astrologerId: ${astrologerId} (type: ${typeof astrologerId})`);
-            console.log(`[DEBUG] onlineUsers keys:`, Array.from(onlineUsers.keys()));
-
-            const crypto = require('crypto');
-            const sid = crypto.randomUUID();
-            const profileRate = ratePerMinute || 1;
-            await ChatSession.create({ sessionId: sid, clientId, astrologerId, status: 'requested', ratePerMinute: profileRate });
-
-            const astroSock = onlineUsers.get(String(astrologerId));
-            console.log(`[DEBUG] Found astroSock: ${astroSock}`);
-
-            if (astroSock) {
-                io.to(astroSock).emit('chat:request', { sessionId: sid, clientId, astrologerId });
-            } else {
-                console.log(`[DEBUG] Astrologer ${astrologerId} not found in onlineUsers`);
-            }
-            socket.emit('chat:requested', { sessionId: sid });
-        } catch (err) {
-            socket.emit('chat:error', { error: 'request_failed' });
-        }
-    });
-
-    socket.on('chat:accept', async (payload) => {
-        try {
-            const { sessionId } = payload;
-            const s = await ChatSession.findOne({ sessionId });
-            if (!s) return;
-            s.status = 'active';
-            s.startedAt = new Date();
-            await s.save();
+        // If already active, just join sockets (idempotent)
+        if (s.status === 'active') {
             const clientSock = onlineUsers.get(s.clientId.toString());
             const astroSock = onlineUsers.get(s.astrologerId.toString());
             if (clientSock) {
@@ -55,43 +28,120 @@ module.exports = (io, socket) => {
                 const as = io.sockets.sockets.get(astroSock);
                 if (as) as.join(sessionId);
             }
-            io.to(sessionId).emit('chat:joined', { sessionId });
-            const ratePerSecond = (s.ratePerMinute || 1) / 60;
-            let elapsed = 0;
-            const t = setInterval(async () => {
-                elapsed += 1;
-                const wallet = await Wallet.findOne({ userId: s.clientId });
-                const cost = ratePerSecond;
-                if (!wallet) {
-                    clearInterval(t);
-                    sessionTimers.delete(sessionId);
-                    io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
-                    s.status = 'ended';
-                    s.endedAt = new Date();
-                    s.duration = elapsed;
-                    s.totalCost = parseFloat((elapsed * ratePerSecond).toFixed(2));
-                    await s.save();
-                    return;
-                }
-                // Allow chat when balance is zero (no deduction)
-                if (wallet.balance < cost && wallet.balance > 0) {
-                    clearInterval(t);
-                    sessionTimers.delete(sessionId);
-                    io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
-                    s.status = 'ended';
-                    s.endedAt = new Date();
-                    s.duration = elapsed;
-                    s.totalCost = parseFloat((elapsed * ratePerSecond).toFixed(2));
-                    await s.save();
-                    return;
-                }
-                if (wallet.balance > 0) {
-                    wallet.balance = parseFloat((wallet.balance - cost).toFixed(2));
-                    await wallet.save();
-                    io.to(sessionId).emit('wallet:update', { sessionId, balance: wallet.balance, elapsed });
-                }
-            }, 1000);
-            sessionTimers.set(sessionId, t);
+            return;
+        }
+
+        s.status = 'active';
+        s.startedAt = new Date();
+        await s.save();
+
+        const clientSock = onlineUsers.get(s.clientId.toString());
+        const astroSock = onlineUsers.get(s.astrologerId.toString());
+
+        if (clientSock) {
+            const cs = io.sockets.sockets.get(clientSock);
+            if (cs) cs.join(sessionId);
+        }
+        if (astroSock) {
+            const as = io.sockets.sockets.get(astroSock);
+            if (as) as.join(sessionId);
+        }
+
+        io.to(sessionId).emit('chat:joined', { sessionId });
+
+        const ratePerSecond = (s.ratePerMinute || 1) / 60;
+        let elapsed = 0;
+
+        // Clear any existing timer for this session just in case
+        if (sessionTimers.has(sessionId)) {
+            clearInterval(sessionTimers.get(sessionId));
+        }
+
+        const t = setInterval(async () => {
+            elapsed += 1;
+            const wallet = await Wallet.findOne({ userId: s.clientId });
+            const cost = ratePerSecond;
+
+            if (!wallet) {
+                clearInterval(t);
+                sessionTimers.delete(sessionId);
+                io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
+                s.status = 'ended';
+                s.endedAt = new Date();
+                s.duration = elapsed;
+                s.totalCost = parseFloat((elapsed * ratePerSecond).toFixed(2));
+                await s.save();
+                return;
+            }
+
+            // Allow chat when balance is zero (no deduction) - logic preserved from original
+            if (wallet.balance < cost && wallet.balance > 0) {
+                clearInterval(t);
+                sessionTimers.delete(sessionId);
+                io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
+                s.status = 'ended';
+                s.endedAt = new Date();
+                s.duration = elapsed;
+                s.totalCost = parseFloat((elapsed * ratePerSecond).toFixed(2));
+                await s.save();
+                return;
+            }
+
+            if (wallet.balance > 0) {
+                wallet.balance = parseFloat((wallet.balance - cost).toFixed(2));
+                await wallet.save();
+                io.to(sessionId).emit('wallet:update', { sessionId, balance: wallet.balance, elapsed });
+            }
+        }, 1000);
+
+        sessionTimers.set(sessionId, t);
+
+    } catch (err) {
+        console.error('Error starting chat session:', err);
+    }
+};
+
+module.exports = (io, socket) => {
+
+    socket.on('chat:request', async (data) => {
+        try {
+            const { clientId, astrologerId, ratePerMinute } = data;
+            console.log(`[DEBUG] chat:request received for astrologerId: ${astrologerId}`);
+
+            const crypto = require('crypto');
+            const sid = crypto.randomUUID();
+            const profileRate = ratePerMinute || 1;
+
+            await ChatSession.create({
+                sessionId: sid,
+                clientId,
+                astrologerId,
+                status: 'requested',
+                ratePerMinute: profileRate
+            });
+
+            // Notify astrologer (optional, but good for UI updates if they are on dashboard)
+            const astroSock = onlineUsers.get(String(astrologerId));
+            if (astroSock) {
+                io.to(astroSock).emit('chat:request', { sessionId: sid, clientId, astrologerId });
+            }
+
+            socket.emit('chat:requested', { sessionId: sid });
+
+            // AUTO ACCEPT: Immediately start the session
+            console.log(`[DEBUG] Auto-accepting chat session ${sid}`);
+            await startChatSession(io, sid);
+
+        } catch (err) {
+            console.error('Error in chat:request:', err);
+            socket.emit('chat:error', { error: 'request_failed' });
+        }
+    });
+
+    socket.on('chat:accept', async (payload) => {
+        try {
+            const { sessionId } = payload;
+            await startChatSession(io, sessionId);
         } catch (err) {
             socket.emit('chat:error', { error: 'accept_failed' });
         }
@@ -142,7 +192,7 @@ module.exports = (io, socket) => {
         }
     });
 
-    // Send message
+    // Send message (Legacy/General handler)
     socket.on('sendMessage', async (data) => {
         try {
             const { roomId, senderId, receiverId, text, type = 'text', mediaUrl = null, duration = 0 } = data;
