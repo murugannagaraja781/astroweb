@@ -62,7 +62,7 @@ module.exports = (io, socket) => {
                 elapsed += 1;
                 const wallet = await Wallet.findOne({ userId: s.clientId });
                 const cost = ratePerSecond;
-                if (!wallet || wallet.balance < cost) {
+                if (!wallet) {
                     clearInterval(t);
                     sessionTimers.delete(sessionId);
                     io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
@@ -73,9 +73,23 @@ module.exports = (io, socket) => {
                     await s.save();
                     return;
                 }
-                wallet.balance = parseFloat((wallet.balance - cost).toFixed(2));
-                await wallet.save();
-                io.to(sessionId).emit('wallet:update', { sessionId, balance: wallet.balance, elapsed });
+                // Allow chat when balance is zero (no deduction)
+                if (wallet.balance < cost && wallet.balance > 0) {
+                    clearInterval(t);
+                    sessionTimers.delete(sessionId);
+                    io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
+                    s.status = 'ended';
+                    s.endedAt = new Date();
+                    s.duration = elapsed;
+                    s.totalCost = parseFloat((elapsed * ratePerSecond).toFixed(2));
+                    await s.save();
+                    return;
+                }
+                if (wallet.balance > 0) {
+                    wallet.balance = parseFloat((wallet.balance - cost).toFixed(2));
+                    await wallet.save();
+                    io.to(sessionId).emit('wallet:update', { sessionId, balance: wallet.balance, elapsed });
+                }
             }, 1000);
             sessionTimers.set(sessionId, t);
         } catch (err) {

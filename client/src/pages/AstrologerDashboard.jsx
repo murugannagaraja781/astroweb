@@ -54,6 +54,15 @@ const AstrologerDashboard = () => {
     };
   }, []);
 
+
+
+  useEffect(() => {
+    if (profile?.userId) {
+      socket.emit("join", profile.userId);
+      socket.emit("user_online", { userId: profile.userId });
+    }
+  }, [profile?.userId]);
+
   useEffect(() => {
     const fetchPending = async () => {
       try {
@@ -62,25 +71,16 @@ const AstrologerDashboard = () => {
           `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        const list = (res.data || []).filter(
-          (s) =>
-            s.astrologer?.id === profile?.userId ||
-            s.astrologer === profile?.userId
-        );
-        setPendingSessions(list);
+        setPendingSessions(res.data);
+        console.log('[DEBUG] Fetched pending sessions', res.data);
       } catch (err) {
-        // silently ignore
+        console.error('Error fetching pending sessions:', err);
       }
     };
-    if (activeTab === "inbox" && profile?.userId) fetchPending();
-  }, [activeTab, profile?.userId]);
-
-  useEffect(() => {
-    if (profile?.userId) {
-      socket.emit("join", profile.userId);
-      socket.emit("user_online", { userId: profile.userId });
+    if (activeTab === "inbox" && profile?.userId) {
+      fetchPending();
     }
-  }, [profile?.userId]);
+  }, [activeTab, profile?.userId]);
 
   const fetchProfile = async () => {
     try {
