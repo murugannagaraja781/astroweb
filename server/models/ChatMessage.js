@@ -16,6 +16,11 @@ const chatMessageSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    sessionId: {
+        type: String,
+        default: null,
+        index: true
+    },
     message: {
         type: String,
         default: ''

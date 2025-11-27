@@ -1,4 +1,7 @@
 const ChatMessage = require('../models/ChatMessage');
+const ChatSession = require('../models/ChatSession');
+const AstrologerProfile = require('../models/AstrologerProfile');
+const crypto = require('crypto');
 
 /**
  * Get chat history between two users
@@ -257,5 +260,40 @@ exports.saveMessage = async (req, res) => {
     } catch (err) {
         console.error("Error saving message:", err);
         res.status(500).json({ msg: "Server error" });
+    }
+};
+
+exports.requestSession = async (req, res) => {
+    try {
+        const clientId = req.user.id;
+        const { astrologerId } = req.body;
+        if (!astrologerId) {
+            return res.status(400).json({ msg: 'Astrologer ID is required' });
+        }
+        const sid = crypto.randomUUID();
+        let rate = 1;
+        const profile = await AstrologerProfile.findOne({ userId: astrologerId });
+        if (profile && profile.ratePerMinute) rate = profile.ratePerMinute;
+        await ChatSession.create({ sessionId: sid, clientId, astrologerId, status: 'requested', ratePerMinute: rate });
+        res.json({ sessionId: sid, ratePerMinute: rate });
+    } catch (err) {
+        res.status(500).json({ msg: 'Server error' });
+    }
+};
+
+exports.getSessionHistory = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const s = await ChatSession.findOne({ sessionId });
+        if (!s) {
+            return res.status(404).json({ msg: 'Session not found' });
+        }
+        if (req.user.id !== s.clientId.toString() && req.user.id !== s.astrologerId.toString()) {
+            return res.status(403).json({ msg: 'Unauthorized' });
+        }
+        const messages = await ChatMessage.find({ sessionId }).sort({ timestamp: 1 });
+        res.json({ sessionId, messages });
+    } catch (err) {
+        res.status(500).json({ msg: 'Server error' });
     }
 };

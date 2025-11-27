@@ -31,11 +31,8 @@ const generateHoroscope = async (req, res) => {
     let tz = "UTC";
     try {
       const geoTz = require("geo-tz");
-      const arr =
-        typeof geoTz === "function"
-          ? geoTz(best.lat, best.lon)
-          : geoTz.find(best.lat, best.lon);
-      tz = arr && arr[0] ? arr[0] : "UTC";
+      const arr = typeof geoTz === "function" ? geoTz(best.lat, best.lon) : geoTz.find(best.lat, best.lon);
+      tz = (arr && arr[0]) ? arr[0] : "UTC";
     } catch (e) {
       console.warn("geo-tz error", e);
     }
@@ -138,11 +135,8 @@ const matchCharts = async (req, res) => {
       let tz = "UTC";
       try {
         const geoTz = require("geo-tz");
-        const arr =
-          typeof geoTz === "function"
-            ? geoTz(best.lat, best.lon)
-            : geoTz.find(best.lat, best.lon);
-        tz = arr && arr[0] ? arr[0] : "UTC";
+        const arr = typeof geoTz === "function" ? geoTz(best.lat, best.lon) : geoTz.find(best.lat, best.lon);
+        tz = (arr && arr[0]) ? arr[0] : "UTC";
       } catch (e) {}
       let dt = moment.tz(`${date} ${time}`, tz);
       if (!dt.isValid()) {
