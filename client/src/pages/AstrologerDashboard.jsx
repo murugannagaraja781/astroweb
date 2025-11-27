@@ -2,6 +2,19 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
+import {
+  Phone,
+  MessageSquare,
+  Clock,
+  Calendar,
+  DollarSign,
+  Star,
+  User,
+  Settings,
+  LogOut,
+  ChevronRight,
+  RefreshCw
+} from "lucide-react";
 
 const socket = io(import.meta.env.VITE_API_URL);
 

@@ -15,13 +15,21 @@ module.exports = (io, socket) => {
     socket.on('chat:request', async (data) => {
         try {
             const { clientId, astrologerId, ratePerMinute } = data;
+            console.log(`[DEBUG] chat:request received for astrologerId: ${astrologerId} (type: ${typeof astrologerId})`);
+            console.log(`[DEBUG] onlineUsers keys:`, Array.from(onlineUsers.keys()));
+
             const crypto = require('crypto');
             const sid = crypto.randomUUID();
             const profileRate = ratePerMinute || 1;
             await ChatSession.create({ sessionId: sid, clientId, astrologerId, status: 'requested', ratePerMinute: profileRate });
-            const astroSock = onlineUsers.get(astrologerId);
+
+            const astroSock = onlineUsers.get(String(astrologerId));
+            console.log(`[DEBUG] Found astroSock: ${astroSock}`);
+
             if (astroSock) {
                 io.to(astroSock).emit('chat:request', { sessionId: sid, clientId, astrologerId });
+            } else {
+                console.log(`[DEBUG] Astrologer ${astrologerId} not found in onlineUsers`);
             }
             socket.emit('chat:requested', { sessionId: sid });
         } catch (err) {

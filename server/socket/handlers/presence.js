@@ -12,7 +12,7 @@ module.exports = (io, socket) => {
     // User comes online
     socket.on('user_online', async (data) => {
         const { userId } = data;
-        onlineUsers.set(userId, socket.id);
+        onlineUsers.set(String(userId), socket.id);
 
         // Update DB
         try {
