@@ -27,6 +27,7 @@ const AstrologerDashboard = () => {
     avgRating: 0,
     totalEarnings: 0,
   });
+  const [pendingSessions, setPendingSessions] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -122,6 +123,15 @@ const AstrologerDashboard = () => {
         }
       );
       setSchedule(scheduleRes.data);
+
+      // Fetch pending sessions
+      const pendingRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setPendingSessions(pendingRes.data);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration
@@ -232,10 +242,17 @@ const AstrologerDashboard = () => {
         callId: payload.sessionId,
         type: "chat",
       });
+      // Refresh pending sessions
+      fetchDashboardData();
     });
     socket.on("chat:joined", ({ sessionId }) => {
       navigate(`/chat/${sessionId}`);
     });
+  };
+
+  const handleAcceptChat = (sessionId) => {
+    socket.emit("chat:accept", { sessionId });
+    navigate(`/chat/${sessionId}`);
   };
 
   const toggleStatus = async () => {
@@ -703,6 +720,38 @@ const AstrologerDashboard = () => {
     );
   };
 
+  const InboxTab = () => (
+    <div className="bg-white rounded-xl shadow-sm p-6">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Inbox - Waiting Users</h3>
+      {pendingSessions.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <p>No waiting users at the moment.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {pendingSessions.map((session) => (
+            <div key={session.sessionId} className="flex justify-between items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+              <div>
+                <h4 className="font-semibold text-gray-800">{session.client.name || "Unknown User"}</h4>
+                <p className="text-sm text-gray-500">Requested {new Date(session.createdAt).toLocaleTimeString()}</p>
+                <span className="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium capitalize">
+                  {session.status}
+                </span>
+              </div>
+              <button
+                onClick={() => handleAcceptChat(session.sessionId)}
+                className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
+              >
+                <span>Chat</span>
+                <span className="bg-white text-green-600 text-xs px-1.5 py-0.5 rounded-full">Now</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -801,39 +850,39 @@ const AstrologerDashboard = () => {
         </div>
 
         {/* Tabs Navigation */}
-        <div className="bg-white rounded-xl shadow-sm mb-6 overflow-x-auto">
-          <div className="flex border-b">
-            {[
-              { id: "overview", label: "Overview" },
-              { id: "profile", label: "Profile" },
-              { id: "call-history", label: "Call History" },
-              { id: "earnings", label: "Earnings" },
-              { id: "reviews", label: "Reviews" },
-              { id: "schedule", label: "Schedule" },
-            ].map((tab) => (
+        {/* Navigation Tabs */}
+        <div className="flex gap-4 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+          {["overview", "inbox", "calls", "earnings", "reviews", "schedule", "profile"].map(
+            (tab) => (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all whitespace-nowrap capitalize ${
+                  activeTab === tab
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                    : "bg-white text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                {tab.label}
+                {tab}
+                {tab === "inbox" && pendingSessions.length > 0 && (
+                  <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    {pendingSessions.length}
+                  </span>
+                )}
               </button>
-            ))}
-          </div>
+            )
+          )}
         </div>
 
-        {/* Tab Content */}
-        <div className="min-h-96">
+        {/* Content Area */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           {activeTab === "overview" && <OverviewTab />}
-          {activeTab === "profile" && <ProfileTab />}
-          {activeTab === "call-history" && <CallHistoryTab />}
+          {activeTab === "inbox" && <InboxTab />}
+          {activeTab === "calls" && <CallHistoryTab />}
           {activeTab === "earnings" && <EarningsTab />}
           {activeTab === "reviews" && <ReviewsTab />}
           {activeTab === "schedule" && <ScheduleTab />}
+          {activeTab === "profile" && <ProfileTab />}
         </div>
       </div>
     </div>

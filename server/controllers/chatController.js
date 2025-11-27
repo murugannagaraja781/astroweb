@@ -316,6 +316,7 @@ exports.getPendingSessions = async (req, res) => {
   try {
     const sessions = await ChatSession.find({
       status: { $in: ["requested", "active"] },
+      astrologerId: req.user.id,
     })
       .sort({ createdAt: -1 })
       .lean();
