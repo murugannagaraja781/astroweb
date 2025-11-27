@@ -13,7 +13,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 
 const socket = io(import.meta.env.VITE_API_URL);
@@ -53,6 +53,27 @@ const AstrologerDashboard = () => {
       socket.off("callEnded");
     };
   }, []);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const list = (res.data || []).filter(
+          (s) =>
+            s.astrologer?.id === profile?.userId ||
+            s.astrologer === profile?.userId
+        );
+        setPendingSessions(list);
+      } catch (err) {
+        // silently ignore
+      }
+    };
+    if (activeTab === "inbox" && profile?.userId) fetchPending();
+  }, [activeTab, profile?.userId]);
 
   useEffect(() => {
     if (profile?.userId) {
@@ -259,6 +280,38 @@ const AstrologerDashboard = () => {
       fetchDashboardData();
     });
     socket.on("chat:joined", ({ sessionId }) => {
+      navigate(`/chat/${sessionId}`);
+    });
+    socket.on("chat:request", (payload) => {
+      setIncomingCall({
+        from: payload.clientId,
+        name: "",
+        callId: payload.sessionId,
+        type: "chat",
+      });
+      setPendingSessions((prev) => {
+        const exists = prev.some((s) => s.sessionId === payload.sessionId);
+        const next = exists
+          ? prev
+          : [
+              ...prev,
+              {
+                sessionId: payload.sessionId,
+                status: "requested",
+                ratePerMinute: 0,
+                createdAt: new Date().toISOString(),
+                client: { id: payload.clientId, name: "" },
+                astrologer: { id: profile?.userId, name: profile?.name || "" },
+              },
+            ];
+        return next;
+      });
+    });
+
+    socket.on("chat:joined", ({ sessionId }) => {
+      setPendingSessions((prev) =>
+        prev.filter((s) => s.sessionId !== sessionId)
+      );
       navigate(`/chat/${sessionId}`);
     });
   };
@@ -735,7 +788,9 @@ const AstrologerDashboard = () => {
 
   const InboxTab = () => (
     <div className="bg-white rounded-xl shadow-sm p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">Inbox - Waiting Users</h3>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">
+        Inbox - Waiting Users
+      </h3>
       {pendingSessions.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No waiting users at the moment.</p>
@@ -743,10 +798,17 @@ const AstrologerDashboard = () => {
       ) : (
         <div className="space-y-4">
           {pendingSessions.map((session) => (
-            <div key={session.sessionId} className="flex justify-between items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+            <div
+              key={session.sessionId}
+              className="flex justify-between items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            >
               <div>
-                <h4 className="font-semibold text-gray-800">{session.client.name || "Unknown User"}</h4>
-                <p className="text-sm text-gray-500">Requested {new Date(session.createdAt).toLocaleTimeString()}</p>
+                <h4 className="font-semibold text-gray-800">
+                  {session.client.name || "Unknown User"}
+                </h4>
+                <p className="text-sm text-gray-500">
+                  Requested {new Date(session.createdAt).toLocaleTimeString()}
+                </p>
                 <span className="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium capitalize">
                   {session.status}
                 </span>
@@ -756,7 +818,9 @@ const AstrologerDashboard = () => {
                 className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
               >
                 <span>Chat</span>
-                <span className="bg-white text-green-600 text-xs px-1.5 py-0.5 rounded-full">Now</span>
+                <span className="bg-white text-green-600 text-xs px-1.5 py-0.5 rounded-full">
+                  Now
+                </span>
               </button>
             </div>
           ))}
@@ -865,26 +929,32 @@ const AstrologerDashboard = () => {
         {/* Tabs Navigation */}
         {/* Navigation Tabs */}
         <div className="flex gap-4 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-          {["overview", "inbox", "calls", "earnings", "reviews", "schedule", "profile"].map(
-            (tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all whitespace-nowrap capitalize ${
-                  activeTab === tab
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-                    : "bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                {tab}
-                {tab === "inbox" && pendingSessions.length > 0 && (
-                  <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                    {pendingSessions.length}
-                  </span>
-                )}
-              </button>
-            )
-          )}
+          {[
+            "overview",
+            "inbox",
+            "calls",
+            "earnings",
+            "reviews",
+            "schedule",
+            "profile",
+          ].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 rounded-xl font-semibold transition-all whitespace-nowrap capitalize ${
+                activeTab === tab
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                  : "bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {tab}
+              {tab === "inbox" && pendingSessions.length > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  {pendingSessions.length}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Content Area */}
