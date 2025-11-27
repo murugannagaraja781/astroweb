@@ -64,4 +64,9 @@ server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Socket.IO ready`);
   console.log(`💰 Billing Tracker active`);
+  if (process.env.PHONEPE_AUTH_KEY) {
+    console.log(`📲 PhonePe key configured`);
+  } else {
+    console.warn(`⚠️ PhonePe key missing (set PHONEPE_AUTH_KEY in .env)`);
+  }
 });

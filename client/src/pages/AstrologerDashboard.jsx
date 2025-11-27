@@ -570,6 +570,138 @@ const AstrologerDashboard = () => {
     </div>
   );
 
+  const InboxTab = () => {
+    const [inboxMessages, setInboxMessages] = useState([]);
+    const [loadingInbox, setLoadingInbox] = useState(true);
+
+    useEffect(() => {
+      const fetchInbox = async () => {
+        try {
+          const mockInbox = [
+            {
+              id: 1,
+              type: 'chat',
+              from: 'Rahul Kumar',
+              userId: 'user_789',
+              message: 'Hello, I need guidance about my career',
+              timestamp: new Date(Date.now() - 5 * 60000),
+              unread: true
+            },
+            {
+              id: 2,
+              type: 'video',
+              from: 'Priya Sharma',
+              userId: 'user_456',
+              message: 'Requesting video call consultation',
+              timestamp: new Date(Date.now() - 15 * 60000),
+              unread: true
+            }
+          ];
+
+          setInboxMessages(mockInbox);
+          setLoadingInbox(false);
+        } catch (err) {
+          console.error("Error fetching inbox:", err);
+          setLoadingInbox(false);
+        }
+      };
+
+      fetchInbox();
+    }, []);
+
+    const handleAcceptRequest = (msg) => {
+      if (msg.type === 'chat') {
+        navigate(`/chat/${msg.userId}`, {
+          state: { callerName: msg.from, callType: 'chat' }
+        });
+      } else {
+        navigate(`/call/${msg.userId}`, {
+          state: { callerName: msg.from, callType: 'video' }
+        });
+      }
+    };
+
+    return (
+      <div className="bg-slate-800 rounded-xl shadow-sm p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold text-white">Inbox</h3>
+          <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+            {inboxMessages.filter(m => m.unread).length} New
+          </span>
+        </div>
+
+        {loadingInbox ? (
+          <div className="flex justify-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+          </div>
+        ) : inboxMessages.length === 0 ? (
+          <div className="text-center py-12">
+            <MessageSquare className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400 text-lg">No messages yet</p>
+            <p className="text-gray-500 text-sm mt-2">Incoming chats and calls will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {inboxMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`p-4 rounded-xl border transition-all hover:shadow-lg ${
+                  msg.unread
+                    ? 'bg-purple-900/20 border-purple-500/30'
+                    : 'bg-slate-700/50 border-slate-600'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      msg.type === 'chat' ? 'bg-purple-600' : 'bg-blue-600'
+                    }`}>
+                      {msg.type === 'chat' ? (
+                        <MessageSquare className="w-5 h-5 text-white" />
+                      ) : (
+                        <Phone className="w-5 h-5 text-white" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-white truncate">{msg.from}</h4>
+                        {msg.unread && (
+                          <span className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></span>
+                        )}
+                      </div>
+                      <p className="text-gray-300 text-sm mb-2 line-clamp-2">{msg.message}</p>
+                      <p className="text-gray-500 text-xs">
+                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {msg.timestamp.toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleAcceptRequest(msg)}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2 flex-shrink-0"
+                  >
+                    <Check size={16} /> Respond
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-xl">
+          <div className="flex items-start gap-3">
+            <Activity className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-blue-300 font-semibold mb-1">Testing Chat</h4>
+              <p className="text-gray-400 text-sm">
+                Click "Respond" on any message to test the chat interface.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const ScheduleTab = () => {
     const [editingDay, setEditingDay] = useState(null);
     const [timeSlots, setTimeSlots] = useState("");
@@ -742,10 +874,11 @@ const AstrologerDashboard = () => {
           <div className="flex border-b border-slate-700">
             {[
               { id: "overview", label: "Overview", icon: LayoutDashboard },
+              { id: "inbox", label: "Inbox", icon: MessageSquare },
               { id: "profile", label: "Profile", icon: User },
               { id: "call-history", label: "Call History", icon: Phone },
               { id: "earnings", label: "Earnings", icon: DollarSign },
-              { id: "reviews", label: "Reviews", icon: MessageSquare },
+              { id: "reviews", label: "Reviews", icon: Star },
               { id: "schedule", label: "Schedule", icon: Calendar },
             ].map((tab) => (
               <button
@@ -767,6 +900,7 @@ const AstrologerDashboard = () => {
         {/* Tab Content */}
         <div className="min-h-[400px]">
           {activeTab === "overview" && <OverviewTab />}
+          {activeTab === "inbox" && <InboxTab />}
           {activeTab === "profile" && <ProfileTab />}
           {activeTab === "call-history" && <CallHistoryTab />}
           {activeTab === "earnings" && <EarningsTab />}

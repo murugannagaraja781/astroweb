@@ -192,7 +192,8 @@ async function checkEnvironmentVariables() {
     const requiredVars = {
         'MONGO_URI': process.env.MONGO_URI,
         'JWT_SECRET': process.env.JWT_SECRET,
-        'PORT': process.env.PORT
+        'PORT': process.env.PORT,
+        'PHONEPE_AUTH_KEY': process.env.PHONEPE_AUTH_KEY
     };
 
     let allPresent = true;

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
-import { Send, Mic, Square, Play, Pause, ArrowLeft, Sparkles, Star } from 'lucide-react';
+import { Send, Mic, Square, Play, Pause, ArrowLeft, Sparkles, Star, Phone, Video } from 'lucide-react';
 import ChatHistoryList from '../components/ChatHistoryList';
 import OnlineAstrologers from '../components/OnlineAstrologers';
 import OffersList from '../components/OffersList';
@@ -278,7 +278,7 @@ const Chat = () => {
     }
   };
 
-    const stopRecording = () => {
+  const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -344,49 +344,49 @@ const Chat = () => {
   // --- RENDER: History View (ID = 0) ---
   if (receiverId === '0') {
     return (
-      <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-purple-950 to-slate-950 pb-24 text-white">
-        <div className="bg-slate-900/50 backdrop-blur-md p-4 shadow-lg border-b border-white/10 sticky top-0 z-10">
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500 flex items-center gap-2">
-            <Sparkles className="text-yellow-400 w-6 h-6" /> Celestial Chat
+      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-900 pb-24 text-white">
+        <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 backdrop-blur-xl p-4 shadow-2xl border-b border-purple-500/20 sticky top-0 z-10">
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Sparkles className="text-yellow-300 w-6 h-6" /> Astro Chat
           </h1>
         </div>
 
-        <div className="p-4 max-w-4xl mx-auto space-y-8">
+        <div className="p-4 max-w-4xl mx-auto space-y-6">
           {/* Online Astrologers Section */}
-          <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-sm">
-            <h2 className="text-lg font-bold text-amber-200 mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></span>
-              Online Mystics
+          <div className="bg-white/10 rounded-2xl p-6 border border-white/20 backdrop-blur-lg shadow-xl">
+            <h2 className="text-lg font-bold text-yellow-300 mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_#4ade80]"></span>
+              Online Astrologers
             </h2>
             <OnlineAstrologersWrapper />
           </div>
 
           {/* Offers Section */}
-          <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-sm">
+          <div className="bg-white/10 rounded-2xl p-6 border border-white/20 backdrop-blur-lg shadow-xl">
              <OffersList />
           </div>
 
           {/* History Section */}
           {user ? (
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-sm">
-              <h2 className="text-lg font-bold text-amber-200 mb-4">Your Cosmic Conversations</h2>
+            <div className="bg-white/10 rounded-2xl p-6 border border-white/20 backdrop-blur-lg shadow-xl">
+              <h2 className="text-lg font-bold text-yellow-300 mb-4">Your Conversations</h2>
               {loadingHistory ? (
                 <div className="flex justify-center py-10">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-300"></div>
                 </div>
               ) : (
                 <ChatHistoryList sessions={chatSessions} />
               )}
             </div>
           ) : (
-            <div className="mt-8 p-8 bg-white/5 rounded-2xl text-center border border-white/10 backdrop-blur-sm">
-              <Star className="w-12 h-12 text-amber-400 mx-auto mb-4 opacity-50" />
-              <p className="text-gray-300 mb-6 text-lg">
-                Login to view your chat history and consult with top astrologers.
+            <div className="mt-8 p-8 bg-white/10 rounded-2xl text-center border border-white/20 backdrop-blur-lg shadow-xl">
+              <Star className="w-12 h-12 text-yellow-300 mx-auto mb-4" />
+              <p className="text-gray-200 mb-6 text-lg">
+                Login to view your chat history and consult with astrologers.
               </p>
               <button
                 onClick={() => navigate('/login')}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-full font-bold hover:shadow-lg hover:shadow-purple-500/30 transition-all transform hover:scale-105"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-full font-bold hover:shadow-lg hover:shadow-purple-500/50 transition-all transform hover:scale-105"
               >
                 Login Now
               </button>
@@ -399,62 +399,62 @@ const Chat = () => {
 
   // --- RENDER: Active Chat View (ID != 0) ---
   return (
-    <div className="h-screen flex flex-col bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-purple-950 to-slate-950">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-900 overflow-hidden">
       {/* Header */}
-      <div className="bg-slate-900/80 backdrop-blur-md p-4 shadow-lg border-b border-white/10 flex justify-between items-center text-white z-20">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/chat/0')} className="p-2 hover:bg-white/10 rounded-full text-amber-200 transition-colors">
+      <div className="bg-gradient-to-r from-purple-900/60 to-indigo-900/60 backdrop-blur-xl p-3 md:p-4 shadow-2xl border-b border-purple-500/30 flex justify-between items-center text-white z-20 flex-shrink-0">
+        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+          <button onClick={() => navigate('/chat/0')} className="p-2 hover:bg-white/10 rounded-full text-yellow-300 transition-colors flex-shrink-0">
             <ArrowLeft size={20} />
           </button>
-          <div>
-            <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">
-              Cosmic Session
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg md:text-xl font-bold text-white truncate">
+              Cosmic Chat
             </h2>
             {isTyping ? (
-              <p className="text-xs text-purple-300 italic animate-pulse">Astrologer is typing...</p>
+              <p className="text-xs text-purple-300 italic animate-pulse">typing...</p>
             ) : (
               <p className="text-xs text-green-400 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Live
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Live
               </p>
             )}
           </div>
         </div>
-        <div className="text-right">
-          <div className="bg-white/10 px-3 py-1 rounded-lg border border-white/5 backdrop-blur-sm">
-             <p className="text-amber-300 font-mono text-sm">
+        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+          <div className="bg-black/30 px-2 md:px-3 py-1 rounded-lg border border-white/10 backdrop-blur-sm">
+             <p className="text-yellow-300 font-mono text-xs md:text-sm">
               {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}
             </p>
-            <p className="text-xs text-gray-400">₹{cost.toFixed(2)}</p>
+            <p className="text-[10px] text-gray-300 text-center">₹{cost.toFixed(2)}</p>
           </div>
+          <button
+            onClick={endChat}
+            className="bg-red-500/30 text-red-300 border border-red-500/50 px-3 md:px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white font-bold text-xs md:text-sm transition-all flex-shrink-0"
+          >
+            End
+          </button>
         </div>
-        <button
-          onClick={endChat}
-          className="ml-4 bg-red-500/20 text-red-400 border border-red-500/50 px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white font-bold text-sm transition-all"
-        >
-          End Chat
-        </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-transparent scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-transparent">
+      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4 bg-black/20">
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
           >
             <div
-              className={`max-w-md p-4 rounded-2xl shadow-lg backdrop-blur-sm ${
+              className={`max-w-[85%] md:max-w-md p-3 md:p-4 rounded-2xl shadow-lg ${
                 msg.senderId === user.id
-                  ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-tr-none border border-purple-400/30'
-                  : 'bg-slate-800/80 text-gray-100 rounded-tl-none border border-slate-600/50'
+                  ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-tr-sm'
+                  : 'bg-white/90 text-gray-900 rounded-tl-sm backdrop-blur-sm'
               }`}
             >
               {msg.type === 'audio' ? (
                 <AudioMessage audio={msg.audio || msg.mediaUrl} duration={msg.duration} isOwn={msg.senderId === user.id} />
               ) : (
-                <p className="leading-relaxed text-[15px]">{msg.text}</p>
+                <p className="leading-relaxed text-sm md:text-base break-words">{msg.text}</p>
               )}
-              <span className={`text-[10px] block text-right mt-2 ${msg.senderId === user.id ? 'text-purple-200' : 'text-gray-400'}`}>
+              <span className={`text-[10px] block text-right mt-1 ${msg.senderId === user.id ? 'text-purple-100' : 'text-gray-500'}`}>
                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -465,22 +465,22 @@ const Chat = () => {
 
       {/* Voice Recording Preview */}
       {audioBlob && !isRecording && (
-        <div className="px-4 py-3 bg-slate-900/90 border-t border-white/10 flex items-center gap-3 backdrop-blur-md">
-          <div className="flex-1 flex items-center gap-2">
-            <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center">
-               <Mic className="text-purple-400" size={16} />
+        <div className="px-3 md:px-4 py-3 bg-purple-900/60 border-t border-purple-500/30 flex items-center gap-3 backdrop-blur-xl flex-shrink-0">
+          <div className="flex-1 flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 bg-purple-500/30 rounded-full flex items-center justify-center flex-shrink-0">
+               <Mic className="text-purple-300" size={16} />
             </div>
-            <span className="text-sm text-gray-300">Voice message ready ({recordingTime}s)</span>
+            <span className="text-sm text-gray-200 truncate">Voice ({recordingTime}s)</span>
           </div>
           <button
             onClick={sendVoiceMessage}
-            className="bg-purple-600 text-white px-6 py-2 rounded-full hover:bg-purple-700 font-semibold shadow-lg shadow-purple-900/50"
+            className="bg-purple-600 text-white px-4 md:px-6 py-2 rounded-full hover:bg-purple-700 font-semibold shadow-lg text-sm flex-shrink-0"
           >
             Send
           </button>
           <button
             onClick={cancelRecording}
-            className="text-gray-400 hover:text-white px-4 py-2"
+            className="text-gray-300 hover:text-white px-2 md:px-4 py-2 text-sm flex-shrink-0"
           >
             Cancel
           </button>
@@ -488,16 +488,16 @@ const Chat = () => {
       )}
 
       {/* Input */}
-      <form onSubmit={sendMessage} className="p-4 bg-slate-900/90 border-t border-white/10 backdrop-blur-md">
-        <div className="max-w-4xl mx-auto flex gap-3 items-center">
+      <form onSubmit={sendMessage} className="p-3 md:p-4 bg-gradient-to-r from-purple-900/60 to-indigo-900/60 border-t border-purple-500/30 backdrop-blur-xl flex-shrink-0">
+        <div className="max-w-4xl mx-auto flex gap-2 md:gap-3 items-center">
           {isRecording ? (
-            <div className="flex-1 flex items-center gap-3 bg-red-950/30 px-4 py-3 rounded-2xl border border-red-500/30 animate-pulse">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <span className="text-red-400 font-semibold tracking-wide">Recording... {recordingTime}s</span>
+            <div className="flex-1 flex items-center gap-2 md:gap-3 bg-red-950/40 px-3 md:px-4 py-3 rounded-2xl border border-red-500/40 animate-pulse">
+              <div className="w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
+              <span className="text-red-300 font-semibold text-sm md:text-base truncate">Recording {recordingTime}s</span>
               <button
                 type="button"
                 onClick={stopRecording}
-                className="ml-auto bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-lg"
+                className="ml-auto bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-lg flex-shrink-0"
               >
                 <Square size={16} fill="currentColor" />
               </button>
@@ -507,11 +507,11 @@ const Chat = () => {
               <button
                 type="button"
                 onClick={startRecording}
-                className="bg-slate-800 text-purple-400 p-3 rounded-full hover:bg-slate-700 hover:text-purple-300 transition-all border border-slate-700"
+                className="bg-purple-700/50 text-purple-200 p-2 md:p-3 rounded-full hover:bg-purple-600 transition-all border border-purple-500/30 flex-shrink-0"
               >
-                <Mic size={20} />
+                <Mic size={18} />
               </button>
-              <div className="flex-1 relative">
+              <div className="flex-1 relative min-w-0">
                 <input
                   type="text"
                   value={message}
@@ -519,20 +519,20 @@ const Chat = () => {
                     setMessage(e.target.value);
                     handleTyping();
                   }}
-                  className="w-full p-3 pl-4 pr-12 bg-slate-800/50 border border-slate-700 rounded-full text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 placeholder-gray-500 transition-all"
-                  placeholder="Type your message..."
+                  className="w-full p-2 md:p-3 pl-3 md:pl-4 pr-10 md:pr-12 bg-white/10 border border-purple-500/30 rounded-full text-white focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 placeholder-gray-400 transition-all text-sm md:text-base"
+                  placeholder="Type a message..."
                 />
               </div>
               <button
                 type="submit"
                 disabled={!message.trim()}
-                className={`p-3 rounded-full transition-all transform ${
+                className={`p-2 md:p-3 rounded-full transition-all transform flex-shrink-0 ${
                   message.trim()
                     ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:scale-105 shadow-lg shadow-purple-900/50'
-                    : 'bg-slate-800 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                <Send size={20} className={message.trim() ? 'ml-0.5' : ''} />
+                <Send size={18} className={message.trim() ? 'ml-0.5' : ''} />
               </button>
             </>
           )}
@@ -559,24 +559,23 @@ const AudioMessage = ({ audio, duration, isOwn }) => {
   };
 
   return (
-    <div className="flex items-center gap-3 min-w-[200px]">
+    <div className="flex items-center gap-3 min-w-[180px]">
       <button
         onClick={togglePlay}
-        className={`p-2 rounded-full transition-colors ${
-          isOwn ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-400'
+        className={`p-2 rounded-full transition-colors flex-shrink-0 ${
+          isOwn ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-600'
         }`}
       >
-        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+        {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
       </button>
-      <div className="flex-1">
-        <div className={`h-1 rounded-full overflow-hidden ${isOwn ? 'bg-white/20' : 'bg-gray-600'}`}>
+      <div className="flex-1 min-w-0">
+        <div className={`h-1 rounded-full overflow-hidden ${isOwn ? 'bg-white/20' : 'bg-gray-300'}`}>
           <div
-            className={`h-full w-0 transition-all duration-200 ${isOwn ? 'bg-white' : 'bg-purple-500'}`}
-            id="progress"
+            className={`h-full w-0 transition-all ${isOwn ? 'bg-white' : 'bg-purple-600'}`}
             style={{ width: isPlaying ? '100%' : '0%', transitionDuration: `${duration}s`, transitionTimingFunction: 'linear' }}
           ></div>
         </div>
-        <span className={`text-[10px] mt-1 block ${isOwn ? 'text-purple-200' : 'text-gray-400'}`}>{duration}s</span>
+        <span className={`text-[10px] mt-1 block ${isOwn ? 'text-purple-100' : 'text-gray-600'}`}>{duration}s</span>
       </div>
       <audio
         ref={audioRef}

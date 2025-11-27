@@ -24,6 +24,7 @@ const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
 const VideoCall = lazy(() => import('./pages/VideoCall'));
 const Chat = lazy(() => import('./pages/Chat'));
 const AstrologyDashboard = lazy(() => import('./pages/AstrologyDashboard'));
+const PhonePeTest = lazy(() => import('./pages/PhonePeTest'));
 
 // Loading component
 const LoadingFallback = () => (
@@ -143,6 +144,7 @@ function App() {
                   <Route path="/call/:id" element={<VideoCall />} />
                   <Route path="/chat/:id" element={<Chat />} />
                   <Route path="/astrology" element={<ProtectedAstrology />} />
+                  <Route path="/phonepe-test" element={<PhonePeTest />} />
                 </Routes>
               </Suspense>
             </AppLayout>
