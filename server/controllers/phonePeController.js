@@ -12,7 +12,10 @@ const PHONEPE_BASE_URL = process.env.PHONEPE_BASE_URL || 'https://api-preprod.ph
  */
 exports.initiatePhonePePayment = async (req, res) => {
     try {
-        const { amount, userId, userName, mobileNumber } = req.body;
+        const { amount, userName, mobileNumber } = req.body;
+
+        // Get userId from authenticated user (set by auth middleware)
+        const userId = req.user?.id;
 
         // Validate environment variables
         if (!PHONEPE_SALT_KEY) {
@@ -28,7 +31,7 @@ exports.initiatePhonePePayment = async (req, res) => {
         }
 
         if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+            return res.status(401).json({ error: 'User not authenticated' });
         }
 
         console.log('💳 Initiating PhonePe payment:', { amount, userId, userName });
