@@ -1,624 +1,263 @@
-import { useEffect, useState, useRef, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
-import axios from 'axios';
-import AuthContext from '../context/AuthContext';
-import { Send, Mic, Square, Play, Pause, ArrowLeft, Sparkles, Star } from 'lucide-react';
-import ChatHistoryList from '../components/ChatHistoryList';
-import OnlineAstrologers from '../components/OnlineAstrologers';
-import OffersList from '../components/OffersList';
-import { useToast } from '../context/ToastContext';
+ import { useEffect, useState, useRef, useContext, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import { io } from "socket.io-client";
+import axios from "axios";
+import { AuthContext } from "../context/AuthContext";
+import {
+  Send,
+  Mic,
+  MicOff,
+  PhoneCall,
+  PhoneOff,
+  Loader,
+} from "lucide-react";
 
-// Helper component to fetch and display astrologers
-const OnlineAstrologersWrapper = () => {
-  const [astrologers, setAstrologers] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAstrologers = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/astrologers`);
-        setAstrologers(res.data);
-      } catch (err) {
-        console.error("Failed to fetch astrologers", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAstrologers();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="h-24 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-400"></div>
-      </div>
-    );
-  }
-  return <OnlineAstrologers astrologers={astrologers} />;
-};
+const socket = io(import.meta.env.VITE_API_URL);
 
 const Chat = () => {
-  const { id: receiverId } = useParams();
   const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const { addToast } = useToast();
+  const { id } = useParams();
 
-  // Socket state
-  const [socket, setSocket] = useState(null);
+  const [message, setMessage] = useState("");
+  const [conversation, setConversation] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUser, setOtherUser] = useState(null);
 
-  // State for Chat History View
-  const [chatSessions, setChatSessions] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
-
-  // State for Active Chat View
-  const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState('');
-  const [balance, setBalance] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [cost, setCost] = useState(0);
-  const rate = 1; // ₹1 per minute
-  const timerRef = useRef(null);
-  const [chatActive, setChatActive] = useState(false);
-  const [chatId, setChatId] = useState(null);
-  const [roomId, setRoomId] = useState(null);
-
-  // Voice recording states
   const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState(null);
-  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordedAudio, setRecordedAudio] = useState(null);
   const mediaRecorderRef = useRef(null);
-  const recordingTimerRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
   const messagesEndRef = useRef(null);
 
-  // --- EFFECT: Initialize Socket ---
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const newSocket = io(import.meta.env.VITE_API_URL, {
-      auth: { token },
-      transports: ['websocket', 'polling']
-    });
-
-    newSocket.on('connect', () => {
-      console.log('✅ Socket connected:', newSocket.id);
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
-    });
-
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.disconnect();
-    };
-  }, []);
-
-  // --- EFFECT: Fetch Chat History if ID is 0 ---
-  useEffect(() => {
-    if (receiverId === '0' && user) {
-      const fetchSessions = async () => {
-        try {
-          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/sessions`);
-          setChatSessions(res.data);
-          setLoadingHistory(false);
-        } catch (err) {
-          console.error("Error fetching chat sessions:", err);
-          setLoadingHistory(false);
-        }
-      };
-      fetchSessions();
-    }
-  }, [receiverId, user]);
-
-  // --- EFFECT: Active Chat Logic (Only if ID != 0) ---
-  useEffect(() => {
-    if (!socket || !user || !receiverId || receiverId === '0') return;
-
-    // Create room ID (sorted user IDs)
-    const room = [user.id, receiverId].sort().join('-');
-    setRoomId(room);
-
-    console.log('🔗 Joining room:', room);
-    socket.emit('join', room);
-
-    // Fetch wallet balance
-    if (user.role !== 'admin' && user.role !== 'astrologer') {
-      const fetchBalance = async () => {
-        try {
-          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
-          setBalance(res.data.balance);
-        } catch (err) {
-          console.error("❌ Failed to fetch balance:", err);
-          addToast("Failed to fetch wallet balance", "error");
-        }
-      };
-      fetchBalance();
-    } else {
-      setBalance(Infinity);
-    }
-
-    // Initiate Chat Session (only for clients)
-    const initChat = async () => {
-      if (user.role === 'client') {
-        try {
-          const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/chat/initiate`, { receiverId });
-          const newChatId = res.data.chatId;
-          setChatId(newChatId);
-
-          // Notify astrologer
-          socket.emit('callUser', {
-            userToCall: receiverId,
-            from: user.id,
-            name: user.name,
-            type: 'chat',
-            chatId: newChatId
-          });
-        } catch (err) {
-          console.error("Failed to initiate chat billing", err);
-          addToast("Insufficient balance or error starting chat", "error");
-          navigate('/dashboard');
-        }
-      } else {
-        // Astrologer - chat is already active
-        setChatActive(true);
-        setChatId(room);
-      }
-    };
-    initChat();
-
-    // Listen for messages
-    const handleReceiveMessage = (msg) => {
-      console.log('📨 Message received:', msg);
-      setMessages(prev => [...prev, msg]);
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    };
-
-    const handleCallAccepted = () => {
-      console.log('✅ Chat accepted by astrologer');
-      setChatActive(true);
-      addToast("Astrologer connected! Chat started.", "success");
-    };
-
-    socket.on('receiveMessage', handleReceiveMessage);
-    socket.on('callAccepted', handleCallAccepted);
-
-    // Load chat history
-    socket.emit('getChatHistory', { roomId: room, limit: 50 });
-    socket.on('chatHistory', (data) => {
-      console.log('📜 Chat history loaded:', data.messages.length, 'messages');
-      setMessages(data.messages);
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    });
-
-    return () => {
-      socket.off('receiveMessage', handleReceiveMessage);
-      socket.off('callAccepted', handleCallAccepted);
-      socket.off('chatHistory');
-      clearInterval(timerRef.current);
-    };
-  }, [socket, user, receiverId, navigate]);
-
-  // Billing Timer
-  useEffect(() => {
-    const numericBalance = Number(balance) || 0;
-    const numericRate = Number(rate) || 0;
-
-    if (chatActive && (numericBalance > 0 || user?.role === 'admin' || user?.role === 'astrologer') && chatId) {
-      const maxDuration = (user?.role === 'admin' || user?.role === 'astrologer') ? Infinity : (numericBalance / numericRate) * 60;
-
-      timerRef.current = setInterval(() => {
-        setDuration(prev => {
-          const newDuration = prev + 1;
-          if (newDuration >= maxDuration && user?.role === 'client') {
-            endChat();
-            addToast("Chat ended due to insufficient balance.", "warning");
-          }
-          return newDuration;
-        });
-        setCost(prev => prev + (numericRate / 60));
-      }, 1000);
-    } else {
-      clearInterval(timerRef.current);
-    }
-    return () => clearInterval(timerRef.current);
-  }, [chatActive, balance, chatId, user]);
-
-  // Typing Indicator
-  const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef(null);
-
-  const handleTyping = () => {
-    if (!roomId || !socket) return;
-    socket.emit('typing', { roomId: roomId, name: user.name });
-
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-    typingTimeoutRef.current = setTimeout(() => {
-      socket.emit('stopTyping', { roomId: roomId });
-    }, 2000);
+  // Auto scroll
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Load chat data
+  const fetchChat = useCallback(async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/chat/${id}`
+      );
+      setConversation(res.data.messages || []);
+      setOtherUser(res.data.otherUser);
+    } catch (error) {}
+  }, [id]);
+
   useEffect(() => {
-    if (!socket) return;
-    socket.on('displayTyping', (data) => {
-      if (data.name !== user.name) setIsTyping(true);
+    fetchChat();
+
+    socket.emit("joinRoom", id);
+
+    socket.on("receiveMessage", (newMessage) => {
+      setConversation((prev) => [...prev, newMessage]);
     });
-    socket.on('hideTyping', () => setIsTyping(false));
+
+    socket.on("typing", () => {
+      setIsTyping(true);
+      setTimeout(() => setIsTyping(false), 1500);
+    });
 
     return () => {
-      socket.off('displayTyping');
-      socket.off('hideTyping');
+      socket.off("receiveMessage");
+      socket.off("typing");
     };
-  }, [socket, user]);
+  }, [id, fetchChat]);
 
-  const sendMessage = (e) => {
+  useEffect(scrollToBottom, [conversation]);
+
+  // --- Send Message ---
+  const sendMessage = async (e) => {
     e.preventDefault();
-    if (!roomId || !socket || !message.trim()) return;
+    if (!message.trim()) return;
 
-    const msgData = {
-      roomId: roomId,
-      senderId: user.id,
-      receiverId: receiverId,
+    const newMsg = {
+      sender: user.id,
       text: message,
       timestamp: new Date(),
-      type: 'text'
+      status: "sent",
     };
 
-    console.log('📤 Sending message:', msgData);
-    socket.emit('sendMessage', msgData);
-    setMessage('');
-    socket.emit('stopTyping', { roomId: roomId });
+    socket.emit("sendMessage", { roomId: id, message: newMsg });
+    setConversation((prev) => [...prev, newMsg]);
+
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/chat/send`, {
+        chatId: id,
+        message: newMsg,
+      });
+      newMsg.status = "delivered";
+    } catch (err) {
+      newMsg.status = "failed";
+    }
+
+    setMessage("");
   };
 
-  // Voice Recording
+  // --- Typing Event ---
+  const handleTyping = () => {
+    socket.emit("typing", id);
+  };
+
+  // --- Audio Record ---
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorderRef.current = new MediaRecorder(stream);
 
-      const audioChunks = [];
-      mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
+      audioChunksRef.current = [];
+      mediaRecorderRef.current.ondataavailable = (e) =>
+        audioChunksRef.current.push(e.data);
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        setAudioBlob(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+      mediaRecorderRef.current.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/mp3" });
+        const url = URL.createObjectURL(blob);
+
+        const audioMsg = {
+          sender: user.id,
+          audioUrl: url,
+          timestamp: new Date(),
+          status: "sent",
+        };
+
+        socket.emit("sendMessage", { roomId: id, message: audioMsg });
+        setConversation((prev) => [...prev, audioMsg]);
+
+        const formData = new FormData();
+        formData.append("audio", blob);
+        formData.append("chatId", id);
+        formData.append("sender", user.id);
+
+        try {
+          await axios.post(
+            `${import.meta.env.VITE_API_URL}/api/chat/send-audio`,
+            formData,
+            { headers: { "Content-Type": "multipart/form-data" } }
+          );
+          audioMsg.status = "delivered";
+        } catch (e) {
+          audioMsg.status = "failed";
+        }
       };
 
-      mediaRecorder.start();
+      mediaRecorderRef.current.start();
       setIsRecording(true);
-      setRecordingTime(0);
-
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-    } catch (err) {
-      console.error('Error accessing microphone:', err);
-      addToast('Could not access microphone. Please grant permission.', 'error');
-    }
+    } catch (error) {}
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      clearInterval(recordingTimerRef.current);
     }
   };
 
-  const sendVoiceMessage = () => {
-    if (!audioBlob || !roomId || !socket) return;
+  return (
+    <div className="h-screen flex flex-col bg-gradient-to-b from-purple-900 to-black text-white">
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64Audio = reader.result;
-      const msgData = {
-        roomId: roomId,
-        senderId: user.id,
-        receiverId: receiverId,
-        audio: base64Audio,
-        duration: recordingTime,
-        timestamp: new Date(),
-        type: 'audio'
-      };
+      {/* Header */}
+      <div className="flex items-center p-4 bg-white/10 backdrop-blur-lg border-b border-white/20">
+        <h1 className="text-xl font-semibold">
+          Chat with {otherUser?.name || "User"}
+        </h1>
+      </div>
 
-      socket.emit('sendMessage', msgData);
-      setAudioBlob(null);
-      setRecordingTime(0);
-    };
+      {/* Messages List */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
 
-    reader.readAsDataURL(audioBlob);
-  };
+        {conversation.map((msg, index) => (
+          <div
+            key={index}
+            className={`w-full flex ${
+              msg.sender === user.id ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`max-w-[75%] p-3 rounded-2xl shadow-lg ${
+                msg.sender === user.id
+                  ? "bg-purple-600 text-white"
+                  : "bg-white/15 border border-white/20"
+              }`}
+            >
+              {msg.text && <p className="text-sm">{msg.text}</p>}
 
-  const cancelRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      clearInterval(recordingTimerRef.current);
-    }
-    setAudioBlob(null);
-    setRecordingTime(0);
-  };
-
-  const endChat = async () => {
-    setChatActive(false);
-    clearInterval(timerRef.current);
-    clearInterval(recordingTimerRef.current);
-
-    if (chatId) {
-      try {
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/chat/end`, { chatId, duration });
-        addToast(`Chat ended. Cost: ₹${cost.toFixed(2)}`, 'info');
-      } catch (err) {
-        console.error("Error ending chat:", err);
-      }
-    }
-
-    if (user?.role === 'astrologer') {
-      navigate('/astrologer-dashboard');
-    } else {
-      navigate('/dashboard');
-    }
-  };
-
-  // --- RENDER: History View (ID = 0) ---
-  if (receiverId === '0') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-900 pb-24 text-white">
-        <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 backdrop-blur-xl p-4 shadow-2xl border-b border-purple-500/20 sticky top-0 z-10">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Sparkles className="text-yellow-300 w-6 h-6" /> Astro Chat
-          </h1>
-        </div>
-
-        <div className="p-4 max-w-4xl mx-auto space-y-6">
-          {/* Online Astrologers Section */}
-          <div className="bg-white/10 rounded-2xl p-6 border border-white/20 backdrop-blur-lg shadow-xl">
-            <h2 className="text-lg font-bold text-yellow-300 mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_#4ade80]"></span>
-              Online Astrologers
-            </h2>
-            <OnlineAstrologersWrapper />
-          </div>
-
-          {/* Offers Section */}
-          <div className="bg-white/10 rounded-2xl p-6 border border-white/20 backdrop-blur-lg shadow-xl">
-             <OffersList />
-          </div>
-
-          {/* History Section */}
-          {user ? (
-            <div className="bg-white/10 rounded-2xl p-6 border border-white/20 backdrop-blur-lg shadow-xl">
-              <h2 className="text-lg font-bold text-yellow-300 mb-4">Your Conversations</h2>
-              {loadingHistory ? (
-                <div className="flex justify-center py-10">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-300"></div>
-                </div>
-              ) : (
-                <ChatHistoryList sessions={chatSessions} />
+              {msg.audioUrl && (
+                <audio controls className="mt-2 w-full">
+                  <source src={msg.audioUrl} type="audio/mp3" />
+                </audio>
               )}
             </div>
-          ) : (
-            <div className="mt-8 p-8 bg-white/10 rounded-2xl text-center border border-white/20 backdrop-blur-lg shadow-xl">
-              <Star className="w-12 h-12 text-yellow-300 mx-auto mb-4" />
-              <p className="text-gray-200 mb-6 text-lg">
-                Login to view your chat history and consult with astrologers.
-              </p>
-              <button
-                onClick={() => navigate('/login')}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-full font-bold hover:shadow-lg hover:shadow-purple-500/50 transition-all transform hover:scale-105"
-              >
-                Login Now
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+          </div>
+        ))}
 
-  // --- RENDER: Active Chat View (ID != 0) ---
-  return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-900 overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-900/60 to-indigo-900/60 backdrop-blur-xl p-3 md:p-4 shadow-2xl border-b border-purple-500/30 flex justify-between items-center text-white z-20 flex-shrink-0">
-        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-          <button onClick={() => navigate('/chat/0')} className="p-2 hover:bg-white/10 rounded-full text-yellow-300 transition-colors flex-shrink-0">
-            <ArrowLeft size={20} />
-          </button>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg md:text-xl font-bold text-white truncate">
-              Cosmic Chat
-            </h2>
-            {isTyping ? (
-              <p className="text-xs text-purple-300 italic animate-pulse">typing...</p>
-            ) : (
-              <p className="text-xs text-green-400 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Live
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-          <div className="bg-black/30 px-2 md:px-3 py-1 rounded-lg border border-white/10 backdrop-blur-sm">
-             <p className="text-yellow-300 font-mono text-xs md:text-sm">
-              {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}
-            </p>
-            <p className="text-[10px] text-gray-300 text-center">₹{cost.toFixed(2)}</p>
-          </div>
-          <button
-            onClick={endChat}
-            className="bg-red-500/30 text-red-300 border border-red-500/50 px-3 md:px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white font-bold text-xs md:text-sm transition-all flex-shrink-0"
-          >
-            End
-          </button>
-        </div>
+        {isTyping && (
+          <div className="text-gray-300 text-sm italic px-3">Typing…</div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Messages - CENTERED ON MOBILE */}
-      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4 bg-black/20">
-        <div className="max-w-4xl mx-auto w-full">
-          {messages.length === 0 ? (
-            <div className="text-center py-12">
-              <Sparkles className="w-16 h-16 text-purple-400 mx-auto mb-4 opacity-50" />
-              <p className="text-gray-400">No messages yet. Start the conversation!</p>
-            </div>
-          ) : (
-            messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
-              >
-                <div
-                  className={`max-w-[85%] md:max-w-md p-3 md:p-4 rounded-2xl shadow-lg ${
-                    msg.senderId === user.id
-                      ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-tr-sm'
-                      : 'bg-white/90 text-gray-900 rounded-tl-sm backdrop-blur-sm'
-                  }`}
-                >
-                  {msg.type === 'audio' ? (
-                    <AudioMessage audio={msg.audio || msg.mediaUrl} duration={msg.duration} isOwn={msg.senderId === user.id} />
-                  ) : (
-                    <p className="leading-relaxed text-sm md:text-base break-words">{msg.text || msg.message}</p>
-                  )}
-                  <span className={`text-[10px] block text-right mt-1 ${msg.senderId === user.id ? 'text-purple-100' : 'text-gray-500'}`}>
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
+      {/* Floating Footer */}
+      <form onSubmit={sendMessage} className="relative w-full px-4 pb-4">
 
-      {/* Voice Recording Preview */}
-      {audioBlob && !isRecording && (
-        <div className="px-3 md:px-4 py-3 bg-purple-900/60 border-t border-purple-500/30 flex items-center gap-3 backdrop-blur-xl flex-shrink-0">
-          <div className="flex-1 flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 bg-purple-500/30 rounded-full flex items-center justify-center flex-shrink-0">
-               <Mic className="text-purple-300" size={16} />
-            </div>
-            <span className="text-sm text-gray-200 truncate">Voice ({recordingTime}s)</span>
-          </div>
-          <button
-            onClick={sendVoiceMessage}
-            className="bg-purple-600 text-white px-4 md:px-6 py-2 rounded-full hover:bg-purple-700 font-semibold shadow-lg text-sm flex-shrink-0"
+        <div className="absolute bottom-3 left-0 right-0 px-4">
+          <div
+            className="
+              max-w-3xl mx-auto
+              bg-white/15 backdrop-blur-xl
+              border border-white/20
+              shadow-[0_8px_20px_rgba(0,0,0,0.4)]
+              rounded-3xl
+              flex items-center gap-3
+              px-4 py-3
+            "
           >
-            Send
-          </button>
-          <button
-            onClick={cancelRecording}
-            className="text-gray-300 hover:text-white px-2 md:px-4 py-2 text-sm flex-shrink-0"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {/* Input - CENTERED ON MOBILE */}
-      <form onSubmit={sendMessage} className="p-3 md:p-4 bg-gradient-to-r from-purple-900/60 to-indigo-900/60 border-t border-purple-500/30 backdrop-blur-xl flex-shrink-0">
-        <div className="max-w-4xl mx-auto flex gap-2 md:gap-3 items-center">
-          {isRecording ? (
-            <div className="flex-1 flex items-center gap-2 md:gap-3 bg-red-950/40 px-3 md:px-4 py-3 rounded-2xl border border-red-500/40 animate-pulse">
-              <div className="w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
-              <span className="text-red-300 font-semibold text-sm md:text-base truncate">Recording {recordingTime}s</span>
-              <button
-                type="button"
-                onClick={stopRecording}
-                className="ml-auto bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-lg flex-shrink-0"
-              >
-                <Square size={16} fill="currentColor" />
-              </button>
-            </div>
-          ) : (
-            <>
+            {!isRecording ? (
               <button
                 type="button"
                 onClick={startRecording}
-                className="bg-purple-700/50 text-purple-200 p-2 md:p-3 rounded-full hover:bg-purple-600 transition-all border border-purple-500/30 flex-shrink-0"
+                className="text-purple-300 hover:text-purple-100"
               >
-                <Mic size={18} />
+                <Mic size={22} />
               </button>
-              <div className="flex-1 relative min-w-0">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => {
-                    setMessage(e.target.value);
-                    handleTyping();
-                  }}
-                  className="w-full p-2 md:p-3 pl-3 md:pl-4 pr-10 md:pr-12 bg-white/10 border border-purple-500/30 rounded-full text-white focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 placeholder-gray-400 transition-all text-sm md:text-base"
-                  placeholder="Type a message..."
-                />
-              </div>
+            ) : (
               <button
-                type="submit"
-                disabled={!message.trim()}
-                className={`p-2 md:p-3 rounded-full transition-all transform flex-shrink-0 ${
-                  message.trim()
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:scale-105 shadow-lg shadow-purple-900/50'
-                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                }`}
+                type="button"
+                onClick={stopRecording}
+                className="text-red-400 hover:text-red-300"
               >
-                <Send size={18} className={message.trim() ? 'ml-0.5' : ''} />
+                <MicOff size={22} />
               </button>
-            </>
-          )}
+            )}
+
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onInput={handleTyping}
+              placeholder="Type your message…"
+              className="
+                flex-1 bg-transparent text-white placeholder-gray-300
+                focus:outline-none text-sm md:text-base
+              "
+            />
+
+            <button
+              type="submit"
+              className="
+                bg-gradient-to-br from-purple-600 to-pink-600
+                text-white p-2 rounded-full shadow-lg
+                hover:scale-110 transition-transform
+              "
+            >
+              <Send size={20} />
+            </button>
+          </div>
         </div>
+
       </form>
-    </div>
-  );
-};
-
-// Audio Message Component
-const AudioMessage = ({ audio, duration, isOwn }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef(null);
-
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-3 min-w-[180px]">
-      <button
-        onClick={togglePlay}
-        className={`p-2 rounded-full transition-colors flex-shrink-0 ${
-          isOwn ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-600'
-        }`}
-      >
-        {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <div className={`h-1 rounded-full overflow-hidden ${isOwn ? 'bg-white/20' : 'bg-gray-300'}`}>
-          <div
-            className={`h-full w-0 transition-all ${isOwn ? 'bg-white' : 'bg-purple-600'}`}
-            style={{ width: isPlaying ? '100%' : '0%', transitionDuration: `${duration}s`, transitionTimingFunction: 'linear' }}
-          ></div>
-        </div>
-        <span className={`text-[10px] mt-1 block ${isOwn ? 'text-purple-100' : 'text-gray-600'}`}>{duration}s</span>
-      </div>
-      <audio
-        ref={audioRef}
-        src={audio}
-        onEnded={() => setIsPlaying(false)}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-      />
     </div>
   );
 };
