@@ -230,7 +230,7 @@ const AstrologyDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 py-8 pb-24 text-gray-100">
+    <div className="min-h-screen bg-slate-900 py-8 text-gray-100">
       <div className="container mx-auto px-4 max-w-5xl">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
           <Star className="text-purple-500 fill-purple-500" /> Astrology Engine
@@ -326,55 +326,7 @@ const AstrologyDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Planetary Positions */}
-                  <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                    <h4 className="font-semibold text-purple-400 mb-4">
-                      Planetary Positions
-                    </h4>
-                    <PlanetTable planets={chartData.planets} />
-                  </div>
 
-                  {/* Panchangam & Dasa */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                      <h4 className="font-semibold text-purple-400 mb-4">
-                        Panchangam
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="flex justify-between p-3 bg-slate-700/50 rounded-lg">
-                          <span className="text-gray-400">Tithi</span>
-                          <span className="font-medium text-white">
-                            {chartData.panchangam.tithi.tithiApprox}
-                          </span>
-                        </div>
-                        <div className="flex justify-between p-3 bg-slate-700/50 rounded-lg">
-                          <span className="text-gray-400">Nakshatra</span>
-                          <span className="font-medium text-white">
-                            {chartData.panchangam.nakshatra.name}
-                          </span>
-                        </div>
-                        <div className="flex justify-between p-3 bg-slate-700/50 rounded-lg">
-                          <span className="text-gray-400">Yoga</span>
-                          <span className="font-medium text-white">
-                            {chartData.panchangam.yoga.name}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                      <h4 className="font-semibold text-purple-400 mb-4">
-                        Vimshottari Dasa
-                      </h4>
-                      <div className="bg-purple-900/20 border border-purple-500/30 p-4 rounded-lg text-center">
-                        <div className="text-sm text-purple-300 mb-1">Current Mahadasa</div>
-                        <div className="text-2xl font-bold text-white mb-2">{chartData.dasa.current?.planet}</div>
-                        <div className="text-sm text-gray-400">
-                          Balance: {chartData.dasa.current?.years.toFixed(1)} years
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>

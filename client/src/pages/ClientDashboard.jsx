@@ -97,7 +97,7 @@ const ClientDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 pb-24">
+    <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
@@ -105,16 +105,7 @@ const ClientDashboard = () => {
           <p className="text-gray-600">Manage your wallet and view your consultation history</p>
         </div>
 
-        {/* Online Astrologers Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            Online Astrologers
-          </h2>
-          <div className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100">
-            <OnlineAstrologers astrologers={astrologers} />
-          </div>
-        </div>
+
 
         {/* Tabs */}
         <div className="flex gap-4 mb-6 overflow-x-auto pb-2 scrollbar-hide">

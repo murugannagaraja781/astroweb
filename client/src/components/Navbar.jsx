@@ -62,25 +62,35 @@ const Navbar = () => {
 
           {/* Auth Buttons */}
           {user ? (
-            <div className="flex items-center gap-3">
-              <Link
-                to={getDashboardLink()}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors font-medium"
-              >
-                <LayoutDashboard size={18} />
-                Dashboard
-              </Link>
-              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
-                <User size={18} className="text-gray-600" />
-                <span className="text-gray-800 font-medium">{user.name}</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
-              >
-                <LogOut size={18} />
-                Logout
+            <div className="relative group">
+              <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
               </button>
+
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all transform origin-top-right z-50">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{user.email || user.mobile}</p>
+                </div>
+
+                <Link
+                  to={getDashboardLink()}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-600"
+                >
+                  <LayoutDashboard size={16} />
+                  Dashboard
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-x-4">
