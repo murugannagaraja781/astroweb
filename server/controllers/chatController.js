@@ -346,8 +346,10 @@ exports.getPendingSessions = async (req, res) => {
         name: nameMap.get(s.astrologerId.toString()) || "",
       },
     }));
+    console.log("[DEBUG] getPendingSessions result:", result);
     res.json(result);
   } catch (err) {
+    console.error("[DEBUG] getPendingSessions error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 };

@@ -74,13 +74,11 @@ const AstrologerDashboard = () => {
               Authorization: `Bearer ${token}`,
               'Cache-Control': 'no-cache',
             },
-            // Bypass cache with a timestamp query param
             params: { _t: Date.now() },
           }
         );
-        // No need to filter – server already returns only this astrologer's sessions
         setPendingSessions(res.data);
-        console.log('[DEBUG] Fetched pending sessions', res.data);
+        console.log('[DEBUG] Fetched pending sessions:', res.data);
       } catch (err) {
         console.error('Error fetching pending sessions:', err);
       }
@@ -174,6 +172,7 @@ const AstrologerDashboard = () => {
         }
       );
       setPendingSessions(pendingRes.data);
+      console.log('[DEBUG] fetchDashboardData pending sessions:', pendingRes.data);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration
@@ -331,6 +330,7 @@ const AstrologerDashboard = () => {
   };
 
   const handleAcceptChat = (sessionId) => {
+    console.log("[DEBUG] handleAcceptChat called with sessionId:", sessionId);
     socket.emit("chat:accept", { sessionId });
     navigate(`/chat/${sessionId}`);
   };

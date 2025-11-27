@@ -12,11 +12,20 @@ module.exports = (io, socket) => {
     // User comes online
     socket.on('user_online', async (data) => {
         const { userId } = data;
+
+        if (!userId || typeof userId !== 'string' || userId === '[object Object]') {
+            console.warn(`[WARN] Invalid userId received in user_online:`, userId);
+            return;
+        }
+
         onlineUsers.set(String(userId), socket.id);
 
         // Update DB
         try {
-            await AstrologerProfile.findOneAndUpdate({ userId }, { isOnline: true, lastActive: new Date() });
+            // Only update if it looks like a valid ObjectId (24 hex chars)
+            if (/^[0-9a-fA-F]{24}$/.test(userId)) {
+                await AstrologerProfile.findOneAndUpdate({ userId }, { isOnline: true, lastActive: new Date() });
+            }
         } catch (err) {
             console.error('Error updating online status:', err);
         }
@@ -38,7 +47,9 @@ module.exports = (io, socket) => {
 
         // Update DB
         try {
-            await AstrologerProfile.findOneAndUpdate({ userId }, { isOnline: false, lastActive: new Date() });
+            if (userId && /^[0-9a-fA-F]{24}$/.test(userId)) {
+                await AstrologerProfile.findOneAndUpdate({ userId }, { isOnline: false, lastActive: new Date() });
+            }
         } catch (err) {
             console.error('Error updating offline status:', err);
         }
@@ -67,7 +78,11 @@ module.exports = (io, socket) => {
 
                 // Update DB
                 try {
-                    await AstrologerProfile.findOneAndUpdate({ userId }, { isOnline: false, lastActive: new Date() });
+                    if (userId && /^[0-9a-fA-F]{24}$/.test(userId)) {
+                        await AstrologerProfile.findOneAndUpdate({ userId }, { isOnline: false, lastActive: new Date() });
+                    } else {
+                        console.warn(`[WARN] Skipping DB update for invalid userId on disconnect: ${userId}`);
+                    }
                 } catch (err) {
                     console.error('Error updating offline status on disconnect:', err);
                 }
