@@ -4,7 +4,7 @@ import AuthContext from '../context/AuthContext';
 import {
   Bell, LogOut, Settings, Users, BarChart3, Gift, Image, Zap,
   Crown, Sparkles, Edit, Trash2, Eye, Star, Calendar, Clock,
-  DollarSign, UserPlus, Search, Filter, ChevronRight, Menu, X
+  DollarSign, UserPlus, Search, Filter, ChevronRight, Menu, X, MessageCircle
 } from 'lucide-react';
 
 import ThemeContext from '../context/ThemeContext';
@@ -71,6 +71,7 @@ const AdminDashboard = () => {
   const [offers, setOffers] = useState([]);
   const [banners, setBanners] = useState([]);
   const [horoscopes, setHoroscopes] = useState([]);
+  const [pendingSessions, setPendingSessions] = useState([]);
 
   useEffect(() => {
     fetchStats();
@@ -81,6 +82,7 @@ const AdminDashboard = () => {
     if (activeTab === 'horoscope') fetchHoroscopes();
     if (activeTab === 'offers') fetchOffers();
     if (activeTab === 'banners') fetchBanners();
+    if (activeTab === 'inbox') fetchPending();
   }, [activeTab]);
 
   const fetchUsers = async () => {
@@ -408,6 +410,7 @@ const AdminDashboard = () => {
             <SidebarItem id="users" icon={Users} label="Users" />
             <SidebarItem id="astrologers" icon={Crown} label="Astrologers" />
             <SidebarItem id="horoscope" icon={Sparkles} label="Horoscope" />
+            <SidebarItem id="inbox" icon={MessageCircle} label="Inbox" />
 
             <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mt-8 mb-4">Marketing</p>
             <SidebarItem id="offers" icon={Gift} label="Offers" />
@@ -555,6 +558,51 @@ const AdminDashboard = () => {
                       </button>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'inbox' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Inbox</h2>
+                  <p className="text-gray-400">Pending and active chat requests</p>
+                </div>
+                <button onClick={fetchPending} className="px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-lg text-sm font-medium hover:bg-white/10">Refresh</button>
+              </div>
+              <div className="bg-gray-800/50 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-black/20 text-gray-400 font-medium border-b border-white/5">
+                      <tr>
+                        <th className="px-6 py-4">Session</th>
+                        <th className="px-6 py-4">Client</th>
+                        <th className="px-6 py-4">Astrologer</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Rate</th>
+                        <th className="px-6 py-4">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {pendingSessions.map((s) => (
+                        <tr key={s.sessionId} className="hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4 text-gray-300 font-mono">{s.sessionId}</td>
+                          <td className="px-6 py-4 text-white">{s.client?.name || s.client?.id}</td>
+                          <td className="px-6 py-4 text-white">{s.astrologer?.name || s.astrologer?.id}</td>
+                          <td className="px-6 py-4"><span className={`px-2 py-0.5 rounded-full text-xs ${s.status === 'requested' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'}`}>{s.status}</span></td>
+                          <td className="px-6 py-4 text-white">₹{s.ratePerMinute}/min</td>
+                          <td className="px-6 py-4 text-gray-400">{new Date(s.createdAt).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                      {pendingSessions.length === 0 && (
+                        <tr>
+                          <td colSpan="6" className="px-6 py-12 text-center text-gray-500">No sessions</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -1047,3 +1095,14 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+  const fetchPending = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`);
+      setPendingSessions(res.data);
+    } catch (err) {
+      showNotification('Failed to fetch inbox', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };

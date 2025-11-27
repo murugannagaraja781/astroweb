@@ -1,15 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const {
-    getChatHistory,
-    getChatSessions,
-    uploadImage,
-    uploadVoiceNote,
-    initiateChat,
-    endChat,
-    saveMessage,
-    requestSession,
-    getSessionHistory
+  getChatHistory,
+  getChatSessions,
+  uploadImage,
+  uploadVoiceNote,
+  initiateChat,
+  endChat,
+  saveMessage,
+  requestSession,
+  getSessionHistory,
+  getPendingSessions,
 } = require("../controllers/chatController");
 
 const auth = require("../middleware/auth");
@@ -23,6 +24,7 @@ router.post("/request", auth, requestSession);
 router.get("/history/:userId/:peerId", auth, getChatHistory);
 router.get("/sessions", auth, getChatSessions);
 router.get("/history/session/:sessionId", auth, getSessionHistory);
+router.get("/sessions/pending", auth, getPendingSessions);
 
 // MEDIA
 router.post("/upload/image", auth, uploadImage);

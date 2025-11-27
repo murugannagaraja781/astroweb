@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 import { Video, MessageCircle, Star, Award, Globe, Languages, Sparkles, ArrowLeft } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 const AstrologerDetail = () => {
   const { id } = useParams();
@@ -11,6 +12,8 @@ const AstrologerDetail = () => {
   const [astrologer, setAstrologer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
+  const [waiting, setWaiting] = useState(false);
+  const socket = io(import.meta.env.VITE_API_URL);
 
   useEffect(() => {
     fetchAstrologer();
@@ -74,7 +77,21 @@ const AstrologerDetail = () => {
     if (action === 'call') {
       navigate(`/call/${id}`);
     } else if (action === 'chat') {
-      navigate(`/chat/${id}`);
+      setWaiting(true);
+      socket.emit('user_online', { userId: user.id });
+      socket.emit('chat:request', {
+        clientId: user.id,
+        astrologerId: id,
+        ratePerMinute: astrologer.profile?.ratePerMinute || 1
+      });
+      socket.once('chat:joined', ({ sessionId }) => {
+        setWaiting(false);
+        navigate(`/chat/${sessionId}`);
+      });
+      socket.once('chat:error', () => {
+        setWaiting(false);
+        alert('Failed to request chat');
+      });
     }
   };
 
@@ -146,6 +163,14 @@ const AstrologerDetail = () => {
                   </span>
                 )}
               </div>
+              {waiting && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="bg-white rounded-xl shadow-xl p-6 w-80 text-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-600 mx-auto mb-4"></div>
+                    <p className="text-gray-700 font-medium">Waiting for astrologer to accept…</p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-center md:justify-start gap-2 text-2xl font-bold text-orange-600 mb-6">
                 <Star className="w-6 h-6 fill-orange-600" />

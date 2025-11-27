@@ -43,6 +43,7 @@ const AstrologerDashboard = () => {
   useEffect(() => {
     if (profile?.userId) {
       socket.emit("join", profile.userId);
+      socket.emit("user_online", { userId: profile.userId });
     }
   }, [profile?.userId]);
 
@@ -224,6 +225,17 @@ const AstrologerDashboard = () => {
       setIncomingCall(null);
       alert("Call was rejected by user");
     });
+    socket.on("chat:request", (payload) => {
+      setIncomingCall({
+        from: payload.clientId,
+        name: "",
+        callId: payload.sessionId,
+        type: "chat",
+      });
+    });
+    socket.on("chat:joined", ({ sessionId }) => {
+      navigate(`/chat/${sessionId}`);
+    });
   };
 
   const toggleStatus = async () => {
@@ -282,24 +294,21 @@ const AstrologerDashboard = () => {
       return;
     }
 
-    socket.emit("answerCall", {
-      to: incomingCall.from,
-      callId: incomingCall.callId,
-      astrologerId: profile.userId,
-      astrologerName: profile.name,
-      type: incomingCall.type,
-    });
+    if (incomingCall.type === "chat") {
+      socket.emit("chat:accept", { sessionId: incomingCall.callId });
+    } else {
+      socket.emit("answerCall", {
+        to: incomingCall.from,
+        callId: incomingCall.callId,
+        astrologerId: profile.userId,
+        astrologerName: profile.name,
+        type: incomingCall.type,
+      });
+    }
 
     setIncomingCall(null);
 
-    if (incomingCall.type === "chat") {
-      navigate(`/chat/${incomingCall.from}`, {
-        state: {
-          callerName: incomingCall.name,
-          callType: "chat",
-        },
-      });
-    } else {
+    if (incomingCall.type !== "chat") {
       // `VideoCall` route expects `/call/:id`, not `/video-call/` — fix path
       navigate(`/call/${incomingCall.from}`, {
         state: {

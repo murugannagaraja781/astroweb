@@ -1,16 +1,9 @@
- import { useEffect, useState, useRef, useContext, useCallback } from "react";
+import { useEffect, useState, useRef, useContext, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
-import { AuthContext } from "../context/AuthContext";
-import {
-  Send,
-  Mic,
-  MicOff,
-  PhoneCall,
-  PhoneOff,
-  Loader,
-} from "lucide-react";
+import AuthContext from "../context/AuthContext";
+import { Send, Mic, MicOff, PhoneCall, PhoneOff, Loader } from "lucide-react";
 
 const socket = io(import.meta.env.VITE_API_URL);
 
@@ -39,30 +32,28 @@ const Chat = () => {
   const fetchChat = useCallback(async () => {
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chat/${id}`
+        `${import.meta.env.VITE_API_URL}/api/chat/history/session/${id}`
       );
       setConversation(res.data.messages || []);
-      setOtherUser(res.data.otherUser);
+      setOtherUser(null);
     } catch (error) {}
   }, [id]);
 
   useEffect(() => {
     fetchChat();
 
-    socket.emit("joinRoom", id);
-
-    socket.on("receiveMessage", (newMessage) => {
+    socket.on("chat:message", (newMessage) => {
       setConversation((prev) => [...prev, newMessage]);
     });
 
-    socket.on("typing", () => {
+    socket.on("chat:typing", () => {
       setIsTyping(true);
       setTimeout(() => setIsTyping(false), 1500);
     });
 
     return () => {
-      socket.off("receiveMessage");
-      socket.off("typing");
+      socket.off("chat:message");
+      socket.off("chat:typing");
     };
   }, [id, fetchChat]);
 
@@ -74,31 +65,25 @@ const Chat = () => {
     if (!message.trim()) return;
 
     const newMsg = {
-      sender: user.id,
+      senderId: user.id,
       text: message,
       timestamp: new Date(),
       status: "sent",
     };
 
-    socket.emit("sendMessage", { roomId: id, message: newMsg });
+    socket.emit("chat:message", {
+      sessionId: id,
+      senderId: user.id,
+      text: message,
+    });
     setConversation((prev) => [...prev, newMsg]);
-
-    try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/chat/send`, {
-        chatId: id,
-        message: newMsg,
-      });
-      newMsg.status = "delivered";
-    } catch (err) {
-      newMsg.status = "failed";
-    }
 
     setMessage("");
   };
 
   // --- Typing Event ---
   const handleTyping = () => {
-    socket.emit("typing", id);
+    socket.emit("chat:typing", { sessionId: id, userId: user.id });
   };
 
   // --- Audio Record ---
@@ -116,13 +101,18 @@ const Chat = () => {
         const url = URL.createObjectURL(blob);
 
         const audioMsg = {
-          sender: user.id,
+          senderId: user.id,
           audioUrl: url,
           timestamp: new Date(),
           status: "sent",
         };
 
-        socket.emit("sendMessage", { roomId: id, message: audioMsg });
+        socket.emit("chat:message", {
+          sessionId: id,
+          senderId: user.id,
+          text: "",
+          type: "audio",
+        });
         setConversation((prev) => [...prev, audioMsg]);
 
         const formData = new FormData();
@@ -156,7 +146,6 @@ const Chat = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-b from-purple-900 to-black text-white">
-
       {/* Header */}
       <div className="flex items-center p-4 bg-white/10 backdrop-blur-lg border-b border-white/20">
         <h1 className="text-xl font-semibold">
@@ -166,7 +155,6 @@ const Chat = () => {
 
       {/* Messages List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
-
         {conversation.map((msg, index) => (
           <div
             key={index}
@@ -201,7 +189,6 @@ const Chat = () => {
 
       {/* Floating Footer */}
       <form onSubmit={sendMessage} className="relative w-full px-4 pb-4">
-
         <div className="absolute bottom-3 left-0 right-0 px-4">
           <div
             className="
@@ -256,7 +243,6 @@ const Chat = () => {
             </button>
           </div>
         </div>
-
       </form>
     </div>
   );
