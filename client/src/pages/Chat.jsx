@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
-import { Send, Mic, Square, Play, Pause, ArrowLeft, Sparkles, Star, Phone, Video } from 'lucide-react';
+import { Send, Mic, Square, Play, Pause, ArrowLeft, Sparkles, Star } from 'lucide-react';
 import ChatHistoryList from '../components/ChatHistoryList';
 import OnlineAstrologers from '../components/OnlineAstrologers';
 import OffersList from '../components/OffersList';
@@ -61,6 +61,7 @@ const Chat = () => {
   const timerRef = useRef(null);
   const [chatActive, setChatActive] = useState(false);
   const [chatId, setChatId] = useState(null);
+  const [roomId, setRoomId] = useState(null);
 
   // Voice recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -74,7 +75,16 @@ const Chat = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const newSocket = io(import.meta.env.VITE_API_URL, {
-      auth: { token }
+      auth: { token },
+      transports: ['websocket', 'polling']
+    });
+
+    newSocket.on('connect', () => {
+      console.log('✅ Socket connected:', newSocket.id);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error);
     });
 
     setSocket(newSocket);
@@ -105,10 +115,15 @@ const Chat = () => {
   useEffect(() => {
     if (!socket || !user || !receiverId || receiverId === '0') return;
 
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Create room ID (sorted user IDs)
+    const room = [user.id, receiverId].sort().join('-');
+    setRoomId(room);
+
+    console.log('🔗 Joining room:', room);
+    socket.emit('join', room);
 
     // Fetch wallet balance
-    if (user.role !== 'admin') {
+    if (user.role !== 'admin' && user.role !== 'astrologer') {
       const fetchBalance = async () => {
         try {
           const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
@@ -123,7 +138,7 @@ const Chat = () => {
       setBalance(Infinity);
     }
 
-    // Initiate Chat Session
+    // Initiate Chat Session (only for clients)
     const initChat = async () => {
       if (user.role === 'client') {
         try {
@@ -131,6 +146,7 @@ const Chat = () => {
           const newChatId = res.data.chatId;
           setChatId(newChatId);
 
+          // Notify astrologer
           socket.emit('callUser', {
             userToCall: receiverId,
             from: user.id,
@@ -144,23 +160,24 @@ const Chat = () => {
           navigate('/dashboard');
         }
       } else {
+        // Astrologer - chat is already active
         setChatActive(true);
+        setChatId(room);
       }
     };
     initChat();
 
-    // Join chat room
-    const room = [user.id, receiverId].sort().join('-');
-    setChatId(room);
-    socket.emit('join', room);
-
-    // Listen for messages & call acceptance
+    // Listen for messages
     const handleReceiveMessage = (msg) => {
+      console.log('📨 Message received:', msg);
       setMessages(prev => [...prev, msg]);
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     };
 
     const handleCallAccepted = () => {
+      console.log('✅ Chat accepted by astrologer');
       setChatActive(true);
       addToast("Astrologer connected! Chat started.", "success");
     };
@@ -168,9 +185,20 @@ const Chat = () => {
     socket.on('receiveMessage', handleReceiveMessage);
     socket.on('callAccepted', handleCallAccepted);
 
+    // Load chat history
+    socket.emit('getChatHistory', { roomId: room, limit: 50 });
+    socket.on('chatHistory', (data) => {
+      console.log('📜 Chat history loaded:', data.messages.length, 'messages');
+      setMessages(data.messages);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    });
+
     return () => {
       socket.off('receiveMessage', handleReceiveMessage);
       socket.off('callAccepted', handleCallAccepted);
+      socket.off('chatHistory');
       clearInterval(timerRef.current);
     };
   }, [socket, user, receiverId, navigate]);
@@ -180,17 +208,15 @@ const Chat = () => {
     const numericBalance = Number(balance) || 0;
     const numericRate = Number(rate) || 0;
 
-    if (chatActive && (numericBalance > 0 || user?.role === 'admin') && (chatId || user?.role === 'admin')) {
-      const maxDuration = user?.role === 'admin' ? Infinity : (numericBalance / numericRate) * 60;
+    if (chatActive && (numericBalance > 0 || user?.role === 'admin' || user?.role === 'astrologer') && chatId) {
+      const maxDuration = (user?.role === 'admin' || user?.role === 'astrologer') ? Infinity : (numericBalance / numericRate) * 60;
 
       timerRef.current = setInterval(() => {
         setDuration(prev => {
           const newDuration = prev + 1;
-          if (newDuration >= maxDuration) {
-            if (user?.role !== 'admin') {
-              endChat();
-              addToast("Chat ended due to insufficient balance.", "warning");
-            }
+          if (newDuration >= maxDuration && user?.role === 'client') {
+            endChat();
+            addToast("Chat ended due to insufficient balance.", "warning");
           }
           return newDuration;
         });
@@ -207,13 +233,13 @@ const Chat = () => {
   const typingTimeoutRef = useRef(null);
 
   const handleTyping = () => {
-    if (!chatId || !socket) return;
-    socket.emit('typing', { roomId: chatId, name: user.name });
+    if (!roomId || !socket) return;
+    socket.emit('typing', { roomId: roomId, name: user.name });
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit('stopTyping', { roomId: chatId });
+      socket.emit('stopTyping', { roomId: roomId });
     }, 2000);
   };
 
@@ -232,21 +258,21 @@ const Chat = () => {
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (!chatId || !socket) return;
+    if (!roomId || !socket || !message.trim()) return;
 
-    if (message.trim()) {
-      const msgData = {
-        roomId: chatId,
-        senderId: user.id,
-        receiverId: receiverId,
-        text: message,
-        timestamp: new Date(),
-        type: 'text'
-      };
-      socket.emit('sendMessage', msgData);
-      setMessage('');
-      socket.emit('stopTyping', { roomId: chatId });
-    }
+    const msgData = {
+      roomId: roomId,
+      senderId: user.id,
+      receiverId: receiverId,
+      text: message,
+      timestamp: new Date(),
+      type: 'text'
+    };
+
+    console.log('📤 Sending message:', msgData);
+    socket.emit('sendMessage', msgData);
+    setMessage('');
+    socket.emit('stopTyping', { roomId: roomId });
   };
 
   // Voice Recording
@@ -287,13 +313,13 @@ const Chat = () => {
   };
 
   const sendVoiceMessage = () => {
-    if (!audioBlob || !chatId || !socket) return;
+    if (!audioBlob || !roomId || !socket) return;
 
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64Audio = reader.result;
       const msgData = {
-        roomId: chatId,
+        roomId: roomId,
         senderId: user.id,
         receiverId: receiverId,
         audio: base64Audio,
@@ -435,32 +461,41 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Messages */}
+      {/* Messages - CENTERED ON MOBILE */}
       <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4 bg-black/20">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
-          >
-            <div
-              className={`max-w-[85%] md:max-w-md p-3 md:p-4 rounded-2xl shadow-lg ${
-                msg.senderId === user.id
-                  ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-tr-sm'
-                  : 'bg-white/90 text-gray-900 rounded-tl-sm backdrop-blur-sm'
-              }`}
-            >
-              {msg.type === 'audio' ? (
-                <AudioMessage audio={msg.audio || msg.mediaUrl} duration={msg.duration} isOwn={msg.senderId === user.id} />
-              ) : (
-                <p className="leading-relaxed text-sm md:text-base break-words">{msg.text}</p>
-              )}
-              <span className={`text-[10px] block text-right mt-1 ${msg.senderId === user.id ? 'text-purple-100' : 'text-gray-500'}`}>
-                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+        <div className="max-w-4xl mx-auto w-full">
+          {messages.length === 0 ? (
+            <div className="text-center py-12">
+              <Sparkles className="w-16 h-16 text-purple-400 mx-auto mb-4 opacity-50" />
+              <p className="text-gray-400">No messages yet. Start the conversation!</p>
             </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+          ) : (
+            messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
+              >
+                <div
+                  className={`max-w-[85%] md:max-w-md p-3 md:p-4 rounded-2xl shadow-lg ${
+                    msg.senderId === user.id
+                      ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-tr-sm'
+                      : 'bg-white/90 text-gray-900 rounded-tl-sm backdrop-blur-sm'
+                  }`}
+                >
+                  {msg.type === 'audio' ? (
+                    <AudioMessage audio={msg.audio || msg.mediaUrl} duration={msg.duration} isOwn={msg.senderId === user.id} />
+                  ) : (
+                    <p className="leading-relaxed text-sm md:text-base break-words">{msg.text || msg.message}</p>
+                  )}
+                  <span className={`text-[10px] block text-right mt-1 ${msg.senderId === user.id ? 'text-purple-100' : 'text-gray-500'}`}>
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Voice Recording Preview */}
@@ -487,7 +522,7 @@ const Chat = () => {
         </div>
       )}
 
-      {/* Input */}
+      {/* Input - CENTERED ON MOBILE */}
       <form onSubmit={sendMessage} className="p-3 md:p-4 bg-gradient-to-r from-purple-900/60 to-indigo-900/60 border-t border-purple-500/30 backdrop-blur-xl flex-shrink-0">
         <div className="max-w-4xl mx-auto flex gap-2 md:gap-3 items-center">
           {isRecording ? (

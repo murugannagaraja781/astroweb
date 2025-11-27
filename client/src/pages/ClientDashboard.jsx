@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Plus, TrendingUp, Clock, Star, ArrowUpRight, ArrowDownRight, Phone, MessageCircle, Video } from 'lucide-react';
+import { Wallet, Plus, TrendingUp, Clock, Star, ArrowUpRight, ArrowDownRight, Phone, MessageCircle, Video, CreditCard } from 'lucide-react';
 import OnlineAstrologers from '../components/OnlineAstrologers';
 import ChatHistoryList from '../components/ChatHistoryList';
 import CallHistoryList from '../components/CallHistoryList';
@@ -16,8 +16,10 @@ const ClientDashboard = () => {
   const [astrologers, setAstrologers] = useState([]);
   const [activeTab, setActiveTab] = useState('wallet'); // wallet, calls, chats
   const [loading, setLoading] = useState(true);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -47,10 +49,43 @@ const ClientDashboard = () => {
     }
   };
 
-  const { addToast } = useToast();
+  const handleAddMoney = async () => {
+    // Directly initiate payment with default amount
+    const defaultAmount = 500; // Default ₹500
 
-  const handleAddMoney = () => {
-    addToast('Payment gateway integration coming soon! For now, please contact admin to add balance.', 'info');
+    try {
+      setPaymentLoading(true);
+      addToast('Redirecting to PhonePe payment gateway...', 'info');
+
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/payment/phonepe/initiate`,
+        {
+          amount: defaultAmount,
+          userId: user.id,
+          userName: user.name,
+          mobileNumber: user.mobile || '9999999999'
+        },
+        {
+          headers: {
+            'x-auth-token': token
+          }
+        }
+      );
+
+      if (res.data.success && res.data.paymentUrl) {
+        // Redirect to PhonePe payment page
+        window.location.href = res.data.paymentUrl;
+      } else {
+        addToast('Payment initiation failed', 'error');
+        setPaymentLoading(false);
+      }
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      addToast(error.response?.data?.error || 'Payment failed', 'error');
+      setPaymentLoading(false);
+    }
   };
 
   if (loading) {
@@ -137,10 +172,20 @@ const ClientDashboard = () => {
                 </div>
                 <button
                   onClick={handleAddMoney}
-                  className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-semibold hover:bg-indigo-50 transition-colors flex items-center gap-2 w-full justify-center"
+                  disabled={paymentLoading}
+                  className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-semibold hover:bg-indigo-50 transition-colors flex items-center gap-2 w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Plus className="w-5 h-5" />
-                  Add Money
+                  {paymentLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                      Redirecting...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5" />
+                      Add ₹500 via PhonePe
+                    </>
+                  )}
                 </button>
               </div>
 
@@ -203,6 +248,8 @@ const ClientDashboard = () => {
 
         </div>
       </div>
+
+
     </div>
   );
 };
