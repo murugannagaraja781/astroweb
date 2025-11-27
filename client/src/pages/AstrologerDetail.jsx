@@ -185,7 +185,7 @@ const AstrologerDetail = () => {
                   className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   <Video size={20} />
-                  Video Call
+                  Video Call 3
                 </button>
                 <button
                   onClick={() => handleAction('chat')}

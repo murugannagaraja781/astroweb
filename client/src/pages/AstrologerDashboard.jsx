@@ -41,6 +41,8 @@ const AstrologerDashboard = () => {
     totalEarnings: 0,
   });
   const [pendingSessions, setPendingSessions] = useState([]);
+  const [activeChats, setActiveChats] = useState([]);
+  const [showPendingDebug, setShowPendingDebug] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -320,19 +322,23 @@ const AstrologerDashboard = () => {
       });
     });
 
-    socket.on("chat:joined", ({ sessionId }) => {
-      console.log("[DEBUG] Dashboard received chat:joined (duplicate handler):", sessionId);
-      setPendingSessions((prev) =>
-        prev.filter((s) => s.sessionId !== sessionId)
-      );
-      navigate(`/chat/${sessionId}`);
-    });
+    socket.on('chat:joined', ({ sessionId }) => {
+        console.log('[DEBUG] Dashboard received chat:joined (duplicate handler):', sessionId);
+        // Remove from pending if present
+        setPendingSessions((prev) =>
+          prev.filter((s) => s.sessionId !== sessionId)
+        );
+        // Store as an active chat for the astrologer to click later
+        setActiveChats((prev) => [...prev, sessionId]);
+        // Optionally auto‑navigate; comment out if you prefer manual click
+        // navigate(`/chat/${sessionId}`);
+      });
   };
 
   const handleAcceptChat = (sessionId) => {
     console.log("[DEBUG] handleAcceptChat called with sessionId:", sessionId);
     socket.emit("chat:accept", { sessionId });
-    navigate(`/chat/${sessionId}`);
+    // Do not navigate immediately; wait for server 'chat:joined'
   };
 
   const toggleStatus = async () => {
@@ -815,25 +821,19 @@ const AstrologerDashboard = () => {
             <div
               key={session.sessionId}
               className="flex justify-between items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              onClick={() => navigate(`/chat/${session.sessionId}`)}
             >
               <div>
                 <h4 className="font-semibold text-gray-800">
-                  {session.client.name || "Unknown User"}
+                  Session ID: {session.sessionId}
                 </h4>
-                <p className="text-sm text-gray-500">
-                  Requested {new Date(session.createdAt).toLocaleTimeString()}
-                </p>
-                <span className="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium capitalize">
-                  {session.status}
-                </span>
+                <span className="text-sm text-gray-600">{session.status}</span>
               </div>
               <button
-                onClick={() => handleAcceptChat(session.sessionId)}
+                onClick={(e) => { e.stopPropagation(); handleAcceptChat(session.sessionId); }}
                 className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
               >
                 <span>Chat</span>
-                <span className="bg-white text-green-600 text-xs px-1.5 py-0.5 rounded-full">
-                  Now
                 </span>
               </button>
             </div>
