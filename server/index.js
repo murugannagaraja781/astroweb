@@ -1,108 +1,119 @@
+// -------------------------
+// SERVER SETUP
+// -------------------------
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
-const BillingTracker = require("./services/billingTracker");
-const errorMonitor = require("./services/errorMonitor");
 
-// Start Error Monitor immediately
-errorMonitor.start();
+const BillingTracker = require("./services/billingTracker");
+const chatRoutes = require("./routes/chatRoute");
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-// CORS options for Express
-const corsOptions = {
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      process.env.CLIENT_URL,
-      "https://astroweb-beryl.vercel.app",
-      "http://localhost:3000",
-    ].filter(Boolean);
-    if (process.env.NODE_ENV === "production") return callback(null, true);
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(null, true);
-  },
-  methods: ["GET", "POST", "OPTIONS"],
-  credentials: true,
-};
-
-const io = new Server(server, {
-  cors: {
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        process.env.CLIENT_URL,
-        "https://astroweb-beryl.vercel.app",
-        "http://localhost:3000",
-      ].filter(Boolean);
-      if (process.env.NODE_ENV === "production") return callback(null, true);
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      const msg = `CORS policy: Origin ${origin} not allowed`;
-      return callback(new Error(msg), false);
-    },
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-  transports: ["websocket"],
-  allowEIO3: true,
-});
-
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+// -------------------------
+// MIDDLEWARE
+// -------------------------
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+}));
 
 app.use(express.json());
 
-// expose socket
-app.set("io", io);
+// -------------------------
+// ROUTES
+// -------------------------
+app.use("/api/chat", chatRoutes);
 
-// Routes
-app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/otp", require("./routes/otpRoutes"));
-app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/wallet", require("./routes/walletRoutes"));
-app.use("/api/astrologer", require("./routes/astrologerRoutes"));
-app.use("/api/call", require("./routes/callRoutes"));
-app.use("/api/chat", require("./routes/chatRoutes"));
-app.use("/api/public", require("./routes/publicRoutes"));
-app.use("/api/horoscope", require("./routes/horoscopeRoutes"));
-app.use("/api/payment/phonepe", require("./routes/phonePeRoutes"));
-app.use("/api/agora", require("./routes/agoraRoutes"));
+// Test route
+app.get("/", (req, res) => {
+  res.send("Server running successfully ✔");
+});
 
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "ok",
-    time: new Date().toISOString(),
-    mongodb:
-      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+// -------------------------
+// SOCKET.IO
+// -------------------------
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+// Store users
+let onlineUsers = {};
+
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  // Join personal room
+  socket.on("joinRoom", ({ userId }) => {
+    if (!userId) return;
+    socket.join(userId);
+    onlineUsers[userId] = socket.id;
+    console.log("User joined room:", userId);
+  });
+
+  // One-to-one message
+  socket.on("sendMessage", async (data) => {
+    try {
+      const { senderId, receiverId, message } = data;
+
+      if (!receiverId) return;
+
+      io.to(receiverId).emit("receiveMessage", {
+        senderId,
+        message,
+        time: new Date(),
+      });
+
+      // Billing tracker update
+      BillingTracker.updateChatUsage(senderId, receiverId);
+
+      console.log("Message sent to:", receiverId);
+    } catch (err) {
+      console.log("Error sending message", err);
+    }
+  });
+
+  // Typing event
+  socket.on("typing", ({ senderId, receiverId }) => {
+    io.to(receiverId).emit("typingResponse", { senderId });
+  });
+
+  // Disconnect
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+
+    // Remove user from onlineUsers
+    for (let uid in onlineUsers) {
+      if (onlineUsers[uid] === socket.id) {
+        delete onlineUsers[uid];
+      }
+    }
   });
 });
 
-// DB CONNECT
+// -------------------------
+// MONGODB CONNECTION
+// -------------------------
 mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("Mongo Connected"))
-  .catch((err) => console.error("Mongo Error:", err));
+  .connect(process.env.MONGO_URL, {
+    autoIndex: true,
+  })
+  .then(() => console.log("MongoDB connected ✔"))
+  .catch((err) => console.log("MongoDB error ❌", err));
 
-// SOCKET HANDLER
-require("./socket")(io);
-
-// Billing tracker
-const billingTracker = new BillingTracker(io);
-billingTracker.start();
-
-// PORT FIX FOR RAILWAY
-const PORT = process.env.PORT || 8080;
-
-if (process.env.NODE_ENV !== "test") {
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
-
-module.exports = { app, server };
+// -------------------------
+// START SERVER
+// -------------------------
+const PORT = process.env.PORT || 9001;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
