@@ -10,17 +10,28 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+// IMPORTANT: UPDATE THIS
+const CLIENT_URL = process.env.CLIENT_URL || "https://astroweb-beryl.vercel.app";
+
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all for dev simplicity
+    origin: CLIENT_URL,
     methods: ["GET", "POST"],
+    credentials: true,
   },
+  transports: ["websocket", "polling"],
+  allowEIO3: true
 });
 
-app.use(cors());
+app.use(cors({
+  origin: CLIENT_URL,
+  credentials: true,
+}));
+
 app.use(express.json());
 
-// Make socket.io instance available to controllers
+// expose socket
 app.set("io", io);
 
 // Routes
@@ -36,56 +47,29 @@ app.use("/api/horoscope", require("./routes/horoscopeRoutes"));
 app.use("/api/payment/phonepe", require("./routes/phonePeRoutes"));
 app.use("/api/agora", require("./routes/agoraRoutes"));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+app.get("/health", (req, res) => {
   res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    status: "ok",
+    time: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
 });
 
-// Database Connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.log("❌ MongoDB Error:", err));
+// DB CONNECT
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("Mongo Connected"))
+  .catch(err => console.error("Mongo Error:", err));
 
-// Socket.IO Setup (Modular Handlers)
+// SOCKET HANDLER
 require("./socket")(io);
 
-// Start Billing Tracker (Server-side time tracking)
+// Billing tracker
 const billingTracker = new BillingTracker(io);
 billingTracker.start();
-console.log("🔄 Billing Tracker started");
 
-// Start Server
+// PORT FIX FOR RAILWAY
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Socket.IO ready`);
-  console.log(`💰 Billing Tracker active`);
-  if (process.env.PHONEPE_AUTH_KEY) {
-    console.log(`📲 PhonePe key configured`);
-  } else {
-    console.warn(`⚠️ PhonePe key missing (set PHONEPE_AUTH_KEY in .env)`);
-  }
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-// Graceful shutdown handlers
-const gracefulShutdown = (signal) => {
-  console.log(`🛑 ${signal} received, shutting down gracefully...`);
-  billingTracker.stop();
-  server.close(() => {
-    console.log('📡 HTTP server closed');
-    mongoose.connection.close(false, () => {
-      console.log('💾 MongoDB connection closed');
-      console.log('✅ Shutdown complete');
-      process.exit(0);
-    });
-  });
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
