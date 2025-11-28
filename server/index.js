@@ -1,4 +1,3 @@
-// index.js
 require("dotenv").config();
 const express = require("express");
 const http = require("http");
@@ -17,9 +16,9 @@ try {
 const app = express();
 const server = http.createServer(app);
 
-// -----------------------------------
-// CORS CONFIG (Express 5 SAFE)
-// -----------------------------------
+// -------------------------
+// CORS
+// -------------------------
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "https://astroweb-beryl.vercel.app",
@@ -29,7 +28,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // Non-browser
+      if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
@@ -39,32 +38,25 @@ app.use(
   })
 );
 
-// ❌ ILLEGAL IN EXPRESS 5 (removed):
-// app.options("*", cors());
-
-// -----------------------------------
-// BODY PARSER
-// -----------------------------------
 app.use(express.json({ limit: "10mb" }));
 
-// -----------------------------------
+// -------------------------
 // ROUTES
-// -----------------------------------
+// -------------------------
 const chatRoutes = require("./routes/chatRoutes");
+const authRoutes = require("./routes/authRoutes"); // <- add this
+
+app.use("/api/auth", authRoutes); // <- add this
 app.use("/api/chat", chatRoutes);
 
-// Health check
+// health check
 app.get("/health", (req, res) =>
-  res.json({
-    status: "ok",
-    time: new Date().toISOString(),
-    env: process.env.NODE_ENV || "dev",
-  })
+  res.json({ status: "ok", time: new Date().toISOString() })
 );
 
-// -----------------------------------
+// -------------------------
 // SOCKET.IO
-// -----------------------------------
+// -------------------------
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins.length ? allowedOrigins : "*",
@@ -74,7 +66,6 @@ const io = new Server(server, {
 });
 
 app.set("io", io);
-
 const onlineUsers = new Map();
 
 io.on("connection", (socket) => {
@@ -91,29 +82,17 @@ io.on("connection", (socket) => {
     socket.join(roomId.toString());
   });
 
-  socket.on("sendMessage", async (payload) => {
+  socket.on("sendMessage", async ({ to, roomId, from, message }) => {
+    const target = roomId ? roomId.toString() : to?.toString();
+    if (!target) return;
+    io.to(target).emit("receiveMessage", { from, message, time: new Date() });
+
     try {
-      const { to, roomId, from, message } = payload;
-
-      const target = roomId ? roomId.toString() : to?.toString();
-      if (!target) return;
-
-      io.to(target).emit("receiveMessage", {
-        from,
-        message,
-        time: new Date(),
-      });
-
-      // Billing tracker
-      try {
-        if (BillingTracker?.updateChatUsage) {
-          BillingTracker.updateChatUsage(from, target);
-        }
-      } catch (e) {
-        console.warn("[BillingTracker] update failed:", e);
+      if (BillingTracker?.updateChatUsage) {
+        BillingTracker.updateChatUsage(from, target);
       }
     } catch (e) {
-      console.error("[io] sendMessage error:", e);
+      console.warn("[BillingTracker] update failed:", e);
     }
   });
 
@@ -133,13 +112,12 @@ io.on("connection", (socket) => {
   });
 });
 
-// -----------------------------------
-// MONGO DB
-// -----------------------------------
+// -------------------------
+// MONGO
+// -------------------------
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGO_URL;
-
 if (!MONGO_URI) {
-  console.error("[FATAL] MONGO_URI missing in Railway variables");
+  console.error("[FATAL] MONGO_URI missing");
   process.exit(1);
 }
 
@@ -151,9 +129,9 @@ mongoose
     process.exit(1);
   });
 
-// -----------------------------------
+// -------------------------
 // BILLING TRACKER
-// -----------------------------------
+// -------------------------
 if (BillingTracker) {
   try {
     if (typeof BillingTracker === "function") {
@@ -167,9 +145,9 @@ if (BillingTracker) {
   }
 }
 
-// -----------------------------------
+// -------------------------
 // START SERVER
-// -----------------------------------
+// -------------------------
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => console.log(`Server running on ${PORT}`));
 
