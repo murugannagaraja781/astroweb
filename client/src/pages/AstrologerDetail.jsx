@@ -116,15 +116,24 @@ const AstrologerDetail = () => {
     } else if (action === "chat") {
       setWaiting(true);
       socket.emit("user_online", { userId: user.id });
+
+      // Listen for session creation to join room immediately
+      socket.once("chat:requested", ({ sessionId }) => {
+        console.log("Session created, joining room:", sessionId);
+        socket.emit("join_chat", { sessionId });
+      });
+
       socket.emit("chat:request", {
         clientId: user.id,
         astrologerId: id,
         ratePerMinute: astrologer.profile?.ratePerMinute || 1,
       });
+
       socket.once("chat:joined", ({ sessionId }) => {
         setWaiting(false);
         navigate(`/chat/${sessionId}`);
       });
+
       socket.once("chat:error", () => {
         setWaiting(false);
         alert("Failed to request chat");

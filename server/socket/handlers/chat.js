@@ -158,6 +158,10 @@ module.exports = (io, socket) => {
     socket.on('chat:accept', async (payload) => {
         try {
             const { sessionId } = payload;
+            // Force join the accepting socket to the room immediately
+            socket.join(sessionId);
+            console.log(`[DEBUG] Astrologer socket ${socket.id} force-joined room ${sessionId}`);
+
             await startChatSession(io, sessionId);
         } catch (err) {
             socket.emit('chat:error', { error: 'accept_failed' });
