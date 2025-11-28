@@ -10,7 +10,7 @@ const {
   saveMessage,
   requestSession,
   getSessionHistory,
-  getSessionHistory,
+
   getPendingSessions,
   acceptSession,
 } = require("../controllers/chatController");
