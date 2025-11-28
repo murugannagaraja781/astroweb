@@ -29,10 +29,21 @@ const AstrologerDashboard = () => {
   }, [user]);
 
   const loadSessions = async () => {
-    const res = await axios.get(
-      `/api/chat/sessions/pending/${user.id}`
-    );
-    setSessions(res.data);
+    try {
+      const res = await axios.get(
+        `/api/chat/sessions/pending/${user.id}`
+      );
+      // Ensure we always store an array in state
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data && Array.isArray(res.data.sessions)
+        ? res.data.sessions
+        : [];
+      setSessions(data);
+    } catch (err) {
+      console.error('Failed to load pending sessions:', err);
+      setSessions([]);
+    }
   };
 
   const handleAcceptChat = useCallback(async (sessionId) => {
