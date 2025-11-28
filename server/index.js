@@ -15,9 +15,22 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// IMPORTANT: UPDATE THIS
-// Helper for Express CORS
-
+// CORS options for Express
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      process.env.CLIENT_URL,
+      "https://astroweb-beryl.vercel.app",
+      "http://localhost:3000",
+    ].filter(Boolean);
+    if (process.env.NODE_ENV === "production") return callback(null, true);
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, true);
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  credentials: true,
+};
 
 const io = new Server(server, {
   cors: {
@@ -25,9 +38,9 @@ const io = new Server(server, {
       const allowedOrigins = [
         process.env.CLIENT_URL,
         "https://astroweb-beryl.vercel.app",
-        "http://localhost:3000"
+        "http://localhost:3000",
       ].filter(Boolean);
-      if (process.env.NODE_ENV === 'production') return callback(null, true);
+      if (process.env.NODE_ENV === "production") return callback(null, true);
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       const msg = `CORS policy: Origin ${origin} not allowed`;
@@ -36,11 +49,12 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  transports: ["websocket", "polling"],
+  transports: ["websocket"],
   allowEIO3: true,
 });
 
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
@@ -64,14 +78,16 @@ app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
     time: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    mongodb:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
 });
 
 // DB CONNECT
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("Mongo Connected"))
-  .catch(err => console.error("Mongo Error:", err));
+  .catch((err) => console.error("Mongo Error:", err));
 
 // SOCKET HANDLER
 require("./socket")(io);
