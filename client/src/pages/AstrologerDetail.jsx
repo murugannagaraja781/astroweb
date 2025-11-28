@@ -22,6 +22,7 @@ const AstrologerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
   const [waiting, setWaiting] = useState(false);
+  const [errorPopup, setErrorPopup] = useState(null); // { message: string, type: 'error' | 'info' }
   const API_URL =
     (typeof import.meta !== "undefined" &&
       import.meta.env &&
@@ -115,6 +116,17 @@ const AstrologerDetail = () => {
       navigate(`/call/${id}`);
     } else if (action === "chat") {
       setWaiting(true);
+      setErrorPopup(null);
+
+      // 15 Second Timeout
+      const timeoutId = setTimeout(() => {
+        setWaiting(false);
+        setErrorPopup({
+            message: "Connection timed out. The server is taking too long to respond.",
+            type: "error"
+        });
+      }, 15000);
+
       socket.emit("user_online", { userId: user.id });
 
       // Listen for session creation to join room immediately
@@ -130,15 +142,25 @@ const AstrologerDetail = () => {
       });
 
       socket.once("chat:joined", ({ sessionId }) => {
+        clearTimeout(timeoutId);
         setWaiting(false);
         navigate(`/chat/${sessionId}`);
       });
 
-      socket.once("chat:error", () => {
+      socket.once("chat:error", (err) => {
+        clearTimeout(timeoutId);
         setWaiting(false);
-        alert("Failed to request chat");
+        console.error("Chat Error:", err);
+        setErrorPopup({
+            message: err.error || "Failed to connect to chat server.",
+            type: "error"
+        });
       });
     }
+  };
+
+  const closeErrorPopup = () => {
+    setErrorPopup(null);
   };
 
   if (loading) {
@@ -212,13 +234,43 @@ const AstrologerDetail = () => {
                 )}
               </div>
               {waiting && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                  <div className="bg-white rounded-xl shadow-xl p-6 w-80 text-center">
-                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-600 mx-auto mb-4"></div>
-                    <p className="text-gray-700 font-medium">
-                      Waiting for astrologer to accept…
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                  <div className="bg-white rounded-xl shadow-xl p-8 w-96 text-center animate-in fade-in zoom-in duration-300">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-600 mx-auto mb-6"></div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Connecting...</h3>
+                    <p className="text-gray-600">
+                      Waiting for astrologer to accept your request.
                     </p>
+                    <p className="text-xs text-gray-400 mt-4">Please do not refresh the page.</p>
                   </div>
+                </div>
+              )}
+
+              {/* Error Popup */}
+              {errorPopup && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center animate-in fade-in zoom-in duration-300 border border-red-100">
+                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-3xl">⚠️</span>
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-800 mb-2">Connection Error</h3>
+                        <p className="text-gray-600 mb-6 text-lg">{errorPopup.message}</p>
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="w-full bg-orange-600 text-white py-3 rounded-xl font-bold hover:bg-orange-700 transition-colors shadow-lg shadow-orange-200"
+                            >
+                                🔄 Troubleshoot / Reload
+                            </button>
+                            <button
+                                onClick={closeErrorPopup}
+                                className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
                 </div>
               )}
 

@@ -25,8 +25,12 @@ const Login = () => {
   const onSubmit = async e => {
     e.preventDefault();
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const userData = await login(email, password);
+      if (userData?.role === 'astrologer') {
+        navigate('/astrologer-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       console.error(err);
       alert('Login failed');
@@ -87,7 +91,12 @@ const Login = () => {
         localStorage.setItem('user', JSON.stringify(response.data.user));
 
         alert('OTP verified successfully!');
-        navigate('/dashboard');
+
+        if (response.data.user?.role === 'astrologer') {
+          navigate('/astrologer-dashboard');
+        } else {
+          navigate('/dashboard');
+        }
         window.location.reload();
       } else {
         alert('Invalid OTP. Please try again.');

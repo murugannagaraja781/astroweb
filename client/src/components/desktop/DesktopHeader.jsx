@@ -42,7 +42,17 @@ const DesktopHeader = () => {
       : []),
     { to: "/chat/0", icon: MessageCircle, label: "Chat" },
     { to: "/call/0", icon: Video, label: "Call" },
-  ];
+  ].filter(item => {
+    // Hide Home link if on any dashboard page
+    if (item.label === "Home" && (
+      location.pathname === '/dashboard' ||
+      location.pathname === '/astrologer-dashboard' ||
+      location.pathname === '/astrology'
+    )) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <header className="hidden md:block sticky top-0 z-50 border-b border-white/10" style={{

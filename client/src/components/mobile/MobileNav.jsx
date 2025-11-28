@@ -31,7 +31,17 @@ const MobileNav = () => {
     { to: "/chat/0", icon: MessageCircle, label: "Chat" },
     { to: "/call/0", icon: Video, label: "Call" },
     { to: "/profile", icon: User, label: "Profile" },
-  ];
+  ].filter(item => {
+    // Hide Home link if on any dashboard page
+    if (item.label === "Home" && (
+      location.pathname === '/dashboard' ||
+      location.pathname === '/astrologer-dashboard' ||
+      location.pathname === '/astrology'
+    )) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <motion.nav
