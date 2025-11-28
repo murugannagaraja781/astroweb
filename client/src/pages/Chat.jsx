@@ -198,60 +198,58 @@ const Chat = () => {
       </div>
 
       {/* Floating Footer */}
-      <form onSubmit={sendMessage} className="relative w-full px-4 pb-4">
-        <div className="absolute bottom-3 left-0 right-0 px-4">
-          <div
+      <form onSubmit={sendMessage} className="w-full px-4 pb-6 pt-2 bg-transparent z-10">
+        <div
+          className="
+            max-w-3xl mx-auto
+            bg-white/15 backdrop-blur-xl
+            border border-white/20
+            shadow-[0_8px_20px_rgba(0,0,0,0.4)]
+            rounded-3xl
+            flex items-center gap-3
+            px-4 py-3
+          "
+        >
+          {!isRecording ? (
+            <button
+              type="button"
+              onClick={startRecording}
+              className="text-purple-300 hover:text-purple-100"
+            >
+              <Mic size={22} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={stopRecording}
+              className="text-red-400 hover:text-red-300"
+            >
+              <MicOff size={22} />
+            </button>
+          )}
+
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onInput={handleTyping}
+            placeholder="Type your message…"
             className="
-              max-w-3xl mx-auto
-              bg-white/15 backdrop-blur-xl
-              border border-white/20
-              shadow-[0_8px_20px_rgba(0,0,0,0.4)]
-              rounded-3xl
-              flex items-center gap-3
-              px-4 py-3
+              flex-1 bg-transparent text-white placeholder-gray-300
+              focus:outline-none text-sm md:text-base
+            "
+          />
+
+          <button
+            type="submit"
+            className="
+              bg-gradient-to-br from-purple-600 to-pink-600
+              text-white p-2 rounded-full shadow-lg
+              hover:scale-110 transition-transform
             "
           >
-            {!isRecording ? (
-              <button
-                type="button"
-                onClick={startRecording}
-                className="text-purple-300 hover:text-purple-100"
-              >
-                <Mic size={22} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={stopRecording}
-                className="text-red-400 hover:text-red-300"
-              >
-                <MicOff size={22} />
-              </button>
-            )}
-
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onInput={handleTyping}
-              placeholder="Type your message…"
-              className="
-                flex-1 bg-transparent text-white placeholder-gray-300
-                focus:outline-none text-sm md:text-base
-              "
-            />
-
-            <button
-              type="submit"
-              className="
-                bg-gradient-to-br from-purple-600 to-pink-600
-                text-white p-2 rounded-full shadow-lg
-                hover:scale-110 transition-transform
-              "
-            >
-              <Send size={20} />
-            </button>
-          </div>
+            <Send size={20} />
+          </button>
         </div>
       </form>
     </div>
