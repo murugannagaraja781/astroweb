@@ -47,7 +47,7 @@ const AstrologerDashboard = () => {
       const list = (
         Array.isArray(res.data) ? res.data : res.data?.sessions || []
       ).filter(
-        (s) => s.astrologer?.id === user?.id || s.astrologer === user?.id
+        (s) => (s.astrologer?.id === user?.id || s.astrologer === user?.id) && s.status === 'requested'
       );
       setSessions(list);
     } catch (err) {
@@ -58,7 +58,7 @@ const AstrologerDashboard = () => {
 
   const loadActiveSessions = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/chat/sessions`, {
+      const res = await axios.get(`${API_URL}/api/chat/sessions/pending`, {
         headers: { "x-auth-token": localStorage.getItem("token") },
       });
       const data = Array.isArray(res.data)

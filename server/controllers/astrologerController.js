@@ -55,6 +55,52 @@ exports.toggleStatusById = async (req, res) => {
   }
 };
 
+// Update profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const {
+      languages,
+      specialties,
+      experience,
+      education,
+      ratePerMinute,
+      bio,
+      profileImage
+    } = req.body;
+
+    // Build profile object
+    const profileFields = {};
+    if (languages) profileFields.languages = languages;
+    if (specialties) profileFields.specialties = specialties;
+    if (experience) profileFields.experience = experience;
+    if (education) profileFields.education = education;
+    if (ratePerMinute) profileFields.ratePerMinute = ratePerMinute;
+    if (bio) profileFields.bio = bio;
+    if (profileImage) profileFields.profileImage = profileImage;
+
+    let profile = await AstrologerProfile.findOne({ userId: req.user.id });
+
+    if (profile) {
+      // Update
+      profile = await AstrologerProfile.findOneAndUpdate(
+        { userId: req.user.id },
+        { $set: profileFields },
+        { new: true }
+      );
+      return res.json(profile);
+    }
+
+    // Create
+    profileFields.userId = req.user.id;
+    profile = new AstrologerProfile(profileFields);
+    await profile.save();
+    res.json(profile);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
 exports.getProfile = async (req, res) => {
   try {
     const profile = await AstrologerProfile.findOne({ userId: req.user.id }).populate('userId', 'name email');

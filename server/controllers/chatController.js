@@ -375,7 +375,16 @@ exports.getSessionHistory = async (req, res) => {
       req.user.id !== s.clientId.toString() &&
       req.user.id !== s.astrologerId.toString()
     ) {
-      return res.status(403).json({ msg: "Unauthorized" });
+      console.log(`[AuthFail] User:${req.user.id} Client:${s.clientId} Astro:${s.astrologerId}`);
+      return res.status(403).json({
+        msg: "Unauthorized",
+        debug: {
+          userId: req.user.id,
+          clientId: s.clientId,
+          astrologerId: s.astrologerId,
+          sessionId: s.sessionId
+        }
+      });
     }
     const messages = await ChatMessage.find({ sessionId }).sort({
       timestamp: 1,
