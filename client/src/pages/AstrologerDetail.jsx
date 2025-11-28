@@ -34,7 +34,23 @@ const AstrologerDetail = () => {
     fetchAstrologer();
     if (user) {
       fetchBalance();
+      // Register online status
+      socket.emit("user_online", { userId: user.id });
     }
+
+    // Re-register on reconnection
+    const handleReconnect = () => {
+      if (user?.id) {
+        console.log("Reconnected, re-registering user:", user.id);
+        socket.emit("user_online", { userId: user.id });
+      }
+    };
+
+    socket.on("connect", handleReconnect);
+
+    return () => {
+      socket.off("connect", handleReconnect);
+    };
   }, [id, user]);
 
   const fetchBalance = async () => {

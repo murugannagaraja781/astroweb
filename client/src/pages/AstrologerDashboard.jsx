@@ -64,6 +64,21 @@ const AstrologerDashboard = () => {
       socket.emit("join", profile.userId);
       socket.emit("user_online", { userId: profile.userId });
     }
+
+    // Re-register on reconnection
+    const handleReconnect = () => {
+      if (profile?.userId) {
+        console.log("Reconnected, re-registering user:", profile.userId);
+        socket.emit("join", profile.userId);
+        socket.emit("user_online", { userId: profile.userId });
+      }
+    };
+
+    socket.on("connect", handleReconnect);
+
+    return () => {
+      socket.off("connect", handleReconnect);
+    };
   }, [profile?.userId]);
 
   useEffect(() => {

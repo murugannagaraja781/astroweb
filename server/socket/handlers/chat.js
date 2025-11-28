@@ -38,13 +38,31 @@ const startChatSession = async (io, sessionId) => {
         const clientSock = onlineUsers.get(s.clientId.toString());
         const astroSock = onlineUsers.get(s.astrologerId.toString());
 
+        console.log(`[DEBUG] startChatSession: sessionId=${sessionId}, clientId=${s.clientId}, astroId=${s.astrologerId}`);
+        console.log(`[DEBUG] Sockets found: client=${clientSock}, astro=${astroSock}`);
+
         if (clientSock) {
             const cs = io.sockets.sockets.get(clientSock);
-            if (cs) cs.join(sessionId);
+            if (cs) {
+                cs.join(sessionId);
+                console.log(`[DEBUG] Client socket ${clientSock} joined room ${sessionId}`);
+            } else {
+                console.warn(`[WARN] Client socket ${clientSock} not found in io.sockets`);
+            }
+        } else {
+            console.warn(`[WARN] Client ${s.clientId} not found in onlineUsers`);
         }
+
         if (astroSock) {
             const as = io.sockets.sockets.get(astroSock);
-            if (as) as.join(sessionId);
+            if (as) {
+                as.join(sessionId);
+                console.log(`[DEBUG] Astrologer socket ${astroSock} joined room ${sessionId}`);
+            } else {
+                console.warn(`[WARN] Astrologer socket ${astroSock} not found in io.sockets`);
+            }
+        } else {
+            console.warn(`[WARN] Astrologer ${s.astrologerId} not found in onlineUsers`);
         }
 
         io.to(sessionId).emit('chat:joined', { sessionId });
