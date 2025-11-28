@@ -16,22 +16,35 @@ const app = express();
 const server = http.createServer(app);
 
 // IMPORTANT: UPDATE THIS
-const CLIENT_URL = process.env.CLIENT_URL || "https://astroweb-beryl.vercel.app";
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "https://astroweb-beryl.vercel.app",
+  "http://localhost:3000"
+].filter(Boolean);
+
+// Helper for Express CORS
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non‑browser requests (no origin)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    const msg = `CORS policy: Origin ${origin} not allowed`;
+    return callback(new Error(msg), false);
+  },
+  credentials: true,
+};
 
 const io = new Server(server, {
   cors: {
-    origin: CLIENT_URL,
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
   transports: ["websocket", "polling"],
-  allowEIO3: true
+  allowEIO3: true,
 });
 
-app.use(cors({
-  origin: CLIENT_URL,
-  credentials: true,
-}));
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
