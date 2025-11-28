@@ -10,7 +10,8 @@ const {
   getReviews,
   getAnalytics,
   getSchedule,
-  updateSchedule
+  updateSchedule,
+  getProfileById,
 } = require('../controllers/astrologerController');
 const auth = require('../middleware/auth');
 
@@ -23,9 +24,7 @@ const astrologerCheck = (req, res, next) => {
 
 // Profile routes
 router.get('/profile', auth, astrologerCheck, getProfile);
-// In routes/astrologer.js or similar
-router.put('/profile/:id/status', auth, updateStatus);
-
+router.get('/profile/:id', auth, getProfileById);
 router.put('/profile', auth, astrologerCheck, updateProfile);
 router.put('/status', auth, astrologerCheck, toggleStatus);
 router.put('/profile/:id/status', auth, astrologerCheck, toggleStatusById);
@@ -41,4 +40,3 @@ router.get('/schedule', auth, astrologerCheck, getSchedule);
 router.put('/schedule', auth, astrologerCheck, updateSchedule);
 
 module.exports = router;
-

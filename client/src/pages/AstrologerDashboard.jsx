@@ -4,7 +4,18 @@ import { io } from "socket.io-client";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
 
-const socket = io(import.meta.env.VITE_API_URL);
+const API_URL =
+  (typeof import.meta !== "undefined" &&
+    import.meta.env &&
+    import.meta.env.VITE_API_URL) ||
+  process.env.VITE_API_URL ||
+  "";
+const socket = io(API_URL, {
+  transports: ["websocket"],
+  secure: true,
+  reconnection: true,
+  rejectUnauthorized: false,
+});
 
 const AstrologerDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -17,7 +28,10 @@ const AstrologerDashboard = () => {
   const loadProfile = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await axios.get(`/api/astrologer/profile/${user.id}`);
+      const res = await axios.get(
+        `${API_URL}/api/astrologer/profile/${user.id}`,
+        { headers: { "x-auth-token": localStorage.getItem("token") } }
+      );
       setProfile(res.data);
     } catch (err) {
       console.error("Failed to load astrologer profile:", err);
@@ -27,33 +41,37 @@ const AstrologerDashboard = () => {
 
   const loadSessions = async () => {
     try {
-      const res = await axios.get(
-        `/api/chat/sessions/pending/${user.id}`
+      const res = await axios.get(`${API_URL}/api/chat/sessions/pending`, {
+        headers: { "x-auth-token": localStorage.getItem("token") },
+      });
+      const list = (
+        Array.isArray(res.data) ? res.data : res.data?.sessions || []
+      ).filter(
+        (s) => s.astrologer?.id === user?.id || s.astrologer === user?.id
       );
-      // Ensure we always store an array in state
-      const data = Array.isArray(res.data)
-        ? res.data
-        : res.data && Array.isArray(res.data.sessions)
-        ? res.data.sessions
-        : [];
-      setSessions(data);
+      setSessions(list);
     } catch (err) {
-      console.error('Failed to load pending sessions:', err);
+      console.error("Failed to load pending sessions:", err);
       setSessions([]);
     }
   };
 
   const loadActiveSessions = async () => {
     try {
-      const res = await axios.get(`/api/chat/sessions/active/${user.id}`);
+      const res = await axios.get(`${API_URL}/api/chat/sessions`, {
+        headers: { "x-auth-token": localStorage.getItem("token") },
+      });
       const data = Array.isArray(res.data)
         ? res.data
-        : res.data && Array.isArray(res.data.sessions)
-        ? res.data.sessions
-        : [];
-      setActiveSessions(data);
+        : res.data?.sessions || [];
+      const list = data.filter(
+        (s) =>
+          s.status === "active" &&
+          (s.astrologer?.id === user?.id || s.astrologer === user?.id)
+      );
+      setActiveSessions(list);
     } catch (err) {
-      console.error('Failed to load active sessions:', err);
+      console.error("Failed to load active sessions:", err);
       setActiveSessions([]);
     }
   };
@@ -62,10 +80,17 @@ const AstrologerDashboard = () => {
     if (!profile) return;
     try {
       const newStatus = !profile.isOnline;
-      await axios.put(`/api/astrologer/profile/${user.id}/status`, { isOnline: newStatus });
-      setProfile(prev => ({ ...prev, isOnline: newStatus }));
+      await axios.put(
+        `${API_URL}/api/astrologer/profile/${user.id}/status`,
+        { isOnline: newStatus },
+        { headers: { "x-auth-token": localStorage.getItem("token") } }
+      );
+      setProfile((prev) => ({ ...prev, isOnline: newStatus }));
       // Emit socket event to notify users about status change
-      socket.emit("astrologer_status_change", { astrologerId: user.id, isOnline: newStatus });
+      socket.emit("astrologer_status_change", {
+        astrologerId: user.id,
+        isOnline: newStatus,
+      });
     } catch (err) {
       console.error("Failed to toggle online status:", err);
       alert("Failed to update status. Please try again.");
@@ -105,13 +130,17 @@ const AstrologerDashboard = () => {
 
   const handleAcceptChat = useCallback(async (sessionId) => {
     try {
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/chat/accept`, { sessionId }, {
-            headers: { 'x-auth-token': localStorage.getItem('token') }
-        });
-        // The socket event 'chat:joined' will be emitted by the server and handled by the listener above
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/chat/accept`,
+        { sessionId },
+        {
+          headers: { "x-auth-token": localStorage.getItem("token") },
+        }
+      );
+      // The socket event 'chat:joined' will be emitted by the server and handled by the listener above
     } catch (err) {
-        console.error("Error accepting chat:", err);
-        alert("Failed to accept chat. Please try again.");
+      console.error("Error accepting chat:", err);
+      alert("Failed to accept chat. Please try again.");
     }
   }, []);
 
@@ -139,7 +168,10 @@ const AstrologerDashboard = () => {
                 <span className="text-sm text-gray-600">{session.status}</span>
               </div>
               <button
-                onClick={(e) => { e.stopPropagation(); onAccept(session.sessionId); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAccept(session.sessionId);
+                }}
                 className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
               >
                 <span>Chat</span>
@@ -153,9 +185,7 @@ const AstrologerDashboard = () => {
 
   const ActiveChatsTab = React.memo(({ activeSessions }) => (
     <div className="bg-white rounded-xl shadow-sm p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">
-        Active Chats
-      </h3>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Active Chats</h3>
       {activeSessions.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No active chats at the moment.</p>
@@ -172,10 +202,15 @@ const AstrologerDashboard = () => {
                 <h4 className="font-semibold text-gray-800">
                   Session with User: {session.userId}
                 </h4>
-                <span className="text-sm text-gray-600">Status: {session.status}</span>
+                <span className="text-sm text-gray-600">
+                  Status: {session.status}
+                </span>
               </div>
               <button
-                onClick={(e) => { e.stopPropagation(); navigate(`/chat/${session.sessionId}`); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/chat/${session.sessionId}`);
+                }}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
               >
                 <span>View Chat</span>
@@ -189,15 +224,19 @@ const AstrologerDashboard = () => {
 
   const ProfileTab = React.memo(({ profile, toggleOnlineStatus }) => (
     <div className="bg-white rounded-xl shadow-sm p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">
-        My Profile
-      </h3>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">My Profile</h3>
       {profile ? (
         <div className="space-y-4">
-          <p><strong>Name:</strong> {profile.name}</p>
-          <p><strong>Email:</strong> {profile.email}</p>
+          <p>
+            <strong>Name:</strong> {profile.name}
+          </p>
+          <p>
+            <strong>Email:</strong> {profile.email}
+          </p>
           <div className="flex items-center justify-between">
-            <p><strong>Status:</strong> {profile.isOnline ? "Online" : "Offline"}</p>
+            <p>
+              <strong>Status:</strong> {profile.isOnline ? "Online" : "Offline"}
+            </p>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -222,7 +261,9 @@ const AstrologerDashboard = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Astrologer Dashboard</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">
+        Astrologer Dashboard
+      </h1>
 
       <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm">
         <div className="flex space-x-4">
@@ -269,7 +310,11 @@ const AstrologerDashboard = () => {
         </div>
         {profile && (
           <div className="flex items-center space-x-2">
-            <span className={`text-sm font-medium ${profile.isOnline ? 'text-green-600' : 'text-red-600'}`}>
+            <span
+              className={`text-sm font-medium ${
+                profile.isOnline ? "text-green-600" : "text-red-600"
+              }`}
+            >
               {profile.isOnline ? "Online" : "Offline"}
             </span>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -294,7 +339,10 @@ const AstrologerDashboard = () => {
           <ActiveChatsTab activeSessions={activeSessions} />
         )}
         {activeTab === "profile" && (
-          <ProfileTab profile={profile} toggleOnlineStatus={toggleOnlineStatus} />
+          <ProfileTab
+            profile={profile}
+            toggleOnlineStatus={toggleOnlineStatus}
+          />
         )}
       </div>
     </div>

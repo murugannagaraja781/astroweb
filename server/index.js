@@ -48,12 +48,14 @@ const authRoutes = require("./routes/authRoutes"); // <- add this
 const publicRoutes = require("./routes/publicRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const walletRoutes = require("./routes/walletRoutes");
+const astrologerRoutes = require("./routes/astrologerRoutes");
 
 app.use("/api/auth", authRoutes); // <- add this
 app.use("/api/chat", chatRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/wallet", walletRoutes);
+app.use("/api/astrologer", astrologerRoutes);
 
 // health check
 app.get("/health", (req, res) =>

@@ -66,6 +66,18 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+exports.getProfileById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const profile = await AstrologerProfile.findOne({ userId: id }).populate('userId', 'name email');
+    if (!profile) return res.status(404).json({ msg: 'Profile not found' });
+    res.json(profile);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
 
 // Get call history
 exports.getCallHistory = async (req, res) => {
