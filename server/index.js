@@ -62,7 +62,7 @@ console.log("🔄 Billing Tracker started");
 
 // Start Server
 const PORT = process.env.PORT || 9001;
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Socket.IO ready`);
   console.log(`💰 Billing Tracker active`);
