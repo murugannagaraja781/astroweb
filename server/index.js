@@ -45,9 +45,15 @@ app.use(express.json({ limit: "10mb" }));
 // -------------------------
 const chatRoutes = require("./routes/chatRoutes");
 const authRoutes = require("./routes/authRoutes"); // <- add this
+const publicRoutes = require("./routes/publicRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const walletRoutes = require("./routes/walletRoutes");
 
 app.use("/api/auth", authRoutes); // <- add this
 app.use("/api/chat", chatRoutes);
+app.use("/api/public", publicRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/wallet", walletRoutes);
 
 // health check
 app.get("/health", (req, res) =>
