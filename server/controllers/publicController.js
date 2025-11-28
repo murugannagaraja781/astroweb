@@ -23,6 +23,32 @@ exports.getPublicAstrologers = async (req, res) => {
     }
 };
 
+exports.getPublicAstrologerById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id).select('name email role');
+
+        if (!user || user.role !== 'astrologer') {
+            return res.status(404).json({ msg: 'Astrologer not found' });
+        }
+
+        const profile = await AstrologerProfile.findOne({ userId: id }).select('profileImage languages specialties ratePerMinute isOnline bio experience education rating totalSessions reviews');
+
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            ...profile?._doc
+        });
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ msg: 'Astrologer not found' });
+        }
+        res.status(500).send('Server error');
+    }
+};
+
 exports.getBanners = async (req, res) => {
     try {
         const { deviceType = 'all', position = 'home_top' } = req.query;

@@ -26,7 +26,7 @@ const AstrologerDetail = () => {
   const socket = io(API_URL);
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/astrologers/${id}`).then((res) => setAstro(res.data));
+    axios.get(`${API_URL}/api/public/astrologers/${id}`).then((res) => setAstro(res.data));
   }, [id, API_URL]);
 
   const handleAction = useCallback((action) => {

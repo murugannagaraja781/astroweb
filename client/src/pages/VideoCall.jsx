@@ -212,7 +212,7 @@ export default function VideoCall() {
       // Remove DOM
       const el = document.getElementById(`remote-${remoteUser.uid}`);
       if (el && el.parentNode) el.parentNode.removeChild(el);
-      setRemoteUsers((prev) => prev.filter((u) => u.uid !== remoteUser.uid));
+      setRemoteUsers((prev) => (prev || []).filter((u) => u.uid !== remoteUser.uid));
     };
 
     const startJoin = async () => {
