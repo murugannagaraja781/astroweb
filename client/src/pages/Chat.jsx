@@ -5,7 +5,8 @@ import axios from "axios";
 import AuthContext from "../context/AuthContext";
 import { Send, Mic, MicOff, PhoneCall, PhoneOff, Loader } from "lucide-react";
 
-const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com");
+const API_URL = process.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com";
+const socket = io(API_URL);
 
 const Chat = () => {
   const { user } = useContext(AuthContext);
@@ -33,17 +34,19 @@ const Chat = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chat/history/session/${id}`,
+        `${API_URL}/api/chat/history/session/${id}`,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       setConversation(res.data.messages || []);
       setOtherUser(null);
-    } catch (error) {}
+    } catch (error) {
+      console.error('[Chat] Failed to fetch chat history:', error);
+      setConversation([]);
+    }
   }, [id]);
 
   useEffect(() => {
     if (id) {
-      console.log(`[Chat] Joining session: ${id}`);
       socket.emit("join_chat", { sessionId: id });
     }
 

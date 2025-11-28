@@ -110,10 +110,9 @@ export default function VideoCall() {
     if (!user || !socket) return;
 
     // Events
-    socket.on("connect", () => console.log("socket connected", socket.id));
+    socket.on("connect", () => {});
 
     socket.on("callAccepted", async ({ callId: acceptedCallId }) => {
-      console.log("call accepted", acceptedCallId);
       addToast("Call accepted", "success");
 
       // If we are the client initiator we probably already have callId but ensure

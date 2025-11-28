@@ -16,7 +16,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-const socket = io(import.meta.env.VITE_API_URL);
+const API_URL = process.env.VITE_API_URL || '';
+const socket = io(API_URL);
 
 const AstrologerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -80,7 +81,6 @@ const AstrologerDashboard = () => {
           }
         );
         setPendingSessions(res.data);
-        console.log('[DEBUG] Fetched pending sessions:', res.data);
       } catch (err) {
         console.error('Error fetching pending sessions:', err);
       }
@@ -174,7 +174,6 @@ const AstrologerDashboard = () => {
         }
       );
       setPendingSessions(pendingRes.data);
-      console.log('[DEBUG] fetchDashboardData pending sessions:', pendingRes.data);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration
@@ -266,7 +265,6 @@ const AstrologerDashboard = () => {
 
   const setupSocketListeners = () => {
     socket.on("callUser", (data) => {
-      console.log("Incoming call data:", data);
       setIncomingCall(data);
     });
 
@@ -279,7 +277,6 @@ const AstrologerDashboard = () => {
       alert("Call was rejected by user");
     });
     socket.on("chat:request", (payload) => {
-      console.log("[DEBUG] Dashboard received chat:request:", payload);
       setIncomingCall({
         from: payload.clientId,
         name: "",
@@ -287,56 +284,36 @@ const AstrologerDashboard = () => {
         type: "chat",
       });
       // Refresh pending sessions
-      fetchDashboardData();
-    });
-    socket.on("chat:joined", ({ sessionId }) => {
-      console.log("[DEBUG] Dashboard received chat:joined:", sessionId);
-      navigate(`/chat/${sessionId}`);
-    });
-    socket.on("chat:request", (payload) => {
-       // Duplicate listener found in original code, merging logic or keeping as is but adding log
-       // The original code had duplicate listeners. I will keep the structure but add logs.
-       console.log("[DEBUG] Dashboard received chat:request (duplicate handler):", payload);
-      setIncomingCall({
-        from: payload.clientId,
-        name: "",
-        callId: payload.sessionId,
-        type: "chat",
-      });
       setPendingSessions((prev) => {
-        const exists = prev.some((s) => s.sessionId === payload.sessionId);
-        const next = exists
-          ? prev
-          : [
-              ...prev,
-              {
-                sessionId: payload.sessionId,
-                status: "requested",
-                ratePerMinute: 0,
-                createdAt: new Date().toISOString(),
-                client: { id: payload.clientId, name: "" },
-                astrologer: { id: profile?.userId, name: profile?.name || "" },
-              },
-            ];
+        const exists = prev.find((s) => s.sessionId === payload.sessionId);
+        if (exists) return prev;
+        const next = [
+          ...prev,
+          {
+            sessionId: payload.sessionId,
+            clientId: payload.clientId,
+            astrologerId: payload.astrologerId,
+            status: "requested",
+            createdAt: new Date().toISOString(),
+          },
+        ];
         return next;
       });
     });
 
     socket.on('chat:joined', ({ sessionId }) => {
-        console.log('[DEBUG] Dashboard received chat:joined (duplicate handler):', sessionId);
         // Remove from pending if present
         setPendingSessions((prev) =>
           prev.filter((s) => s.sessionId !== sessionId)
         );
         // Store as an active chat for the astrologer to click later
         setActiveChats((prev) => [...prev, sessionId]);
-        // Optionally auto‑navigate; comment out if you prefer manual click
-        // navigate(`/chat/${sessionId}`);
+        // Navigate to chat after accepting
+        navigate(`/chat/${sessionId}`);
       });
   };
 
   const handleAcceptChat = (sessionId) => {
-    console.log("[DEBUG] handleAcceptChat called with sessionId:", sessionId);
     socket.emit("chat:accept", { sessionId });
     // Do not navigate immediately; wait for server 'chat:joined'
   };

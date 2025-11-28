@@ -1,4 +1,19 @@
 import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
+
+// Polyfill TextEncoder/TextDecoder for Jest
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Mock scrollIntoView
+Element.prototype.scrollIntoView = jest.fn();
+
+// Mock import.meta for Vite compatibility in Jest
+globalThis.import = globalThis.import || {};
+globalThis.import.meta = globalThis.import.meta || {};
+globalThis.import.meta.env = globalThis.import.meta.env || {
+    VITE_API_URL: 'http://localhost:9001'
+};
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
