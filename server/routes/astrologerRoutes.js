@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   toggleStatus,
+  toggleStatusById,
   updateProfile,
   getProfile,
   getCallHistory,
@@ -24,6 +25,7 @@ const astrologerCheck = (req, res, next) => {
 router.get('/profile', auth, astrologerCheck, getProfile);
 router.put('/profile', auth, astrologerCheck, updateProfile);
 router.put('/status', auth, astrologerCheck, toggleStatus);
+router.put('/profile/:id/status', auth, astrologerCheck, toggleStatusById);
 
 // Dashboard data routes
 router.get('/call-history', auth, astrologerCheck, getCallHistory);
