@@ -16,7 +16,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-const API_URL = process.env.VITE_API_URL || '';
+const API_URL = process.env.VITE_API_URL || 'https://astroweb-production.up.railway.app';
 const socket = io(API_URL);
 
 const AstrologerDashboard = () => {

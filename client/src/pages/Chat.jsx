@@ -5,7 +5,7 @@ import axios from "axios";
 import AuthContext from "../context/AuthContext";
 import { Send, Mic, MicOff, PhoneCall, PhoneOff, Loader } from "lucide-react";
 
-const API_URL = process.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com";
+const API_URL = process.env.VITE_API_URL || "https://astroweb-production.up.railway.app";
 const socket = io(API_URL);
 
 const Chat = () => {

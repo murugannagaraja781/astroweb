@@ -61,7 +61,7 @@ billingTracker.start();
 console.log("🔄 Billing Tracker started");
 
 // Start Server
-const PORT = process.env.PORT || 9001;
+const PORT = process.env.PORT || 8080;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Socket.IO ready`);

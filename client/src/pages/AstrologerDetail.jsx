@@ -27,7 +27,7 @@ const AstrologerDetail = () => {
       import.meta.env &&
       import.meta.env.VITE_API_URL) ||
     process.env.VITE_API_URL ||
-    "";
+    "https://astroweb-production.up.railway.app";
   const socket = io(API_URL);
 
   useEffect(() => {
