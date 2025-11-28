@@ -146,8 +146,9 @@ module.exports = (io, socket) => {
 
             socket.emit('chat:requested', { sessionId: sid });
 
-            // Manual accept: Session stays in 'requested' status until astrologer accepts
-            console.log(`[DEBUG] Chat session ${sid} created, waiting for astrologer to accept`);
+            // AUTO-ACCEPT: Immediately start the session
+            console.log(`[DEBUG] Auto-accepting chat session ${sid}`);
+            await startChatSession(io, sid);
 
         } catch (err) {
             console.error('Error in chat:request:', err);
