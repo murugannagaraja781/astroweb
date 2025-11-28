@@ -277,6 +277,7 @@ exports.requestSession = async (req, res) => {
     let rate = 1;
     const profile = await AstrologerProfile.findOne({ userId: astrologerId });
     if (profile && profile.ratePerMinute) rate = profile.ratePerMinute;
+
     await ChatSession.create({
       sessionId: sid,
       clientId,
@@ -284,8 +285,62 @@ exports.requestSession = async (req, res) => {
       status: "requested",
       ratePerMinute: rate,
     });
+
+    // Emit socket event to astrologer
+    const io = req.app.get("io");
+    // We need to find the astrologer's socket ID.
+    // Ideally, we should have a way to map userId to socketId available here,
+    // or emit to a room named after the userId if we are using that pattern.
+    // Assuming 'user_online' joins a room with userId.
+    io.to(astrologerId).emit('chat:request', {
+      sessionId: sid,
+      clientId,
+      astrologerId
+    });
+
     res.json({ sessionId: sid, ratePerMinute: rate });
   } catch (err) {
+    console.error("Error requesting session:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+exports.acceptSession = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const astrologerId = req.user.id;
+
+    const session = await ChatSession.findOne({ sessionId });
+    if (!session) {
+      return res.status(404).json({ msg: "Session not found" });
+    }
+
+    if (session.astrologerId.toString() !== astrologerId) {
+      return res.status(403).json({ msg: "Unauthorized" });
+    }
+
+    if (session.status !== 'requested') {
+      return res.status(400).json({ msg: "Session is not in requested state" });
+    }
+
+    session.status = 'active';
+    session.startTime = new Date();
+    await session.save();
+
+    const io = req.app.get("io");
+
+    // Emit joined event to both parties
+    // In a real app, we might want to ensure they are in the room first,
+    // but the client will join upon receiving this or beforehand.
+    io.to(sessionId).emit('chat:joined', { sessionId });
+
+    // Also emit to specific users to be safe if they aren't in the room yet
+    io.to(session.clientId.toString()).emit('chat:joined', { sessionId });
+    io.to(astrologerId).emit('chat:joined', { sessionId });
+
+    res.json({ success: true, sessionId });
+  } catch (err) {
+    console.error("Error accepting session:", err);
     res.status(500).json({ msg: "Server error" });
   }
 };

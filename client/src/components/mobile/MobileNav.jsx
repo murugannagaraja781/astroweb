@@ -32,10 +32,11 @@ const MobileNav = () => {
     { to: "/call/0", icon: Video, label: "Call" },
     { to: "/profile", icon: User, label: "Profile" },
   ].filter(item => {
-    // Hide Home link if on any dashboard page
+    // Hide Home link ONLY if on Astrologer or Admin dashboard pages
+    // Client dashboard (/dashboard) SHOULD see the Home link
     if (item.label === "Home" && (
-      location.pathname === '/dashboard' ||
       location.pathname === '/astrologer-dashboard' ||
+      location.pathname === '/admin-dashboard' ||
       location.pathname === '/astrology'
     )) {
       return false;

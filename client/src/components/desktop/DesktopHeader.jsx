@@ -43,10 +43,11 @@ const DesktopHeader = () => {
     { to: "/chat/0", icon: MessageCircle, label: "Chat" },
     { to: "/call/0", icon: Video, label: "Call" },
   ].filter(item => {
-    // Hide Home link if on any dashboard page
+    // Hide Home link ONLY if on Astrologer or Admin dashboard pages
+    // Client dashboard (/dashboard) SHOULD see the Home link
     if (item.label === "Home" && (
-      location.pathname === '/dashboard' ||
       location.pathname === '/astrologer-dashboard' ||
+      location.pathname === '/admin-dashboard' ||
       location.pathname === '/astrology'
     )) {
       return false;
