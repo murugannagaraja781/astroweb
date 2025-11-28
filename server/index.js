@@ -5,6 +5,10 @@ const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
 const BillingTracker = require("./services/billingTracker");
+const errorMonitor = require("./services/errorMonitor");
+
+// Start Error Monitor immediately
+errorMonitor.start();
 
 dotenv.config();
 

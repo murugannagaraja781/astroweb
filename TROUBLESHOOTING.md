@@ -1,304 +1,78 @@
-# Troubleshooting Guide - AstroWeb
+# 🛠️ AstroWeb Troubleshooting Procedure
 
-## 🔍 Common Issues & Solutions
+Follow this step-by-step guide to diagnose and fix issues with the AstroWeb deployment.
 
-### Issue 1: "No astrologers online at the moment"
+## 1. 🌍 Server Deployment Check (Railway)
 
-**Cause**: No astrologers have `isOnline: true` status
+**Goal**: Verify the server is running and accessible.
 
-**Solutions**:
+1.  **Check Railway Logs**:
+    *   Go to your Railway Dashboard.
+    *   Click on the `server` service.
+    *   Look at the "Deploy Logs".
+    *   ✅ **Success**: You should see `Server running on port 8080` and `Mongo Connected`.
+    *   ❌ **Failure**: If you see `Application failed to respond` or `Crashed`, check the error message.
 
-#### Option A: Toggle Status via Astrologer Dashboard
-1. Login as an astrologer at `/login`
-2. Go to Astrologer Dashboard
-3. Click the "Go Online/Offline" toggle button
-4. Status should update in real-time
+2.  **Test Health Endpoint**:
+    *   Open your browser or Postman.
+    *   Visit: `https://astroweb-production.up.railway.app/health`
+    *   ✅ **Success**: Returns `{"status":"ok", ...}`
+    *   ❌ **Failure**: 404 or Connection Refused means the server is not reachable.
 
-#### Option B: Check API Response
-```bash
-# Test the API
-curl http://localhost:5000/api/public/astrologers
+## 2. 🔗 CORS & Client Connection
 
-# Expected response:
-[
-  {
-    "_id": "...",
-    "name": "Astrologer Name",
-    "isOnline": true,  // <-- Should be true
-    "languages": [...],
-    "specialties": [...]
-  }
-]
-```
+**Goal**: Ensure the Frontend (Vercel) can talk to the Backend (Railway).
 
-#### Option C: Manually Update Database
-```javascript
-// Connect to MongoDB and run:
-db.astrologerprofiles.updateMany(
-  {},
-  { $set: { isOnline: true } }
-)
-```
+1.  **Verify Environment Variables**:
+    *   **Frontend**: Ensure `VITE_API_URL` is set to `https://astroweb-production.up.railway.app` (no trailing slash).
+    *   **Backend**: Ensure `CLIENT_URL` in Railway variables matches your frontend URL exactly (e.g., `https://astroweb-beryl.vercel.app`).
 
----
+2.  **Check Browser Console**:
+    *   Open your app in Chrome.
+    *   Right-click -> Inspect -> **Console**.
+    *   ❌ **CORS Error**: `Access to XMLHttpRequest... has been blocked by CORS policy`.
+        *   *Fix*: Update `CLIENT_URL` in `server/index.js` or Railway env vars to match your frontend URL.
 
-### Issue 2: Server Not Starting
+## 3. 📡 Socket.IO Connection
 
-**Symptoms**: Server crashes or exits immediately
+**Goal**: Verify real-time chat/call features.
 
-**Check**:
-```bash
-cd server
-npm run dev
-```
+1.  **Check Network Tab**:
+    *   Open Developer Tools (F12) -> **Network** tab.
+    *   Filter by `WS` (WebSockets).
+    *   Look for a request named `socket.io/?EIO=...`.
+    *   ✅ **Success**: Status `101 Switching Protocols` (Green).
+    *   ❌ **Failure**: Red status or pending forever.
 
-**Common Errors**:
+2.  **Common Socket Issues**:
+    *   **Transport Error**: Ensure `transports: ["websocket", "polling"]` is set in both client and server.
+    *   **400 Bad Request**: Often a version mismatch or cookie/CORS issue.
 
-#### Error: "EADDRINUSE: address already in use"
-```bash
-# Kill process on port 5000
-lsof -ti:5000 | xargs kill -9
+## 4. 🐛 Debugging Specific Features
 
-# Or use different port in .env
-PORT=5001
-```
+### Chat "Waiting for Astrologer..."
+*   **Symptom**: Client sends request, but nothing happens.
+*   **Fix**: We implemented a "Force Join" fix.
+    *   Ensure Client emits `join_chat` immediately after request.
+    *   Ensure Server logs `[DEBUG] Astrologer socket ... force-joined room`.
 
-#### Error: "Cannot find module"
-```bash
-# Reinstall dependencies
-cd server
-rm -rf node_modules
-npm install
-```
+### Video Call 404
+*   **Symptom**: `POST /api/call/initiate` returns 404.
+*   **Cause**: Server not updated or route missing.
+*   **Check**: Visit `/health` to confirm you are hitting the correct server instance.
 
-#### Error: "MongoDB connection failed"
-```bash
-# Check .env file has:
-MONGO_URI=mongodb+srv://...
+## 5. 📝 Quick Fix Checklist
 
-# Test connection
-mongosh "your_mongodb_uri"
-```
+If things are broken, try these in order:
+
+1.  [ ] **Redeploy Server**: Sometimes a fresh restart fixes stuck processes.
+2.  [ ] **Check Env Vars**: specificially `CLIENT_URL` and `MONGO_URI`.
+3.  [ ] **Bind to 0.0.0.0**: In `server/index.js`, ensure:
+    ```javascript
+    server.listen(PORT, "0.0.0.0", () => { ... });
+    ```
+    *(Note: Your current code uses `server.listen(PORT)`, which is usually fine, but explicit `0.0.0.0` is safer for Railway).*
 
 ---
 
-### Issue 3: Real-time Status Not Updating
-
-**Cause**: Socket.IO not connected
-
-**Check Frontend Console**:
-```javascript
-// Should see:
-Socket connected: xyz123
-```
-
-**Fix**:
-1. Check `client/.env` has correct API URL:
-```
-VITE_API_URL=http://localhost:5000
-```
-
-2. Restart both servers:
-```bash
-# Terminal 1
-cd server && npm run dev
-
-# Terminal 2
-cd client && npm run dev
-```
-
----
-
-### Issue 4: Billing Not Working
-
-**Symptoms**: Money not deducted during calls
-
-**Check**:
-1. Server console should show:
-```
-🔄 Billing Tracker started
-📞 Call abc123: 5s, ₹0.08
-📞 Call abc123: 10s, ₹0.17
-```
-
-2. If not showing, check `server/index.js`:
-```javascript
-const billingTracker = new BillingTracker(io);
-billingTracker.start();
-```
-
----
-
-### Issue 5: Chat Messages Not Saving
-
-**Symptoms**: Messages disappear on refresh
-
-**Check Database**:
-```javascript
-// MongoDB
-db.chatmessages.find().limit(5)
-
-// Should return messages
-```
-
-**Fix**:
-1. Ensure ChatMessage model exists:
-```bash
-ls server/models/ChatMessage.js
-```
-
-2. Check socket handler:
-```bash
-ls server/socket/handlers/chat.js
-```
-
----
-
-### Issue 6: Login/Registration Not Working
-
-**Check**:
-1. JWT_SECRET in `.env`:
-```
-JWT_SECRET=your_secret_key_min_32_characters
-```
-
-2. Test API:
-```bash
-curl -X POST http://localhost:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test User",
-    "email": "test@example.com",
-    "password": "password123",
-    "role": "client"
-  }'
-```
-
----
-
-### Issue 7: Welcome Bonus Not Added
-
-**Check**:
-1. Register new client
-2. Check wallet:
-```bash
-curl http://localhost:5000/api/wallet/balance \
-  -H "Authorization: Bearer YOUR_TOKEN"
-
-# Should return: { "balance": 20 }
-```
-
-3. If not working, check `server/controllers/authController.js` line 27-38
-
----
-
-## 🔧 Quick Diagnostic Commands
-
-### Check All Services
-```bash
-# 1. Check if MongoDB is accessible
-mongosh "your_mongodb_uri" --eval "db.stats()"
-
-# 2. Check if server is running
-curl http://localhost:5000/api/public/astrologers
-
-# 3. Check if client is running
-curl http://localhost:5173
-
-# 4. Check processes
-ps aux | grep node
-```
-
-### View Server Logs
-```bash
-cd server
-npm run dev 2>&1 | tee server.log
-```
-
-### View Client Logs
-```bash
-# Open browser console (F12)
-# Look for errors in Console tab
-```
-
----
-
-## 📊 Health Check Endpoints
-
-Add these to test your server:
-
-```javascript
-// server/index.js
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date(),
-    services: {
-      database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-      billingTracker: 'active'
-    }
-  });
-});
-```
-
-Test:
-```bash
-curl http://localhost:5000/health
-```
-
----
-
-## 🐛 Debug Mode
-
-Enable detailed logging:
-
-```javascript
-// server/index.js
-const DEBUG = true;
-
-if (DEBUG) {
-  app.use((req, res, next) => {
-    console.log(`${req.method} ${req.path}`);
-    next();
-  });
-}
-```
-
----
-
-## 📞 Still Not Working?
-
-**Provide these details**:
-1. Error message (exact text)
-2. Browser console logs (F12 → Console)
-3. Server terminal output
-4. Which feature is broken (login, chat, calls, etc.)
-5. Steps to reproduce
-
-**Quick Reset**:
-```bash
-# Kill all node processes
-killall node
-
-# Restart everything
-cd server && npm run dev &
-cd client && npm run dev
-```
-
----
-
-## ✅ Verification Checklist
-
-- [ ] MongoDB connected (check server logs)
-- [ ] Server running on port 5000
-- [ ] Client running on port 5173
-- [ ] At least one astrologer exists in database
-- [ ] Astrologer status is `isOnline: true`
-- [ ] Socket.IO connected (check browser console)
-- [ ] Billing tracker started (check server logs)
-- [ ] JWT_SECRET set in .env
-- [ ] VITE_API_URL set in client/.env
-
----
-
-*Last updated: 2024-01-15*
+**Still stuck?** Share the **Server Logs** from Railway and the **Browser Console Logs** from Chrome.
