@@ -7,7 +7,9 @@
     "dev": "nodemon index.js",
     "test": "jest --forceExit",
     "test:watch": "jest --watch --forceExit",
-    "test:coverage": "jest --coverage --forceExit"
+    "test:watch": "jest --watch --forceExit",
+    "test:coverage": "jest --coverage --forceExit",
+    "install:prod": "npm install --omit=dev"
   },
   "keywords": [],
   "author": "",
