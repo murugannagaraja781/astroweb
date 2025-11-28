@@ -45,28 +45,38 @@ class ErrorBoundary extends React.Component {
               We encountered an unexpected error. Our team has been notified.
             </p>
 
-            <div className="bg-gray-100 rounded-lg p-4 mb-6 text-left overflow-auto max-h-40 text-xs font-mono text-gray-700">
-              {this.state.error && this.state.error.toString()}
-              <br />
-              {this.state.errorInfo && this.state.errorInfo.componentStack}
-            </div>
-
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => this.setState(s => ({ showDetails: !s.showDetails }))}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-medium"
+              >
+                <AlertTriangle size={18} />
+                Troubleshoot
+              </button>
               <button
                 onClick={this.handleReset}
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium"
               >
                 <RefreshCw size={18} />
-                Reload Page
+                Reload
               </button>
               <button
                 onClick={() => window.location.href = '/'}
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
               >
                 <Home size={18} />
-                Go Home
+                Home
               </button>
             </div>
+
+            {this.state.showDetails && (
+                <div className="mt-6 bg-gray-100 rounded-lg p-4 text-left overflow-auto max-h-40 text-xs font-mono text-gray-700 animate-in fade-in slide-in-from-top-2">
+                <p className="font-bold mb-1">Error Details:</p>
+                {this.state.error && this.state.error.toString()}
+                <br />
+                {this.state.errorInfo && this.state.errorInfo.componentStack}
+                </div>
+            )}
 
             <div className="mt-8 pt-6 border-t border-gray-100">
               <p className="text-xs text-gray-400">

@@ -334,10 +334,25 @@ const AstrologerDashboard = () => {
 
         // Navigate after 3 seconds
         setTimeout(() => {
-            setIncomingCall(null);
-            navigate(`/chat/${sessionId}`);
+            setIncomingCall(prev => {
+                // Only navigate if we are still connecting (no error occurred)
+                if (prev && prev.status === 'connecting') {
+                    navigate(`/chat/${sessionId}`);
+                    return null;
+                }
+                return prev;
+            });
         }, 3000);
       });
+
+    socket.on('chat:error', (err) => {
+        console.error("Chat error:", err);
+        setIncomingCall(prev => ({
+            ...prev,
+            status: 'error',
+            error: err.error || "Connection failed"
+        }));
+    });
   };
 
   const handleAcceptChat = (sessionId) => {
@@ -872,6 +887,8 @@ const AstrologerDashboard = () => {
             <h2 className="text-2xl font-bold mb-2 text-gray-800">
               {incomingCall.status === 'connecting'
                 ? 'Connecting to Chat...'
+                : incomingCall.status === 'error'
+                ? 'Connection Error'
                 : `Incoming ${incomingCall.type === "chat" ? "Chat" : "Video Call"}`}
             </h2>
             <p className="text-lg text-gray-600 mb-2">{incomingCall.name || "Client"}</p>
@@ -881,6 +898,26 @@ const AstrologerDashboard = () => {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-3"></div>
                     <p className="text-green-600 font-medium animate-pulse">Redirecting you in a moment...</p>
                  </div>
+            ) : incomingCall.status === 'error' ? (
+                <div className="mt-4">
+                    <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+                        {incomingCall.error}
+                    </div>
+                    <div className="flex gap-3 justify-center">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="bg-indigo-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-indigo-700"
+                        >
+                            Troubleshoot / Reload
+                        </button>
+                        <button
+                            onClick={() => setIncomingCall(null)}
+                            className="text-gray-500 hover:text-gray-700 px-4 py-2"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
             ) : (
                 <>
                     <p className="text-gray-500 mb-6">
