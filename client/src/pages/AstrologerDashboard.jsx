@@ -321,10 +321,22 @@ const AstrologerDashboard = () => {
         setPendingSessions((prev) =>
           prev.filter((s) => s.sessionId !== sessionId)
         );
-        // Store as an active chat for the astrologer to click later
+        // Store as an active chat
         setActiveChats((prev) => [...prev, sessionId]);
-        // Navigate to chat after accepting
-        navigate(`/chat/${sessionId}`);
+
+        // Show "Connecting..." popup instead of immediate navigation
+        setIncomingCall({
+            type: 'chat',
+            status: 'connecting',
+            name: 'Client', // Default name since we might not have it yet
+            callId: sessionId
+        });
+
+        // Navigate after 3 seconds
+        setTimeout(() => {
+            setIncomingCall(null);
+            navigate(`/chat/${sessionId}`);
+        }, 3000);
       });
   };
 
@@ -858,27 +870,38 @@ const AstrologerDashboard = () => {
               <span className="text-2xl">📞</span>
             </div>
             <h2 className="text-2xl font-bold mb-2 text-gray-800">
-              Incoming {incomingCall.type === "chat" ? "Chat" : "Video Call"}
+              {incomingCall.status === 'connecting'
+                ? 'Connecting to Chat...'
+                : `Incoming ${incomingCall.type === "chat" ? "Chat" : "Video Call"}`}
             </h2>
-            <p className="text-lg text-gray-600 mb-2">{incomingCall.name}</p>
-            <p className="text-gray-500 mb-6">
-              is requesting to connect with you
-            </p>
+            <p className="text-lg text-gray-600 mb-2">{incomingCall.name || "Client"}</p>
 
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={rejectCall}
-                className="bg-red-500 text-white px-6 py-3 rounded-full font-bold hover:bg-red-600 transition-colors flex items-center gap-2"
-              >
-                <span>✕</span> Reject
-              </button>
-              <button
-                onClick={acceptCall}
-                className="bg-green-500 text-white px-6 py-3 rounded-full font-bold hover:bg-green-600 transition-colors animate-pulse flex items-center gap-2"
-              >
-                <span>✓</span> Accept
-              </button>
-            </div>
+            {incomingCall.status === 'connecting' ? (
+                 <div className="mt-6 mb-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-3"></div>
+                    <p className="text-green-600 font-medium animate-pulse">Redirecting you in a moment...</p>
+                 </div>
+            ) : (
+                <>
+                    <p className="text-gray-500 mb-6">
+                    is requesting to connect with you
+                    </p>
+                    <div className="flex gap-4 justify-center">
+                    <button
+                        onClick={rejectCall}
+                        className="bg-red-500 text-white px-6 py-3 rounded-full font-bold hover:bg-red-600 transition-colors flex items-center gap-2"
+                    >
+                        <span>✕</span> Reject
+                    </button>
+                    <button
+                        onClick={acceptCall}
+                        className="bg-green-500 text-white px-6 py-3 rounded-full font-bold hover:bg-green-600 transition-colors animate-pulse flex items-center gap-2"
+                    >
+                        <span>✓</span> Accept
+                    </button>
+                    </div>
+                </>
+            )}
           </div>
         </div>
       )}
