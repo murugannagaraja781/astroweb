@@ -30,12 +30,21 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/wallet", require("./routes/walletRoutes"));
 app.use("/api/astrologer", require("./routes/astrologerRoutes"));
 app.use("/api/call", require("./routes/callRoutes"));
-app.use("/api/chat", require("./routes/chatRoutes")); // NEW: Chat routes
+app.use("/api/chat", require("./routes/chatRoutes"));
 app.use("/api/public", require("./routes/publicRoutes"));
 app.use("/api/horoscope", require("./routes/horoscopeRoutes"));
-app.use("/api/payment/phonepe", require("./routes/phonePeRoutes")); // PhonePe Payment Gateway
-// Agora token endpoint
+app.use("/api/payment/phonepe", require("./routes/phonePeRoutes"));
 app.use("/api/agora", require("./routes/agoraRoutes"));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
 
 // Database Connection
 mongoose
@@ -49,18 +58,10 @@ require("./socket")(io);
 // Start Billing Tracker (Server-side time tracking)
 const billingTracker = new BillingTracker(io);
 billingTracker.start();
+console.log("🔄 Billing Tracker started");
 
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down gracefully");
-  billingTracker.stop();
-  server.close(() => {
-    console.log("Server closed");
-    process.exit(0);
-  });
-});
-
-const PORT = process.env.PORT || 5000;
+// Start Server
+const PORT = process.env.PORT || 9001;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Socket.IO ready`);
@@ -71,3 +72,20 @@ server.listen(PORT, () => {
     console.warn(`⚠️ PhonePe key missing (set PHONEPE_AUTH_KEY in .env)`);
   }
 });
+
+// Graceful shutdown handlers
+const gracefulShutdown = (signal) => {
+  console.log(`🛑 ${signal} received, shutting down gracefully...`);
+  billingTracker.stop();
+  server.close(() => {
+    console.log('📡 HTTP server closed');
+    mongoose.connection.close(false, () => {
+      console.log('💾 MongoDB connection closed');
+      console.log('✅ Shutdown complete');
+      process.exit(0);
+    });
+  });
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
