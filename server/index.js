@@ -3,7 +3,6 @@ const express = require("express");
 const http = require("http");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const { Server } = require("socket.io");
 
 // Optional service
 let BillingTracker;
@@ -12,6 +11,8 @@ try {
 } catch (e) {
   console.warn("[WARN] BillingTracker not found. Continuing without it.");
 }
+
+const initSocket = require("./socket"); // << USE YOUR FIRST FILE HERE
 
 const app = express();
 const server = http.createServer(app);
@@ -44,14 +45,14 @@ app.use(express.json({ limit: "10mb" }));
 // ROUTES
 // -------------------------
 const chatRoutes = require("./routes/chatRoutes");
-const authRoutes = require("./routes/authRoutes"); // <- add this
+const authRoutes = require("./routes/authRoutes");
 const publicRoutes = require("./routes/publicRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const walletRoutes = require("./routes/walletRoutes");
 const astrologerRoutes = require("./routes/astrologerRoutes");
 const callRoutes = require("./routes/callRoutes");
 
-app.use("/api/auth", authRoutes); // <- add this
+app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/admin", adminRoutes);
@@ -59,68 +60,16 @@ app.use("/api/wallet", walletRoutes);
 app.use("/api/astrologer", astrologerRoutes);
 app.use("/api/call", callRoutes);
 
-// health check
+// Health check
 app.get("/health", (req, res) =>
   res.json({ status: "ok", time: new Date().toISOString() })
 );
 
 // -------------------------
-// SOCKET.IO
+// SOCKET.IO (ONLY ONE INSTANCE)
 // -------------------------
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins.length ? allowedOrigins : "*",
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
-
+const io = initSocket(server);
 app.set("io", io);
-const onlineUsers = new Map();
-
-io.on("connection", (socket) => {
-  console.log("[io] connected:", socket.id);
-
-  socket.on("join", (userId) => {
-    if (!userId) return;
-    socket.join(userId.toString());
-    onlineUsers.set(userId.toString(), socket.id);
-  });
-
-  socket.on("join_room", (roomId) => {
-    if (!roomId) return;
-    socket.join(roomId.toString());
-  });
-
-  socket.on("sendMessage", async ({ to, roomId, from, message }) => {
-    const target = roomId ? roomId.toString() : to?.toString();
-    if (!target) return;
-    io.to(target).emit("receiveMessage", { from, message, time: new Date() });
-
-    try {
-      if (BillingTracker?.updateChatUsage) {
-        BillingTracker.updateChatUsage(from, target);
-      }
-    } catch (e) {
-      console.warn("[BillingTracker] update failed:", e);
-    }
-  });
-
-  socket.on("typing", ({ to, roomId, from }) => {
-    const target = roomId ? roomId.toString() : to?.toString();
-    if (!target) return;
-    io.to(target).emit("typingResponse", { from });
-  });
-
-  socket.on("disconnect", () => {
-    for (const [userId, sid] of onlineUsers.entries()) {
-      if (sid === socket.id) {
-        onlineUsers.delete(userId);
-        break;
-      }
-    }
-  });
-});
 
 // -------------------------
 // MONGO

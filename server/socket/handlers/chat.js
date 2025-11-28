@@ -3,322 +3,282 @@ const ChatSession = require('../../models/ChatSession');
 const Wallet = require('../../models/Wallet');
 const presence = require('./presence');
 const onlineUsers = presence.onlineUsers;
+
 const sessionTimers = new Map();
 
 /**
- * Chat Socket Handlers
- * Handles all chat-related socket events
+ * ----------------------------
+ *  HELPER: START CHAT SESSION
+ * ----------------------------
  */
-
-// Helper to start chat session (shared by auto-accept and manual accept)
 const startChatSession = async (io, sessionId) => {
     try {
         const s = await ChatSession.findOne({ sessionId });
         if (!s) return;
 
-        // If already active, just join sockets (idempotent)
+        const room = `session:${sessionId}`;
+
+        // Already active? Just ensure sockets are in the room
         if (s.status === 'active') {
-            const clientSock = onlineUsers.get(s.clientId.toString());
-            const astroSock = onlineUsers.get(s.astrologerId.toString());
-            if (clientSock) {
-                const cs = io.sockets.sockets.get(clientSock);
-                if (cs) cs.join(sessionId);
-            }
-            if (astroSock) {
-                const as = io.sockets.sockets.get(astroSock);
-                if (as) as.join(sessionId);
-            }
+            const clientSock = onlineUsers.get(String(s.clientId));
+            const astroSock = onlineUsers.get(String(s.astrologerId));
+
+            if (clientSock) io.sockets.sockets.get(clientSock)?.join(room);
+            if (astroSock) io.sockets.sockets.get(astroSock)?.join(room);
             return;
         }
 
+        // Activate
         s.status = 'active';
         s.startedAt = new Date();
         await s.save();
 
-        const clientSock = onlineUsers.get(s.clientId.toString());
-        const astroSock = onlineUsers.get(s.astrologerId.toString());
+        const clientSock = onlineUsers.get(String(s.clientId));
+        const astroSock = onlineUsers.get(String(s.astrologerId));
 
-        console.log(`[DEBUG] startChatSession: sessionId=${sessionId}, clientId=${s.clientId}, astroId=${s.astrologerId}`);
-        console.log(`[DEBUG] Sockets found: client=${clientSock}, astro=${astroSock}`);
+        if (clientSock) io.sockets.sockets.get(clientSock)?.join(room);
+        if (astroSock) io.sockets.sockets.get(astroSock)?.join(room);
 
-        if (clientSock) {
-            const cs = io.sockets.sockets.get(clientSock);
-            if (cs) {
-                cs.join(sessionId);
-                console.log(`[DEBUG] Client socket ${clientSock} joined room ${sessionId}`);
-            } else {
-                console.warn(`[WARN] Client socket ${clientSock} not found in io.sockets`);
-            }
-        } else {
-            console.warn(`[WARN] Client ${s.clientId} not found in onlineUsers`);
-        }
+        io.to(room).emit('chat:joined', { sessionId });
 
-        if (astroSock) {
-            const as = io.sockets.sockets.get(astroSock);
-            if (as) {
-                as.join(sessionId);
-                console.log(`[DEBUG] Astrologer socket ${astroSock} joined room ${sessionId}`);
-            } else {
-                console.warn(`[WARN] Astrologer socket ${astroSock} not found in io.sockets`);
-            }
-        } else {
-            console.warn(`[WARN] Astrologer ${s.astrologerId} not found in onlineUsers`);
-        }
-
-        io.to(sessionId).emit('chat:joined', { sessionId });
-
+        /**
+         * BILLING TIMER
+         */
         const ratePerSecond = (s.ratePerMinute || 1) / 60;
         let elapsed = 0;
 
-        // Clear any existing timer for this session just in case
         if (sessionTimers.has(sessionId)) {
             clearInterval(sessionTimers.get(sessionId));
         }
 
-        const t = setInterval(async () => {
+        const timer = setInterval(async () => {
             elapsed += 1;
+
             const wallet = await Wallet.findOne({ userId: s.clientId });
-            const cost = ratePerSecond;
 
             if (!wallet) {
-                clearInterval(t);
+                clearInterval(timer);
                 sessionTimers.delete(sessionId);
-                io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
+
                 s.status = 'ended';
-                s.endedAt = new Date();
                 s.duration = elapsed;
+                s.endedAt = new Date();
                 s.totalCost = parseFloat((elapsed * ratePerSecond).toFixed(2));
                 await s.save();
+
+                io.to(room).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
                 return;
             }
 
-            // Allow chat when balance is zero (no deduction) - logic preserved from original
-            if (wallet.balance < cost && wallet.balance > 0) {
-                clearInterval(t);
+            // Allow chat when balance = 0 (legacy logic)
+            if (wallet.balance < ratePerSecond && wallet.balance > 0) {
+                clearInterval(timer);
                 sessionTimers.delete(sessionId);
-                io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
+
                 s.status = 'ended';
-                s.endedAt = new Date();
                 s.duration = elapsed;
+                s.endedAt = new Date();
                 s.totalCost = parseFloat((elapsed * ratePerSecond).toFixed(2));
                 await s.save();
+
+                io.to(room).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
                 return;
             }
 
             if (wallet.balance > 0) {
-                wallet.balance = parseFloat((wallet.balance - cost).toFixed(2));
+                wallet.balance = parseFloat((wallet.balance - ratePerSecond).toFixed(2));
                 await wallet.save();
-                io.to(sessionId).emit('wallet:update', { sessionId, balance: wallet.balance, elapsed });
+                io.to(room).emit('wallet:update', {
+                    sessionId,
+                    balance: wallet.balance,
+                    elapsed
+                });
             }
         }, 1000);
 
-        sessionTimers.set(sessionId, t);
+        sessionTimers.set(sessionId, timer);
 
     } catch (err) {
-        console.error('Error starting chat session:', err);
+        console.error('startChatSession error:', err);
     }
 };
 
+
+/**
+ * ============================
+ * MAIN HANDLER EXPORT
+ * ============================
+ */
 module.exports = (io, socket) => {
 
+    /**
+     * -----------------------------------------
+     * CLIENT REQUESTS CHAT WITH ASTROLOGER
+     * -----------------------------------------
+     */
     socket.on('chat:request', async (data) => {
         try {
             const { clientId, astrologerId, ratePerMinute } = data;
-            console.log(`[DEBUG] chat:request received for astrologerId: ${astrologerId}`);
 
             const crypto = require('crypto');
-            const sid = crypto.randomUUID();
-            const profileRate = ratePerMinute || 1;
+            const sessionId = crypto.randomUUID();
 
             await ChatSession.create({
-                sessionId: sid,
+                sessionId,
                 clientId,
                 astrologerId,
                 status: 'requested',
-                ratePerMinute: profileRate
+                ratePerMinute: ratePerMinute || 1
             });
 
-            // Notify astrologer (optional, but good for UI updates if they are on dashboard)
             const astroSock = onlineUsers.get(String(astrologerId));
             if (astroSock) {
-                io.to(astroSock).emit('chat:request', { sessionId: sid, clientId, astrologerId });
+                io.to(astroSock).emit('chat:request', {
+                    sessionId,
+                    clientId,
+                    astrologerId
+                });
             }
 
-            socket.emit('chat:requested', { sessionId: sid });
-
-            // AUTO-ACCEPT REMOVED: Session waits for manual accept
-            // console.log(`[DEBUG] Auto-accepting chat session ${sid}`);
-            // await startChatSession(io, sid);
+            socket.emit('chat:requested', { sessionId });
 
         } catch (err) {
-            console.error('Error in chat:request:', err);
+            console.error('chat:request error:', err);
             socket.emit('chat:error', { error: 'request_failed' });
         }
     });
 
-    socket.on('chat:accept', async (payload) => {
+    /**
+     * -----------------------------------------
+     * ASTROLOGER ACCEPTS CHAT
+     * -----------------------------------------
+     */
+    socket.on('chat:accept', async ({ sessionId }) => {
         try {
-            const { sessionId } = payload;
-            // Force join the accepting socket to the room immediately
-            socket.join(sessionId);
-            console.log(`[DEBUG] Astrologer socket ${socket.id} force-joined room ${sessionId}`);
-
+            // Put astrologer in the room immediately
+            socket.join(`session:${sessionId}`);
             await startChatSession(io, sessionId);
         } catch (err) {
             socket.emit('chat:error', { error: 'accept_failed' });
         }
     });
 
+    /**
+     * LEGACY "accept-chat" compatibility
+     */
+    socket.on("accept-chat", async ({ sessionId }) => {
+        await startChatSession(io, sessionId);
+    });
+
+    /**
+     * -----------------------------------------
+     * ASTROLOGER DECLINES CHAT
+     * -----------------------------------------
+     */
+    socket.on("decline-chat", async ({ sessionId }) => {
+        try {
+            await ChatSession.updateOne(
+                { sessionId },
+                { status: "declined" }
+            );
+            const s = await ChatSession.findOne({ sessionId });
+            if (s) {
+                io.to(`user:${s.userId}`).emit("chat-declined", { sessionId });
+            }
+        } catch (err) {
+            console.error("decline-chat:", err);
+        }
+    });
+
+    /**
+     * -----------------------------------------
+     * JOIN SESSION ROOM (client/astro)
+     * -----------------------------------------
+     */
+    socket.on("join-session-room", async ({ sessionId }) => {
+        try {
+            const s = await ChatSession.findOne({ sessionId });
+            if (!s || s.status !== "active")
+                return socket.emit("error", { message: "Session not active" });
+
+            socket.join(`session:${sessionId}`);
+            socket.emit("joined-session", { sessionId });
+        } catch (err) {
+            console.error("join-session-room error:", err);
+        }
+    });
+
+    /**
+     * -----------------------------------------
+     * MESSAGING INSIDE SESSION
+     * -----------------------------------------
+     */
     socket.on('chat:message', async (data) => {
         try {
             const { sessionId, senderId, text = '', type = 'text' } = data;
+
             const s = await ChatSession.findOne({ sessionId });
             if (!s || s.status !== 'active') return;
-            const roomId = sessionId;
-            const receiverId = senderId === s.clientId.toString() ? s.astrologerId : s.clientId;
-            const message = new ChatMessage({ sender: senderId, receiver: receiverId, roomId, sessionId, message: text, type, timestamp: new Date() });
-            await message.save();
-            io.to(roomId).emit('chat:message', { _id: message._id, sessionId, roomId, senderId, receiverId: receiverId.toString(), text, type, timestamp: message.timestamp });
-        } catch (err) {
-            socket.emit('chat:error', { error: 'message_failed' });
-        }
-    });
 
-    socket.on('chat:typing', (data) => {
-        const { sessionId, userId } = data;
-        socket.to(sessionId).emit('chat:typing', { sessionId, userId });
-    });
+            const receiverId =
+                senderId.toString() === s.clientId.toString()
+                    ? s.astrologerId
+                    : s.clientId;
 
-    socket.on('chat:end', async (data) => {
-        try {
-            const { sessionId } = data;
-            const s = await ChatSession.findOne({ sessionId });
-            if (!s) return;
-            const t = sessionTimers.get(sessionId);
-            if (t) {
-                clearInterval(t);
-                sessionTimers.delete(sessionId);
-            }
-            const now = new Date();
-            const started = s.startedAt ? new Date(s.startedAt) : now;
-            const durationSec = Math.max(Math.floor((now - started) / 1000), s.duration || 0);
-            const totalCost = parseFloat(((s.ratePerMinute / 60) * durationSec).toFixed(2));
-            s.status = 'ended';
-            s.endedAt = now;
-            s.duration = durationSec;
-            s.totalCost = totalCost;
-            await s.save();
-            io.to(sessionId).emit('chat:end', { sessionId, reason: 'ended' });
-        } catch (err) {
-            socket.emit('chat:error', { error: 'end_failed' });
-        }
-    });
+            const room = `session:${sessionId}`;
 
-    // Send message (Legacy/General handler)
-    socket.on('sendMessage', async (data) => {
-        try {
-            const { roomId, senderId, receiverId, text, type = 'text', mediaUrl = null, duration = 0 } = data;
-
-            // Save message to database
-            const message = new ChatMessage({
+            const msg = await ChatMessage.create({
                 sender: senderId,
                 receiver: receiverId,
-                roomId,
-                message: text || '',
+                roomId: room,
+                sessionId,
+                message: text,
                 type,
-                mediaUrl,
-                duration,
-                timestamp: new Date(),
-                delivered: false,
-                read: false
+                timestamp: new Date()
             });
 
-            await message.save();
-
-            // Emit to room
-            const messageData = {
-                _id: message._id,
-                roomId,
+            io.to(room).emit('chat:message', {
+                _id: msg._id,
+                sessionId,
                 senderId,
                 receiverId,
                 text,
                 type,
-                mediaUrl,
-                duration,
-                timestamp: message.timestamp,
-                delivered: false,
-                read: false
-            };
-
-            io.to(roomId).emit('receiveMessage', messageData);
-
-            // Mark as delivered if receiver is online
-            setTimeout(async () => {
-                await ChatMessage.findByIdAndUpdate(message._id, {
-                    delivered: true,
-                    deliveredAt: new Date()
-                });
-                io.to(roomId).emit('messageDelivered', { messageId: message._id });
-            }, 100);
+                timestamp: msg.timestamp
+            });
 
         } catch (err) {
-            console.error('Error in sendMessage:', err);
-            socket.emit('messageError', { error: 'Failed to send message' });
+            console.error('chat:message error:', err);
         }
     });
 
-    // Mark message as read
-    socket.on('markAsRead', async (data) => {
+    /**
+     * -----------------------------------------
+     * TYPING
+     * -----------------------------------------
+     */
+    socket.on('chat:typing', ({ sessionId, userId }) => {
+        socket.to(`session:${sessionId}`).emit('chat:typing', { sessionId, userId });
+    });
+
+    /**
+     * -----------------------------------------
+     * END CHAT SESSION
+     * -----------------------------------------
+     */
+    socket.on('chat:end', async ({ sessionId }) => {
         try {
-            const { messageId, userId } = data;
+            const s = await ChatSession.findOne({ sessionId });
+            if (!s) return;
 
-            const message = await ChatMessage.findById(messageId);
-            if (message && message.receiver.toString() === userId) {
-                message.read = true;
-                message.readAt = new Date();
-                await message.save();
-
-                io.to(message.roomId).emit('messageRead', { messageId });
+            if (sessionTimers.get(sessionId)) {
+                clearInterval(sessionTimers.get(sessionId));
+                sessionTimers.delete(sessionId);
             }
-        } catch (err) {
-            console.error('Error in markAsRead:', err);
-        }
-    });
 
-    // Typing indicator
-    socket.on('typing', (data) => {
-        const { roomId, name } = data;
-        socket.to(roomId).emit('displayTyping', { name });
-    });
+            const now = new Date();
+            const started = s.startedAt ? new Date(s.startedAt) : now;
 
-    socket.on('stopTyping', (data) => {
-        const { roomId } = data;
-        socket.to(roomId).emit('hideTyping');
-    });
-
-    // Get chat history
-    socket.on('getChatHistory', async (data) => {
-        try {
-            const { roomId, limit = 50, skip = 0 } = data;
-
-            const messages = await ChatMessage.find({ roomId })
-                .sort({ timestamp: -1 })
-                .limit(limit)
-                .skip(skip)
-                .populate('sender', 'name')
-                .populate('receiver', 'name');
-
-            socket.emit('chatHistory', { messages: messages.reverse() });
-        } catch (err) {
-            console.error('Error fetching chat history:', err);
-            socket.emit('chatHistoryError', { error: 'Failed to load messages' });
-        }
-    });
-
-    // Explicit join chat room
-    socket.on('join_chat', ({ sessionId }) => {
-        if (!sessionId) return;
-        socket.join(sessionId);
-        console.log(`[DEBUG] Socket ${socket.id} joined chat session ${sessionId}`);
-    });
-};
+            const durationSec = Math.floor((now - started) / 1000);
+            const totalCost = parseFloat(
+                ((s.ratePerMinute / 60) * durationSec).toFixed(2)
