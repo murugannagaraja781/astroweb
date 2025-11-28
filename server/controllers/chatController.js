@@ -1,3 +1,4 @@
+// controllers/chatController.js
 const ChatMessage = require("../models/ChatMessage");
 const ChatSession = require("../models/ChatSession");
 const AstrologerProfile = require("../models/AstrologerProfile");
@@ -12,15 +13,17 @@ exports.getChatHistory = async (req, res) => {
     const { userId, peerId } = req.params;
     const { limit = 50, skip = 0 } = req.query;
 
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ msg: "Unauthorized" });
+    }
+
     // Verify user is authorized
     if (req.user.id !== userId) {
       return res.status(403).json({ msg: "Unauthorized" });
     }
 
-    // Create room ID (consistent sorting)
     const roomId = [userId, peerId].sort().join("-");
 
-    // Fetch messages
     const messages = await ChatMessage.find({ roomId })
       .sort({ timestamp: -1 })
       .limit(parseInt(limit))
@@ -28,9 +31,8 @@ exports.getChatHistory = async (req, res) => {
       .populate("sender", "name")
       .populate("receiver", "name");
 
-    // Mark messages as delivered if they're for this user
     const undeliveredMessages = messages.filter(
-      (msg) => msg.receiver.toString() === userId && !msg.delivered
+      (msg) => msg.receiver && msg.receiver._id && msg.receiver._id.toString() === userId && !msg.delivered
     );
 
     if (undeliveredMessages.length > 0) {
@@ -70,10 +72,8 @@ exports.uploadImage = async (req, res) => {
     }
 
     // In production, upload to S3/Firebase Storage
-    // For now, we'll store base64 (not recommended for production)
-    const imageUrl = base64Image; // Replace with actual cloud URL
+    const imageUrl = base64Image;
 
-    // Create message
     const roomId = [senderId, receiverId].sort().join("-");
     const message = new ChatMessage({
       sender: senderId,
@@ -86,6 +86,14 @@ exports.uploadImage = async (req, res) => {
     });
 
     await message.save();
+
+    // emit to receiver if connected
+    try {
+      const io = req.app.get("io");
+      if (io) io.to(receiverId.toString()).emit("receiveMessage", { from: senderId, type: "image", mediaUrl: imageUrl, time: new Date() });
+    } catch (e) {
+      console.warn("Socket emit failed (uploadImage):", e);
+    }
 
     res.json({
       success: true,
@@ -105,7 +113,6 @@ exports.getChatSessions = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Find all messages where user is sender or receiver
     const messages = await ChatMessage.find({
       $or: [{ sender: userId }, { receiver: userId }],
     })
@@ -113,7 +120,6 @@ exports.getChatSessions = async (req, res) => {
       .populate("sender", "name role")
       .populate("receiver", "name role");
 
-    // Group by peer
     const sessions = {};
     messages.forEach((msg) => {
       const peer =
@@ -127,7 +133,7 @@ exports.getChatSessions = async (req, res) => {
           role: peer.role,
           lastMessage:
             msg.message ||
-            (msg.type === "image" ? "📷 Image" : "🎤 Voice Note"),
+            (msg.type === "image" ? "📷 Image" : msg.type === "audio" ? "🎤 Voice Note" : ""),
           timestamp: msg.timestamp,
           unreadCount: 0,
         };
@@ -157,11 +163,8 @@ exports.uploadVoiceNote = async (req, res) => {
       return res.status(400).json({ msg: "Missing required fields" });
     }
 
-    // In production, upload to S3/Firebase Storage
-    // For now, we'll store base64 (not recommended for production)
-    const audioUrl = base64Audio; // Replace with actual cloud URL
+    const audioUrl = base64Audio;
 
-    // Create message
     const roomId = [senderId, receiverId].sort().join("-");
     const message = new ChatMessage({
       sender: senderId,
@@ -175,6 +178,13 @@ exports.uploadVoiceNote = async (req, res) => {
     });
 
     await message.save();
+
+    try {
+      const io = req.app.get("io");
+      if (io) io.to(receiverId.toString()).emit("receiveMessage", { from: senderId, type: "audio", mediaUrl: audioUrl, duration: parseInt(duration), time: new Date() });
+    } catch (e) {
+      console.warn("Socket emit failed (uploadVoiceNote):", e);
+    }
 
     res.json({
       success: true,
@@ -200,7 +210,6 @@ exports.initiateChat = async (req, res) => {
       return res.status(400).json({ msg: "Receiver ID is required" });
     }
 
-    // Create a consistent room ID
     const chatId = [senderId, receiverId].sort().join("-");
 
     res.json({ chatId });
@@ -215,7 +224,6 @@ exports.initiateChat = async (req, res) => {
  */
 exports.endChat = async (req, res) => {
   try {
-    // In a more complex app, we might update a session status here
     res.json({ success: true, msg: "Chat ended" });
   } catch (err) {
     console.error("Error ending chat:", err);
@@ -233,7 +241,6 @@ exports.saveMessage = async (req, res) => {
 
     let finalReceiverId = receiverId;
 
-    // If receiverId is not provided, try to extract from roomId
     if (!finalReceiverId && roomId) {
       const parts = roomId.split("-");
       if (parts.length === 2) {
@@ -242,9 +249,7 @@ exports.saveMessage = async (req, res) => {
     }
 
     if (!finalReceiverId) {
-      return res
-        .status(400)
-        .json({ msg: "Receiver ID could not be determined" });
+      return res.status(400).json({ msg: "Receiver ID could not be determined" });
     }
 
     const message = new ChatMessage({
@@ -259,6 +264,15 @@ exports.saveMessage = async (req, res) => {
     });
 
     await message.save();
+
+    // emit to receiver
+    try {
+      const io = req.app.get("io");
+      if (io) io.to(finalReceiverId.toString()).emit("receiveMessage", { from: senderId, message: message.message, type: message.type, mediaUrl: message.mediaUrl, time: new Date() });
+    } catch (e) {
+      console.warn("Socket emit failed (saveMessage):", e);
+    }
+
     res.json(message);
   } catch (err) {
     console.error("Error saving message:", err);
@@ -268,6 +282,8 @@ exports.saveMessage = async (req, res) => {
 
 exports.requestSession = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) return res.status(401).json({ msg: "Unauthorized" });
+
     const clientId = req.user.id;
     const { astrologerId } = req.body;
     if (!astrologerId) {
@@ -286,17 +302,17 @@ exports.requestSession = async (req, res) => {
       ratePerMinute: rate,
     });
 
-    // Emit socket event to astrologer
     const io = req.app.get("io");
-    // We need to find the astrologer's socket ID.
-    // Ideally, we should have a way to map userId to socketId available here,
-    // or emit to a room named after the userId if we are using that pattern.
-    // Assuming 'user_online' joins a room with userId.
-    io.to(astrologerId).emit('chat:request', {
-      sessionId: sid,
-      clientId,
-      astrologerId
-    });
+    if (io) {
+      // emit to astrologer room (assumes astrologer joined their userId room)
+      io.to(astrologerId.toString()).emit("chat:request", {
+        sessionId: sid,
+        clientId,
+        astrologerId,
+      });
+    } else {
+      console.warn("No io available to emit chat:request");
+    }
 
     res.json({ sessionId: sid, ratePerMinute: rate });
   } catch (err) {
@@ -307,6 +323,8 @@ exports.requestSession = async (req, res) => {
 
 exports.acceptSession = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) return res.status(401).json({ msg: "Unauthorized" });
+
     const { sessionId } = req.body;
     const astrologerId = req.user.id;
 
@@ -319,24 +337,25 @@ exports.acceptSession = async (req, res) => {
       return res.status(403).json({ msg: "Unauthorized" });
     }
 
-    if (session.status !== 'requested') {
+    if (session.status !== "requested") {
       return res.status(400).json({ msg: "Session is not in requested state" });
     }
 
-    session.status = 'active';
+    session.status = "active";
     session.startTime = new Date();
     await session.save();
 
     const io = req.app.get("io");
 
-    // Emit joined event to both parties
-    // In a real app, we might want to ensure they are in the room first,
-    // but the client will join upon receiving this or beforehand.
-    io.to(sessionId).emit('chat:joined', { sessionId });
-
-    // Also emit to specific users to be safe if they aren't in the room yet
-    io.to(session.clientId.toString()).emit('chat:joined', { sessionId });
-    io.to(astrologerId).emit('chat:joined', { sessionId });
+    // Notify both participants
+    if (io) {
+      // ensure clients can join by sessionId room on client side (client should emit join_room)
+      io.to(sessionId.toString()).emit("chat:joined", { sessionId });
+      io.to(session.clientId.toString()).emit("chat:joined", { sessionId });
+      io.to(astrologerId.toString()).emit("chat:joined", { sessionId });
+    } else {
+      console.warn("No io to emit chat:joined");
+    }
 
     res.json({ success: true, sessionId });
   } catch (err) {
@@ -363,6 +382,7 @@ exports.getSessionHistory = async (req, res) => {
     });
     res.json({ sessionId, messages });
   } catch (err) {
+    console.error("getSessionHistory error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 };
@@ -375,6 +395,7 @@ exports.getPendingSessions = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .lean();
+
     const userIds = Array.from(
       new Set(
         sessions.flatMap((s) => [
@@ -383,10 +404,10 @@ exports.getPendingSessions = async (req, res) => {
         ])
       )
     );
-    const users = await User.find({ _id: { $in: userIds } })
-      .select("name")
-      .lean();
+
+    const users = await User.find({ _id: { $in: userIds } }).select("name").lean();
     const nameMap = new Map(users.map((u) => [u._id.toString(), u.name]));
+
     const result = sessions.map((s) => ({
       sessionId: s.sessionId,
       status: s.status,
@@ -401,6 +422,7 @@ exports.getPendingSessions = async (req, res) => {
         name: nameMap.get(s.astrologerId.toString()) || "",
       },
     }));
+
     console.log("[DEBUG] getPendingSessions result:", result);
     res.json(result);
   } catch (err) {

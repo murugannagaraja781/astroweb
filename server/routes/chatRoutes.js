@@ -1,3 +1,4 @@
+// routes/chatRoutes.js
 const express = require("express");
 const router = express.Router();
 const {
@@ -10,7 +11,6 @@ const {
   saveMessage,
   requestSession,
   getSessionHistory,
-
   getPendingSessions,
   acceptSession,
 } = require("../controllers/chatController");
