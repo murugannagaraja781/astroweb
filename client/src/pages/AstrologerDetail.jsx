@@ -22,6 +22,7 @@ const AstrologerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
   const [waiting, setWaiting] = useState(false);
+  const [waitingType, setWaitingType] = useState(""); // "call" or "chat"
   const socket = io(import.meta.env.VITE_API_URL);
 
   useEffect(() => {
@@ -65,7 +66,7 @@ const AstrologerDetail = () => {
       .toUpperCase();
   };
 
-  const handleAction = (action) => {
+  const handleAction = async (action) => {
     // Check if user is logged in
     if (!user) {
       alert("Please login to continue");
@@ -90,9 +91,63 @@ const AstrologerDetail = () => {
     }
 
     if (action === "call") {
-      navigate(`/call/${id}`);
+      setWaiting(true);
+      setWaitingType("call");
+
+      try {
+        // Initiate call via API to get callId
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/call/initiate`,
+          {
+            receiverId: id,
+          }
+        );
+        const callId = res.data.callId;
+
+        // Join user's own room for receiving responses
+        socket.emit("join", user.id);
+
+        // Emit video call request to astrologer
+        socket.emit("callUser", {
+          userToCall: id,
+          from: user.id,
+          name: user.name,
+          type: "video",
+          callId: callId,
+        });
+
+        // Wait for call acceptance
+        socket.once("callAccepted", ({ callId: acceptedCallId }) => {
+          console.log("[DEBUG] Video call accepted:", acceptedCallId);
+          setWaiting(false);
+
+          // Store call details in backend
+          axios
+            .post(`${import.meta.env.VITE_API_URL}/api/chatcalldetails`, {
+              userId: user.id,
+              astrologerId: id,
+              sessionId: acceptedCallId,
+              initiatedAt: new Date().toISOString(),
+            })
+            .catch((err) => console.error("Error storing call details:", err));
+
+          // Navigate to video call page with callId
+          navigate(`/call/${id}?callId=${acceptedCallId}`);
+        });
+
+        // Handle call rejection
+        socket.once("callRejected", () => {
+          setWaiting(false);
+          alert("The astrologer is currently busy. Please try again later.");
+        });
+      } catch (err) {
+        console.error("Error initiating call:", err);
+        setWaiting(false);
+        alert("Failed to initiate call. Please try again.");
+      }
     } else if (action === "chat") {
       setWaiting(true);
+      setWaitingType("chat");
       socket.emit("user_online", { userId: user.id });
       socket.emit("chat:request", {
         clientId: user.id,
@@ -195,7 +250,9 @@ const AstrologerDetail = () => {
                   <div className="bg-white rounded-xl shadow-xl p-6 w-80 text-center">
                     <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-600 mx-auto mb-4"></div>
                     <p className="text-gray-700 font-medium">
-                      Waiting for astrologer to accept…
+                      {waitingType === "call"
+                        ? "Calling astrologer..."
+                        : "Waiting for astrologer to accept…"}
                     </p>
                   </div>
                 </div>
