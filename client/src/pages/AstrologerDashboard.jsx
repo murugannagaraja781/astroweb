@@ -194,7 +194,7 @@ const AstrologerDashboard = () => {
         "[DEBUG] fetchDashboardData pending sessions from /api/chatcallrequest:",
         pending
       );
-      console.log("/api/chatcallrequest",)
+      console.log("/api/chatcallrequest",pendingRes.data)
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration

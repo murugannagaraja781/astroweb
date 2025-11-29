@@ -1,6 +1,7 @@
 const ChatCallDetails = require('../models/ChatCallDetails');
 const User = require('../models/User');
 const AstrologerProfile = require('../models/AstrologerProfile');
+const mongoose = require('mongoose');
 
 /**
  * POST /api/chatcallrequest
@@ -61,6 +62,8 @@ exports.getChatCallRequests = async (req, res) => {
         const userId = req.user.id;
         const userRole = req.user.role;
 
+        console.log('[DEBUG] getChatCallRequests - userId:', userId, 'role:', userRole);
+
         let query = {};
 
         // If sessionId is provided, return that specific session
@@ -75,11 +78,18 @@ exports.getChatCallRequests = async (req, res) => {
             return res.json(session);
         }
 
-        // Filter based on user role
-        if (userRole === 'astrologer') {
-            query.astrologerId = userId;
-        } else if (userRole === 'client') {
-            query.userId = userId;
+        // Filter based on user role (case-insensitive)
+        const role = userRole ? userRole.toLowerCase() : '';
+
+        if (role === 'astrologer') {
+            // Ensure we're querying with ObjectId if possible
+            query.astrologerId = mongoose.Types.ObjectId.isValid(userId)
+                ? new mongoose.Types.ObjectId(userId)
+                : userId;
+        } else if (role === 'client') {
+            query.userId = mongoose.Types.ObjectId.isValid(userId)
+                ? new mongoose.Types.ObjectId(userId)
+                : userId;
         }
         // Admin can see all requests (no filter)
 
@@ -88,10 +98,14 @@ exports.getChatCallRequests = async (req, res) => {
             query.status = status;
         }
 
+        console.log('[DEBUG] getChatCallRequests - query:', JSON.stringify(query));
+
         const chatCallRequests = await ChatCallDetails.find(query)
             .populate('userId', 'name email phone')
             .populate('astrologerId', 'name email phone')
             .sort({ createdAt: -1 });
+
+        console.log('[DEBUG] getChatCallRequests - found:', chatCallRequests.length, 'requests');
 
         // Format response for compatibility with existing code
         const formattedRequests = chatCallRequests.map(request => ({
@@ -117,6 +131,8 @@ exports.getChatCallRequests = async (req, res) => {
                 email: request.astrologerId?.email
             }
         }));
+
+        console.log('[DEBUG] getChatCallRequests - returning:', formattedRequests.length, 'formatted requests');
 
         res.json(formattedRequests);
     } catch (err) {
