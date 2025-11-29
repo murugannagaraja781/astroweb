@@ -56,52 +56,52 @@ const AstrologerDetail = () => {
     debugger
     console.log("userid",user)
                 console.log("sessionId",sessionId)
-    // Check if user is logged in
-    if (!user) {
-      alert('Please login to continue');
-      navigate('/login');
-      return;
-    }
+    // // Check if user is logged in
+    // if (!user) {
+    //   alert('Please login to continue');
+    //   navigate('/login');
+    //   return;
+    // }
 
-    // Check if user has sufficient balance (minimum ₹1)
-    // Skip balance check for admin and astrologer users
-    if (user.role === 'client' && balance < 1) {
-      alert('Insufficient balance! Please add money to your wallet. Minimum ₹1 required.');
-      navigate('/dashboard');
-      return;
-    }
+    // // Check if user has sufficient balance (minimum ₹1)
+    // // Skip balance check for admin and astrologer users
+    // if (user.role === 'client' && balance < 1) {
+    //   alert('Insufficient balance! Please add money to your wallet. Minimum ₹1 required.');
+    //   navigate('/dashboard');
+    //   return;
+    // }
 
-    // Check if astrologer is online
-    if (!astrologer.isOnline) {
-      alert('This astrologer is currently offline. Please try again later.');
-      return;
-    }
+    // // Check if astrologer is online
+    // if (!astrologer.isOnline) {
+    //   alert('This astrologer is currently offline. Please try again later.');
+    //   return;
+    // }
 
-    if (action === 'call') {
-      navigate(`/call/${id}`);
-    } else if (action === 'chat') {
-      setWaiting(true);
-      socket.emit('user_online', { userId: user.id });
-      socket.emit('chat:request', {
-        clientId: user.id,
-        astrologerId: id,
-        ratePerMinute: astrologer.profile?.ratePerMinute || 1
-      });
-      socket.once('chat:joined', ({ sessionId }) => {
-        console.log("[DEBUG] Client received chat:joined:", sessionId);
-        setWaiting(false);
-
-
-
-        navigate(`/chat/${sessionId}`);
+    // if (action === 'call') {
+    //   navigate(`/call/${id}`);
+    // } else if (action === 'chat') {
+    //   setWaiting(true);
+    //   socket.emit('user_online', { userId: user.id });
+    //   socket.emit('chat:request', {
+    //     clientId: user.id,
+    //     astrologerId: id,
+    //     ratePerMinute: astrologer.profile?.ratePerMinute || 1
+    //   });
+    //   socket.once('chat:joined', ({ sessionId }) => {
+    //     console.log("[DEBUG] Client received chat:joined:", sessionId);
+    //     setWaiting(false);
 
 
-      });
-      socket.once('chat:error', () => {
-        setWaiting(false);
-        alert('Failed to request chat');
-      });
-    }
+
+    //     navigate(`/chat/${sessionId}`);
+
+
+    //   });
+    //   socket.once('chat:error', () => {
+    //     setWaiting(false);
+    //     alert('Failed to request chat');
+    //   });
+    // }
   };
 
   if (loading) {
