@@ -282,3 +282,23 @@ module.exports = (io, socket) => {
             const durationSec = Math.floor((now - started) / 1000);
             const totalCost = parseFloat(
                 ((s.ratePerMinute / 60) * durationSec).toFixed(2)
+            );
+
+            s.status = 'ended';
+            s.endedAt = now;
+            s.duration = durationSec;
+            s.totalCost = totalCost;
+            await s.save();
+
+            io.to(`session:${sessionId}`).emit('chat:ended', {
+                sessionId,
+                duration: durationSec,
+                totalCost
+            });
+
+        } catch (err) {
+            console.error('chat:end error:', err);
+        }
+    });
+
+};
