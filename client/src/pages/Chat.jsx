@@ -1,9 +1,9 @@
- import { useEffect, useState, useRef, useContext, useCallback } from "react";
+import { useEffect, useState, useRef, useContext, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import { Send, Mic, MicOff, PhoneCall, PhoneOff, Loader, Star, Moon, Sun } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles } from "lucide-react";
 
 const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com");
 
@@ -16,10 +16,10 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [otherUser, setOtherUser] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedAudio, setRecordedAudio] = useState(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const messagesEndRef = useRef(null);
+  const lastMessageRef = useRef(""); // Prevent duplicate messages
 
   // Auto scroll
   const scrollToBottom = () => {
@@ -50,7 +50,15 @@ const Chat = () => {
     fetchChat();
 
     socket.on("chat:message", (newMessage) => {
-      setConversation((prev) => [...prev, newMessage]);
+      // Prevent duplicate messages by checking if we already have this message
+      setConversation((prev) => {
+        const isDuplicate = prev.some(
+          msg => msg.text === newMessage.text &&
+                 msg.senderId === newMessage.senderId &&
+                 new Date(msg.timestamp).getTime() === new Date(newMessage.timestamp).getTime()
+        );
+        return isDuplicate ? prev : [...prev, newMessage];
+      });
     });
 
     socket.on("chat:typing", () => {
@@ -69,7 +77,7 @@ const Chat = () => {
   // --- Send Message ---
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() || message === lastMessageRef.current) return;
 
     const newMsg = {
       senderId: user.id,
@@ -78,11 +86,14 @@ const Chat = () => {
       status: "sent",
     };
 
+    lastMessageRef.current = message; // Store last sent message
+
     socket.emit("chat:message", {
       sessionId: id,
       senderId: user.id,
       text: message,
     });
+
     setConversation((prev) => [...prev, newMsg]);
     setMessage("");
   };
@@ -119,6 +130,7 @@ const Chat = () => {
           text: "",
           type: "audio",
         });
+
         setConversation((prev) => [...prev, audioMsg]);
 
         const formData = new FormData();
@@ -153,33 +165,33 @@ const Chat = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-indigo-950 via-purple-900 to-violet-950 text-white relative overflow-hidden">
-      {/* Cosmic Background Elements */}
+    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
+      {/* Gold Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-10 w-2 h-2 bg-white rounded-full opacity-60 animate-pulse"></div>
-        <div className="absolute top-20 right-20 w-1 h-1 bg-yellow-200 rounded-full opacity-40"></div>
-        <div className="absolute bottom-32 left-1/4 w-1 h-1 bg-blue-300 rounded-full opacity-50 animate-pulse delay-700"></div>
-        <div className="absolute top-1/2 right-16 w-1 h-1 bg-white rounded-full opacity-30"></div>
-        <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-purple-300 rounded-full opacity-40 animate-pulse delay-300"></div>
+        <div className="absolute top-10 left-10 w-2 h-2 bg-yellow-400 rounded-full opacity-60 animate-pulse"></div>
+        <div className="absolute top-20 right-20 w-1 h-1 bg-yellow-300 rounded-full opacity-40"></div>
+        <div className="absolute bottom-32 left-1/4 w-1 h-1 bg-yellow-500 rounded-full opacity-50 animate-pulse delay-700"></div>
+        <div className="absolute top-1/2 right-16 w-1 h-1 bg-yellow-400 rounded-full opacity-30"></div>
+        <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-yellow-600 rounded-full opacity-40 animate-pulse delay-300"></div>
       </div>
 
       {/* Header */}
-      <div className="relative flex items-center justify-between p-4 bg-white/5 backdrop-blur-lg border-b border-white/10 z-10">
+      <div className="relative flex items-center justify-between p-4 bg-black/80 backdrop-blur-lg border-b border-yellow-600/30 z-10">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full">
-            <Moon size={20} className="text-white" />
+          <div className="p-2 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full">
+            <Crown size={20} className="text-yellow-200" />
           </div>
           <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent">
-              Cosmic Connection
+            <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
+              Royal Astrology
             </h1>
-            <p className="text-sm text-purple-200">
+            <p className="text-sm text-yellow-300">
               Chat with {otherUser?.name || "Astrologer"}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-purple-200">
-          <Star size={16} className="fill-current" />
+        <div className="flex items-center gap-2 text-sm text-yellow-300">
+          <Star size={16} className="fill-yellow-400" />
           <span>Online</span>
         </div>
       </div>
@@ -191,15 +203,15 @@ const Chat = () => {
           <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
             {conversation.length === 0 ? (
               <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full mb-4">
-                  <Star className="text-white" size={24} />
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full mb-4">
+                  <Gem className="text-yellow-200" size={24} />
                 </div>
-                <h3 className="text-lg font-semibold text-purple-200 mb-2">
-                  Welcome to Your Cosmic Journey
+                <h3 className="text-lg font-semibold text-yellow-200 mb-2">
+                  Welcome to Royal Astrology
                 </h3>
-                <p className="text-purple-300 text-sm max-w-md mx-auto">
-                  Begin your spiritual conversation with the astrologer.
-                  Share your thoughts, ask questions, and discover the universe's guidance.
+                <p className="text-yellow-300 text-sm max-w-md mx-auto">
+                  Begin your royal consultation with our expert astrologer.
+                  Share your birth details and questions for divine guidance.
                 </p>
               </div>
             ) : (
@@ -211,26 +223,26 @@ const Chat = () => {
                   }`}
                 >
                   <div
-                    className={`max-w-[70%] p-4 rounded-2xl shadow-lg relative ${
+                    className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl shadow-lg relative ${
                       msg.sender === user.id
-                        ? "bg-gradient-to-br from-purple-600 to-pink-600 text-white"
-                        : "bg-white/10 backdrop-blur-sm border border-white/20 text-white"
+                        ? "bg-gradient-to-br from-yellow-600 to-yellow-800 text-yellow-50 border border-yellow-500/30"
+                        : "bg-black/60 backdrop-blur-sm border border-yellow-600/30 text-yellow-100"
                     }`}
                   >
                     {/* Message Bubble Decoration */}
                     {msg.sender === user.id && (
-                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-purple-600 rounded-full opacity-60"></div>
+                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-yellow-600 rounded-full opacity-60"></div>
                     )}
 
                     {msg.text && (
-                      <p className="text-sm leading-relaxed">{msg.text}</p>
+                      <p className="text-sm leading-relaxed text-yellow-50">{msg.text}</p>
                     )}
 
                     {msg.audioUrl && (
                       <div className="mt-2">
                         <audio
                           controls
-                          className="w-48 h-8 rounded-lg bg-black/20"
+                          className="w-48 h-8 rounded-lg bg-black/40 border border-yellow-600/30"
                         >
                           <source src={msg.audioUrl} type="audio/mp3" />
                         </audio>
@@ -239,7 +251,7 @@ const Chat = () => {
 
                     {/* Timestamp */}
                     <div className={`text-xs mt-2 ${
-                      msg.sender === user.id ? 'text-purple-200' : 'text-purple-300'
+                      msg.sender === user.id ? 'text-yellow-300' : 'text-yellow-400'
                     }`}>
                       {new Date(msg.timestamp).toLocaleTimeString([], {
                         hour: '2-digit',
@@ -254,13 +266,13 @@ const Chat = () => {
             {/* Typing Indicator */}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="max-w-[70%] p-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="max-w-[70%] p-4 rounded-2xl bg-black/60 backdrop-blur-sm border border-yellow-600/30">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-150"></div>
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-300"></div>
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-150"></div>
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-300"></div>
                   </div>
-                  <p className="text-xs text-purple-300 mt-1">Astrologer is typing...</p>
+                  <p className="text-xs text-yellow-400 mt-1">Astrologer is typing...</p>
                 </div>
               </div>
             )}
@@ -270,24 +282,34 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Input Area - Fixed at bottom */}
-      <div className="relative z-10 bg-gradient-to-t from-indigo-950/80 via-purple-900/80 to-transparent pt-8 pb-6">
+      {/* Input Area - Better Mobile Footer */}
+      <div className="relative z-10 bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-6 pb-4 md:pb-6">
         <div className="max-w-4xl mx-auto px-4">
+          {/* Recording Indicator - Only shows when recording */}
+          {isRecording && (
+            <div className="text-center mb-3">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full">
+                <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                <span className="text-red-300 text-sm">Recording... Click to stop</span>
+              </div>
+            </div>
+          )}
+
           <form
             onSubmit={sendMessage}
             className="relative group"
           >
             <div className="relative">
-              {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
+              {/* Gold glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
 
-              <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl flex items-center gap-3 px-4 py-3">
+              <div className="relative bg-black/60 backdrop-blur-xl border border-yellow-600/30 rounded-2xl shadow-2xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3">
                 {/* Record Button */}
                 {!isRecording ? (
                   <button
                     type="button"
                     onClick={startRecording}
-                    className="p-2 text-purple-300 hover:text-purple-100 hover:bg-white/10 rounded-full transition-all duration-200"
+                    className="p-2 text-yellow-400 hover:text-yellow-200 hover:bg-yellow-600/20 rounded-full transition-all duration-200 flex-shrink-0"
                     title="Record Audio"
                   >
                     <Mic size={20} />
@@ -296,7 +318,7 @@ const Chat = () => {
                   <button
                     type="button"
                     onClick={stopRecording}
-                    className="p-2 text-red-400 hover:text-red-300 hover:bg-white/10 rounded-full transition-all duration-200 animate-pulse"
+                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all duration-200 animate-pulse flex-shrink-0"
                     title="Stop Recording"
                   >
                     <MicOff size={20} />
@@ -309,35 +331,32 @@ const Chat = () => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onInput={handleTyping}
-                  placeholder="Send a cosmic message..."
-                  className="flex-1 bg-transparent text-white placeholder-purple-300 focus:outline-none text-sm md:text-base"
+                  placeholder="Send your message..."
+                  className="flex-1 bg-transparent text-yellow-50 placeholder-yellow-400/70 focus:outline-none text-sm md:text-base min-w-0"
                 />
 
                 {/* Send Button */}
                 <button
                   type="submit"
                   disabled={!message.trim()}
-                  className={`p-2 rounded-full transition-all duration-200 ${
+                  className={`p-2 rounded-full transition-all duration-200 flex-shrink-0 ${
                     message.trim()
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg hover:shadow-xl hover:scale-110"
-                      : "text-purple-400 opacity-50"
+                      ? "bg-gradient-to-r from-yellow-600 to-yellow-800 text-yellow-50 shadow-lg hover:shadow-yellow-500/25 hover:scale-110 border border-yellow-500/30"
+                      : "text-yellow-600 opacity-50"
                   }`}
                 >
-                  <Send size={20} />
+                  <Send size={18} className="md:size-20" />
                 </button>
               </div>
             </div>
           </form>
 
-          {/* Recording Indicator */}
-          {isRecording && (
-            <div className="text-center mt-3">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full">
-                <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
-                <span className="text-red-300 text-sm">Recording... Click to stop</span>
-              </div>
-            </div>
-          )}
+          {/* Mobile optimization note */}
+          <div className="text-center mt-2">
+            <p className="text-yellow-600/60 text-xs">
+              💫 Your cosmic connection is secure
+            </p>
+          </div>
         </div>
       </div>
     </div>
