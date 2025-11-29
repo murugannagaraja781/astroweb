@@ -1,10 +1,9 @@
- import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
-import { Video, MessageCircle, Star, Award, Languages, Sparkles, ArrowLeft } from 'lucide-react';
+import { Video, MessageCircle, Star, Award, Globe, Languages, Sparkles, ArrowLeft } from 'lucide-react';
 import { io } from 'socket.io-client';
-import Popup from '../components/Popup';
 
 const AstrologerDetail = () => {
   const { id } = useParams();
@@ -14,13 +13,13 @@ const AstrologerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
   const [waiting, setWaiting] = useState(false);
-  const [popup, setPopup] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
-
   const socket = io(import.meta.env.VITE_API_URL);
 
   useEffect(() => {
     fetchAstrologer();
-    if (user) fetchBalance();
+    if (user) {
+      fetchBalance();
+    }
   }, [id, user]);
 
   const fetchBalance = async () => {
@@ -34,99 +33,77 @@ const AstrologerDetail = () => {
 
   const fetchAstrologer = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologers/${id}`);
-      setAstrologer(res.data);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/astrologers`);
+      const astro = res.data.find(a => a._id === id);
+      setAstrologer(astro);
+      setLoading(false);
     } catch (err) {
       console.error('Error fetching astrologer:', err);
-    } finally {
       setLoading(false);
     }
   };
 
-  const showPopup = (title, message, onConfirm = null, confirmText = "OK") => {
-    setPopup({ isOpen: true, title, message, onConfirm, confirmText });
-  };
-
-  const closePopup = () => {
-    setPopup({ isOpen: false, title: '', message: '', onConfirm: null });
+  const getInitials = (name) => {
+    if (!name) return '??';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
   };
 
   const handleAction = (action) => {
+
     // Check if user is logged in
     if (!user) {
-      showPopup(
-        'Login Required',
-        'Please login to continue',
-        () => {
-          closePopup();
-          navigate('/login');
-        },
-        'Go to Login'
-      );
+      alert('Please login to continue');
+      navigate('/login');
       return;
     }
 
-    // Check balance for clients
+    // Check if user has sufficient balance (minimum ₹1)
+    // Skip balance check for admin and astrologer users
     if (user.role === 'client' && balance < 1) {
-      showPopup(
-        'Insufficient Balance',
-        'Please add money to your wallet. Minimum ₹1 required.',
-        () => {
-          closePopup();
-          navigate('/dashboard');
-        },
-        'Add Money'
-      );
+      alert('Insufficient balance! Please add money to your wallet. Minimum ₹1 required.');
+      navigate('/dashboard');
       return;
     }
 
     // Check if astrologer is online
-    if (!astrologer?.isOnline) {
-      showPopup('Astrologer Offline', 'This astrologer is currently offline. Please try again later.');
+    if (!astrologer.isOnline) {
+      alert('This astrologer is currently offline. Please try again later.');
       return;
     }
 
     if (action === 'call') {
       navigate(`/call/${id}`);
     } else if (action === 'chat') {
-      startChat();
-    }
-  };
-
-  const startChat = () => {
-    setWaiting(true);
-
-    socket.emit('chat:request', {
-      clientId: user.id,
-      astrologerId: id,
-      ratePerMinute: astrologer.profile?.ratePerMinute || 1
-    });
-
-    socket.once('chat:joined', ({ sessionId }) => {
-      setWaiting(false);
-      // Store chat session
-      axios.post(`${import.meta.env.VITE_API_URL}/api/chat/session`, {
-        userId: user.id,
+      setWaiting(true);
+      socket.emit('user_online', { userId: user.id });
+      socket.emit('chat:request', {
+        clientId: user.id,
         astrologerId: id,
-        sessionId,
-        initiatedAt: new Date().toISOString()
-      }).catch(console.error);
-
-      navigate(`/chat/${sessionId}`);
-    });
-
-    socket.once('chat:error', () => {
-      setWaiting(false);
-      showPopup('Chat Error', 'Failed to start chat. Please try again.');
-    });
-
-    // Timeout after 30 seconds
-    setTimeout(() => {
-      if (waiting) {
+        ratePerMinute: astrologer.profile?.ratePerMinute || 1
+      });
+      socket.once('chat:joined', ({ sessionId }) => {
+        console.log("[DEBUG] Client received chat:joined:", sessionId);
         setWaiting(false);
-        showPopup('Timeout', 'Astrologer is not responding. Please try again later.');
-      }
-    }, 30000);
+// Store chat session details in backend
+axios.post(`${import.meta.env.VITE_API_URL}/api/chat/call`, {
+  userId: user.id,
+  astrologerId: id,
+  sessionId,
+  initiatedAt: new Date().toISOString()
+}).catch(err => console.error('Error storing chat call:', err));
+navigate(`/chat/${sessionId}`);
+
+
+      });
+      socket.once('chat:error', () => {
+        setWaiting(false);
+        alert('Failed to request chat');
+      });
+    }
   };
 
   if (loading) {
@@ -175,7 +152,7 @@ const AstrologerDetail = () => {
             <div className="relative">
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-2xl">
                 <span className="text-white text-5xl font-bold">
-                  {astrologer.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {getInitials(astrologer.name)}
                 </span>
               </div>
               {astrologer.isOnline && (
@@ -197,6 +174,14 @@ const AstrologerDetail = () => {
                   </span>
                 )}
               </div>
+              {waiting && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="bg-white rounded-xl shadow-xl p-6 w-80 text-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-600 mx-auto mb-4"></div>
+                    <p className="text-gray-700 font-medium">Waiting for astrologer to accept…</p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-center md:justify-start gap-2 text-2xl font-bold text-orange-600 mb-6">
                 <Star className="w-6 h-6 fill-orange-600" />
@@ -223,8 +208,9 @@ const AstrologerDetail = () => {
             </div>
           </div>
 
-          {/* Details */}
+          {/* Details Grid */}
           <div className="grid md:grid-cols-2 gap-8 mb-8">
+            {/* Experience */}
             {astrologer.profile?.experience && (
               <div className="bg-orange-50 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-3">
@@ -235,7 +221,8 @@ const AstrologerDetail = () => {
               </div>
             )}
 
-            {astrologer.profile?.languages && (
+            {/* Languages */}
+            {astrologer.profile?.languages && astrologer.profile.languages.length > 0 && (
               <div className="bg-purple-50 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <Languages className="w-6 h-6 text-purple-600" />
@@ -243,7 +230,10 @@ const AstrologerDetail = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {astrologer.profile.languages.map((lang, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-purple-200 text-purple-800 rounded-full text-sm">
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-purple-200 text-purple-800 rounded-full text-sm font-medium"
+                    >
                       {lang}
                     </span>
                   ))}
@@ -253,7 +243,7 @@ const AstrologerDetail = () => {
           </div>
 
           {/* Specialties */}
-          {astrologer.profile?.specialties && (
+          {astrologer.profile?.specialties && astrologer.profile.specialties.length > 0 && (
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-4">
                 <Sparkles className="w-6 h-6 text-orange-600" />
@@ -261,7 +251,10 @@ const AstrologerDetail = () => {
               </div>
               <div className="flex flex-wrap gap-3">
                 {astrologer.profile.specialties.map((specialty, idx) => (
-                  <span key={idx} className="px-4 py-2 bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 rounded-xl text-sm font-semibold">
+                  <span
+                    key={idx}
+                    className="px-4 py-2 bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 rounded-xl text-sm font-semibold"
+                  >
                     {specialty}
                   </span>
                 ))}
@@ -280,26 +273,6 @@ const AstrologerDetail = () => {
           )}
         </div>
       </div>
-
-      {/* Popup */}
-      <Popup
-        isOpen={popup.isOpen}
-        onClose={closePopup}
-        title={popup.title}
-        message={popup.message}
-        onConfirm={popup.onConfirm}
-        confirmText={popup.confirmText}
-      />
-
-      {/* Loading Overlay */}
-      {waiting && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-600 mx-auto mb-4"></div>
-            <p className="text-gray-700 font-medium">Waiting for astrologer to accept...</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
