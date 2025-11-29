@@ -68,15 +68,15 @@ const AstrologerDashboard = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/chatcallrequest`,
+          `${import.meta.env.VITE_API_URL}/api/chatcalldetails`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
               "Cache-Control": "no-cache",
             },
             params: {
-              status: 'requested',
-              _t: Date.now()
+              status: "requested",
+              _t: Date.now(),
             },
           }
         );
@@ -177,7 +177,7 @@ const AstrologerDashboard = () => {
 
       // Fetch pending sessions
       const pendingRes = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chatcallrequest`,
+        `${import.meta.env.VITE_API_URL}/api/chatcallrequest?all=true`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -194,7 +194,7 @@ const AstrologerDashboard = () => {
         "[DEBUG] fetchDashboardData pending sessions from /api/chatcallrequest:",
         pending
       );
-      console.log("/api/chatcallrequest",pendingRes.data)
+      console.log("/api/chatcallrequest", pendingRes.data);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration
@@ -831,12 +831,16 @@ const AstrologerDashboard = () => {
       </div>
     );
   };
-  console.log("pendingSessions", pendingSessions);
+
   const InboxTab = () => {
+    console.log("pendingSessions", pendingSessions);
     // Get only the most recent chat request
-    const latestSession = pendingSessions.length > 0
-      ? pendingSessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
-      : null;
+    const latestSession =
+      pendingSessions.length > 0
+        ? pendingSessions.sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+          )[0]
+        : null;
 
     return (
       <div className="bg-white rounded-xl shadow-sm p-6">
@@ -861,7 +865,9 @@ const AstrologerDashboard = () => {
                 <h4 className="font-semibold text-gray-800">
                   Session ID: {latestSession.sessionId}
                 </h4>
-                <span className="text-sm text-gray-600">{latestSession.status}</span>
+                <span className="text-sm text-gray-600">
+                  {latestSession.status}
+                </span>
               </div>
               <button
                 onClick={(e) => {

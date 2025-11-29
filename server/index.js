@@ -24,6 +24,8 @@ app.use(express.json());
 app.set("io", io);
 
 // Routes
+app.use("/api/chatcalldetails", require("./routes/chatCallDetailsRoutes"));
+
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/otp", require("./routes/otpRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));

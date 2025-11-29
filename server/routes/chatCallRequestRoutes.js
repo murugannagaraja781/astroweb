@@ -1,19 +1,35 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const {
-    createChatCallRequest,
-    getChatCallRequests,
-    updateChatCallRequest
-} = require('../controllers/chatCallRequestController');
-const auth = require('../middleware/auth');
+const ChatCallDetails = require("../models/chatCallDetails");
+const auth = require("../middleware/auth");
 
-// POST - Create new chat call request
-router.post('/', auth, createChatCallRequest);
+// GET all chat call details
+router.get("/", auth, async (req, res) => {
+  try {
+    const records = await ChatCallDetails.find()
+      .populate("userId", "name email")
+      .populate("astrologerId", "name email")
+      .sort({ createdAt: -1 });
 
-// GET - Get chat call requests (filtered by user role)
-router.get('/', auth, getChatCallRequests);
+    res.json(records);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-// PUT - Update chat call request status
-router.put('/:sessionId', auth, updateChatCallRequest);
+// GET single record by sessionId
+router.get("/:sessionId", auth, async (req, res) => {
+  try {
+    const record = await ChatCallDetails.findOne({
+      sessionId: req.params.sessionId,
+    });
+
+    if (!record) return res.status(404).json({ message: "Not found" });
+
+    res.json(record);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
