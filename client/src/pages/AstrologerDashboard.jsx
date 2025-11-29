@@ -175,9 +175,13 @@ const AstrologerDashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      const pending = pendingRes.data.filter(s => ['requested', 'active'].includes(s.status));
-      setPendingSessions(pending);
-      console.log('[DEBUG] fetchDashboardData pending sessions from /api/chat/call:', pending);
+        // Filter for requested or active sessions AND belonging to this astrologer
+        const pending = pendingRes.data.filter(s =>
+          ['requested', 'active'].includes(s.status) &&
+          (s.astrologerId?._id === profile?.userId || s.astrologerId === profile?.userId)
+        );
+        setPendingSessions(pending);
+        console.log('[DEBUG] fetchDashboardData pending sessions from /api/chat/call:', pending);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration
@@ -341,7 +345,7 @@ const AstrologerDashboard = () => {
   const handleAcceptChat = (sessionId) => {
     console.log("[DEBUG] handleAcceptChat called with sessionId:", sessionId);
     socket.emit("chat:accept", { sessionId });
-    // Do not navigate immediately; wait for server 'chat:joined'
+    navigate(`/chat/${sessionId}`);
   };
 
   const toggleStatus = async () => {
