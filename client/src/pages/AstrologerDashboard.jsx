@@ -311,7 +311,7 @@ const AstrologerDashboard = () => {
         type: "chat",
       });
       setPendingSessions((prev) => {
-        const exists = prev.some((s) => s.sessionId === payload.sessionId);
+        const exists = prev.some((s) => s.sessionId !== payload.sessionId);
         const next = exists
           ? prev
           : [
