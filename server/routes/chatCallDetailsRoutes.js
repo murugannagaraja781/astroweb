@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const ChatCallDetails = require("../models/chatCallDetails");
+const ChatCallDetails = require("../models/ChatCallDetails");
 const auth = require("../middleware/auth");
 
 // GET all chat call details
