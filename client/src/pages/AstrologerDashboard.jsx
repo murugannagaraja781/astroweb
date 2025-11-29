@@ -177,7 +177,7 @@ const AstrologerDashboard = () => {
 
       // Fetch pending sessions
       const pendingRes = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chat/call`,
+        `${import.meta.env.VITE_API_URL}/api/chatcallrequest`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -191,7 +191,7 @@ const AstrologerDashboard = () => {
       );
       setPendingSessions(pending);
       console.log(
-        "[DEBUG] fetchDashboardData pending sessions from /api/chat/call:",
+        "[DEBUG] fetchDashboardData pending sessions from /api/chatcallrequest:",
         pending
       );
     } catch (err) {
