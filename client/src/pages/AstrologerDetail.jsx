@@ -88,6 +88,8 @@ const AstrologerDetail = () => {
         console.log("[DEBUG] Client received chat:joined:", sessionId);
         setWaiting(false);
         navigate(`/chat/${sessionId}`);
+
+        console.log("userid",user)
       });
       socket.once('chat:error', () => {
         setWaiting(false);
