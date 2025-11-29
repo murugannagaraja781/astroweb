@@ -26,21 +26,28 @@ exports.toggleStatus = async (req, res) => {
   }
 };
 
-exports.updateProfile = async (req, res) => {
+// Admin/ID based status toggle
+exports.toggleStatusById = async (req, res) => {
   try {
-    const { languages, specialties, ratePerMinute, bio, experience, education } = req.body;
-    const profile = await AstrologerProfile.findOne({ userId: req.user.id });
-
+    const { id } = req.params; // astrologer user ID
+    const profile = await AstrologerProfile.findOne({ userId: id });
     if (!profile) return res.status(404).json({ msg: 'Profile not found' });
 
-    if (languages) profile.languages = languages;
-    if (specialties) profile.specialties = specialties;
-    if (ratePerMinute) profile.ratePerMinute = ratePerMinute;
-    if (bio) profile.bio = bio;
-    if (experience) profile.experience = experience;
-    if (education) profile.education = education;
-
+    const { isOnline } = req.body;
+    if (typeof isOnline === 'boolean') {
+      profile.isOnline = isOnline;
+    } else {
+      profile.isOnline = !profile.isOnline;
+    }
+    profile.lastActive = new Date();
     await profile.save();
+
+    const io = req.app.get('io');
+    io.emit('astrologerStatusUpdate', {
+      astrologerId: id,
+      isOnline: profile.isOnline,
+    });
+
     res.json(profile);
   } catch (err) {
     console.error(err.message);
@@ -58,6 +65,19 @@ exports.getProfile = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+exports.getProfileById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const profile = await AstrologerProfile.findOne({ userId: id }).populate('userId', 'name email');
+    if (!profile) return res.status(404).json({ msg: 'Profile not found' });
+    res.json(profile);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
 
 // Get call history
 exports.getCallHistory = async (req, res) => {

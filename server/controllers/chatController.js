@@ -290,6 +290,36 @@ exports.requestSession = async (req, res) => {
   }
 };
 
+exports.acceptSession = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ msg: "Session ID is required" });
+    }
+    const session = await ChatSession.findOne({ sessionId });
+    if (!session) {
+      return res.status(404).json({ msg: "Session not found" });
+    }
+    if (session.astrologerId.toString() !== req.user.id) {
+      return res.status(403).json({ msg: "Unauthorized" });
+    }
+    session.status = "active";
+    if (!session.startedAt) session.startedAt = new Date();
+    await session.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(session.clientId.toString()).emit("chat:joined", { sessionId });
+      io.to(session.astrologerId.toString()).emit("chat:joined", { sessionId });
+    }
+
+    res.json({ success: true, sessionId });
+  } catch (err) {
+    console.error("Error accepting session:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
 exports.getSessionHistory = async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -368,7 +398,7 @@ exports.storeChatCall = async (req, res) => {
 
     if (session) {
       // Update existing session
-      session.status = 'active';
+      session.status = "active";
       session.startedAt = initiatedAt || new Date();
       await session.save();
     } else {
@@ -377,8 +407,8 @@ exports.storeChatCall = async (req, res) => {
         sessionId,
         clientId: userId,
         astrologerId,
-        status: 'active',
-        startedAt: initiatedAt || new Date()
+        status: "active",
+        startedAt: initiatedAt || new Date(),
       });
     }
 
@@ -395,8 +425,8 @@ exports.getChatCall = async (req, res) => {
 
     if (sessionId) {
       const session = await ChatSession.findOne({ sessionId })
-        .populate('clientId', 'name email')
-        .populate('astrologerId', 'name');
+        .populate("clientId", "name email")
+        .populate("astrologerId", "name");
 
       if (!session) {
         return res.status(404).json({ msg: "Session not found" });
@@ -406,14 +436,11 @@ exports.getChatCall = async (req, res) => {
 
     // If no sessionId, return all sessions for the user (astrologer or client)
     const sessions = await ChatSession.find({
-      $or: [
-        { astrologerId: req.user.id },
-        { clientId: req.user.id }
-      ]
+      $or: [{ astrologerId: req.user.id }, { clientId: req.user.id }],
     })
       .sort({ createdAt: -1 })
-      .populate('clientId', 'name email')
-      .populate('astrologerId', 'name');
+      .populate("clientId", "name email")
+      .populate("astrologerId", "name");
 
     res.json(sessions);
   } catch (err) {

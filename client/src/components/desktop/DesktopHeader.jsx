@@ -42,7 +42,18 @@ const DesktopHeader = () => {
       : []),
     { to: "/chat/0", icon: MessageCircle, label: "Chat" },
     { to: "/call/0", icon: Video, label: "Call" },
-  ];
+  ].filter(item => {
+    // Hide Home link ONLY if on Astrologer or Admin dashboard pages
+    // Client dashboard (/dashboard) SHOULD see the Home link
+    if (item.label === "Home" && (
+      location.pathname === '/astrologer-dashboard' ||
+      location.pathname === '/admin-dashboard' ||
+      location.pathname === '/astrology'
+    )) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <header className="hidden md:block sticky top-0 z-50 border-b border-white/10" style={{

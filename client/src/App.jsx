@@ -1,30 +1,35 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { lazy, Suspense, useContext } from 'react';
-import { useLocation } from 'react-router-dom';
-import AuthContext from './context/AuthContext';
-import { ToastProvider } from './context/ToastContext';
-import { ThemeProvider } from './context/ThemeContext';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { lazy, Suspense, useContext } from "react";
+import { useLocation } from "react-router-dom";
+import AuthContext from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 // Eager load critical components (above the fold)
-import MobileNav from './components/mobile/MobileNav.jsx';
-import DesktopSidebar from './components/desktop/DesktopSidebar';
-import DesktopHeader from './components/desktop/DesktopHeader.jsx';
-import MobileHeader from './components/mobile/MobileHeader.jsx';
-import Home from './pages/Home';
-import HoroscopeDetail from './pages/HoroscopeDetail';
+import MobileNav from "./components/mobile/MobileNav.jsx";
+import DesktopSidebar from "./components/desktop/DesktopSidebar";
+import DesktopHeader from "./components/desktop/DesktopHeader.jsx";
+import MobileHeader from "./components/mobile/MobileHeader.jsx";
+import Home from "./pages/Home";
+import HoroscopeDetail from "./pages/HoroscopeDetail";
 
 // Lazy load route components for code splitting
-const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
-const AstrologerDetail = lazy(() => import('./pages/AstrologerDetail'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const AstrologerDashboard = lazy(() => import('./pages/AstrologerDashboard'));
-const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
-const VideoCall = lazy(() => import('./pages/VideoCall'));
-const Chat = lazy(() => import('./pages/Chat'));
-const AstrologyDashboard = lazy(() => import('./pages/AstrologyDashboard'));
-const PhonePeTest = lazy(() => import('./pages/PhonePeTest'));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const AstrologerDetail = lazy(() => import("./pages/AstrologerDetail"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AstrologerDashboard = lazy(() => import("./pages/AstrologerDashboard"));
+const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
+const VideoCall = lazy(() => import("./pages/VideoCall"));
+const Chat = lazy(() => import("./pages/Chat"));
+const AstrologyDashboard = lazy(() => import("./pages/AstrologyDashboard"));
+const PhonePeTest = lazy(() => import("./pages/PhonePeTest"));
 
 // Loading component
 const LoadingFallback = () => (
@@ -43,8 +48,8 @@ const Dashboard = () => {
   if (loading) return <LoadingFallback />;
   if (!user) return <Navigate to="/login" />;
 
-  if (user.role === 'admin') return <AdminDashboard />;
-  if (user.role === 'astrologer') return <AstrologerDashboard />;
+  if (user.role === "admin") return <AdminDashboard />;
+  if (user.role === "astrologer") return <AstrologerDashboard />;
   return <ClientDashboard />;
 };
 
@@ -55,7 +60,7 @@ const ProtectedAstrology = () => {
   if (loading) return <LoadingFallback />;
   if (!user) return <Navigate to="/login" />;
 
-  if (user.role === 'admin' || user.role === 'astrologer') {
+  if (user.role === "admin" || user.role === "astrologer") {
     return <AstrologyDashboard />;
   }
   return <Navigate to="/" />;
@@ -66,17 +71,21 @@ const AppLayout = ({ children }) => {
   const { user } = useContext(AuthContext);
 
   // Hide global layout for admin dashboard
-  const isAdminPage = location.pathname === '/admin-dashboard' ||
-                      (location.pathname === '/dashboard' && user?.role === 'admin');
+  const isAdminPage =
+    location.pathname === "/admin-dashboard" ||
+    (location.pathname === "/dashboard" && user?.role === "admin");
 
   // Home page - show mobile nav only, no desktop elements
-  const isHomePage = location.pathname === '/';
+  const isHomePage = location.pathname === "/";
 
   // Hide all navigation on astrologer detail page
-  const isAstrologerDetailPage = location.pathname.startsWith('/astrologer/');
+  const isAstrologerDetailPage = location.pathname.startsWith("/astrologer/");
 
   // Hide all navigation on auth pages (login, register)
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAuthPage =
+    location.pathname === "/login" || location.pathname === "/register";
+  const isChatPage = location.pathname.startsWith("/chat/");
+  const isCallPage = location.pathname.startsWith("/call/");
 
   // Home page - mobile nav only
   if (isHomePage) {
@@ -107,15 +116,22 @@ const AppLayout = ({ children }) => {
     return <>{children}</>;
   }
 
+  if (isChatPage || isCallPage) {
+    return (
+      <div className="min-h-screen bg-white font-sans text-gray-900">
+        <DesktopHeader />
+        <div className="desktop-main-content">{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       <DesktopHeader />
       <MobileHeader />
       {/* Desktop Sidebar removed globally for desktop */}
       {/* <DesktopSidebar /> */}
-      <div className="desktop-main-content">
-        {children}
-      </div>
+      <div className="desktop-main-content">{children}</div>
       {/* Mobile Nav only visible on mobile devices */}
       <div className="md:hidden">
         <MobileNav />
@@ -134,12 +150,21 @@ function App() {
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/horoscope/:sign" element={<HoroscopeDetail />} />
-                  <Route path="/astrologer/:id" element={<AstrologerDetail />} />
+                  <Route
+                    path="/horoscope/:sign"
+                    element={<HoroscopeDetail />}
+                  />
+                  <Route
+                    path="/astrologer/:id"
+                    element={<AstrologerDetail />}
+                  />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/astrologer-dashboard" element={<AstrologerDashboard />} />
+                  <Route
+                    path="/astrologer-dashboard"
+                    element={<AstrologerDashboard />}
+                  />
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
                   <Route path="/call/:id" element={<VideoCall />} />
                   <Route path="/chat/:id" element={<Chat />} />
