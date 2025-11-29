@@ -828,47 +828,52 @@ const AstrologerDashboard = () => {
     );
   };
   console.log("pendingSessions", pendingSessions);
-  const InboxTab = () => (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">
-        Inbox - Waiting Users
-      </h3>
-      {pendingSessions.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <p>No waiting users at the moment.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {pendingSessions.map((session) => (
+  const InboxTab = () => {
+    // Get only the most recent chat request
+    const latestSession = pendingSessions.length > 0
+      ? pendingSessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+      : null;
+
+    return (
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+          Inbox - Latest Chat Request
+        </h3>
+        {!latestSession ? (
+          <div className="text-center py-12 text-gray-500">
+            <p>No waiting users at the moment.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
             <div
-              key={session.sessionId}
+              key={latestSession.sessionId}
               className="flex justify-between items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-              onClick={() => navigate(`/chat/${session.sessionId}`)}
+              onClick={() => navigate(`/chat/${latestSession.sessionId}`)}
             >
               <div>
                 <h4 className="font-semibold text-gray-800">
-                  Name : {session.sessionId}
+                  Name : {latestSession.sessionId}
                 </h4>
                 <h4 className="font-semibold text-gray-800">
-                  Session ID: {session.sessionId}
+                  Session ID: {latestSession.sessionId}
                 </h4>
-                <span className="text-sm text-gray-600">{session.status}</span>
+                <span className="text-sm text-gray-600">{latestSession.status}</span>
               </div>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleAcceptChat(session.sessionId);
+                  handleAcceptChat(latestSession.sessionId);
                 }}
                 className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
               >
                 <span>Chat</span>
               </button>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (loading)
     return (
