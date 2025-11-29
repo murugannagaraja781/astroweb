@@ -13,6 +13,7 @@ const AstrologerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
   const [waiting, setWaiting] = useState(false);
+  const [chatRequested, setChatRequested] = useState(false);
   const socket = io(import.meta.env.VITE_API_URL);
 
   useEffect(() => {
@@ -83,6 +84,12 @@ const AstrologerDetail = () => {
 
   // ---- CHAT ACTION ----
   if (action === 'chat') {
+    // Prevent duplicate requests
+    if (chatRequested) {
+      return;
+    }
+
+    setChatRequested(true);
     setWaiting(true);
 
     // Inform server user is online
@@ -100,27 +107,14 @@ const AstrologerDetail = () => {
       console.log("[DEBUG] Client received chat:joined:", sessionId);
       setWaiting(false);
 
-      try {
-        // FIRST: store chat session details using new endpoint
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/chatcallrequest`, {
-          userId: user.id,
-          astrologerId: id,
-          sessionId,
-          initiatedAt: new Date().toISOString()
-        });
-
-        // THEN: navigate only after DB write success
-        navigate(`/chat/${sessionId}`);
-
-      } catch (err) {
-        console.error('Error storing chat call:', err);
-        alert("Failed to start chat. Please try again.");
-      }
+      // Navigate to chat - no need to POST again, socket handler already created the entry
+      navigate(`/chat/${sessionId}`);
     });
 
     // If server rejects chat
     socket.once('chat:error', () => {
       setWaiting(false);
+      setChatRequested(false); // Re-enable button on error
       alert('Failed to request chat');
     });
   }
@@ -220,10 +214,15 @@ const AstrologerDetail = () => {
                 </button>
                 <button
                   onClick={() => handleAction('chat')}
-                  className="flex items-center gap-2 bg-white text-orange-600 border-2 border-orange-500 px-6 py-3 rounded-xl font-semibold hover:bg-orange-50 transition-all transform hover:scale-105"
+                  disabled={chatRequested || waiting}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all transform ${
+                    chatRequested || waiting
+                      ? 'bg-gray-300 text-gray-500 border-2 border-gray-400 cursor-not-allowed'
+                      : 'bg-white text-orange-600 border-2 border-orange-500 hover:bg-orange-50 hover:scale-105'
+                  }`}
                 >
                   <MessageCircle size={20} />
-                  Chat 1
+                  {chatRequested || waiting ? 'Request Sent...' : 'Chat'}
                 </button>
               </div>
             </div>

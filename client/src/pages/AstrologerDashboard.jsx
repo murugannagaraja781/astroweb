@@ -189,11 +189,12 @@ const AstrologerDashboard = () => {
           (s.astrologerId?._id === profile?.userId ||
             s.astrologerId === profile?.userId)
       );
-      setPendingSessions(pending);
+      setPendingSessions(pendingRes.data);
       console.log(
         "[DEBUG] fetchDashboardData pending sessions from /api/chatcallrequest:",
         pending
       );
+      console.log("/api/chatcallrequest",)
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration
