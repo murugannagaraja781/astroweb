@@ -56,6 +56,7 @@ const AstrologerDetail = () => {
     debugger
     console.log("userid",user)
                 console.log("sessionId",sessionId)
+                console.log("action",action)
     // // Check if user is logged in
     // if (!user) {
     //   alert('Please login to continue');
