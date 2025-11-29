@@ -53,6 +53,8 @@ const AstrologerDetail = () => {
   };
 
   const handleAction = (action) => {
+    console.log("userid",user)
+                console.log("sessionId",sessionId)
     // Check if user is logged in
     if (!user) {
       alert('Please login to continue');
@@ -87,7 +89,9 @@ const AstrologerDetail = () => {
       socket.once('chat:joined', ({ sessionId }) => {
         console.log("[DEBUG] Client received chat:joined:", sessionId);
         setWaiting(false);
-        console.log("userid",user)
+
+
+
         alert(user)
         navigate(`/chat/${sessionId}`);
 
