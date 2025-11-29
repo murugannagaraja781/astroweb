@@ -20,24 +20,17 @@ const server = http.createServer(app);
 // -------------------------
 // CORS
 // -------------------------
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  "https://astroweb-beryl.vercel.app",
-  "http://localhost:3000",
-].filter(Boolean);
+
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
-    },
+    origin: true, // Allow all origins
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
   })
 );
+
 
 app.use(express.json({ limit: "10mb" }));
 
