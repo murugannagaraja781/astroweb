@@ -54,6 +54,5 @@ const ChatCallDetailsSchema = new mongoose.Schema({
 // Index for faster queries
 ChatCallDetailsSchema.index({ userId: 1, status: 1 });
 ChatCallDetailsSchema.index({ astrologerId: 1, status: 1 });
-ChatCallDetailsSchema.index({ sessionId: 1 });
 
 module.exports = mongoose.model('ChatCallDetails', ChatCallDetailsSchema);
