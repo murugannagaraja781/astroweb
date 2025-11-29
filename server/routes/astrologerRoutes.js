@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const {
   toggleStatus,
-  toggleStatusById,
   updateProfile,
   getProfile,
   getCallHistory,
@@ -10,8 +9,7 @@ const {
   getReviews,
   getAnalytics,
   getSchedule,
-  updateSchedule,
-  getProfileById,
+  updateSchedule
 } = require('../controllers/astrologerController');
 const auth = require('../middleware/auth');
 
@@ -24,10 +22,8 @@ const astrologerCheck = (req, res, next) => {
 
 // Profile routes
 router.get('/profile', auth, astrologerCheck, getProfile);
-router.get('/profile/:id', auth, getProfileById);
 router.put('/profile', auth, astrologerCheck, updateProfile);
 router.put('/status', auth, astrologerCheck, toggleStatus);
-router.put('/profile/:id/status', auth, astrologerCheck, toggleStatusById);
 
 // Dashboard data routes
 router.get('/call-history', auth, astrologerCheck, getCallHistory);
@@ -40,3 +36,4 @@ router.get('/schedule', auth, astrologerCheck, getSchedule);
 router.put('/schedule', auth, astrologerCheck, updateSchedule);
 
 module.exports = router;
+

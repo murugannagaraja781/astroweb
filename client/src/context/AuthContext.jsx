@@ -30,7 +30,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', res.data.token);
     axios.defaults.headers.common['x-auth-token'] = res.data.token;
     setUser(res.data.user);
-    return res.data.user;
   };
 
   const register = async (name, email, password, role) => {

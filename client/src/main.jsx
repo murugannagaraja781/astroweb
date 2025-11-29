@@ -4,12 +4,9 @@ import './index.css'
 import './styles/responsive.css'
 import App from './App.jsx'
 import './i18n';
-import ErrorBoundary from './components/ErrorBoundary.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <App />
   </StrictMode>,
 )

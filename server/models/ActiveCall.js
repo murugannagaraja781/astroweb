@@ -37,10 +37,6 @@ const activeCallSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    prepaid: {
-        type: Number,
-        default: 0
-    },
     rate: {
         type: Number,
         default: 1 // ₹1 per minute

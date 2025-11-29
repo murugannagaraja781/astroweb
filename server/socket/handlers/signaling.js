@@ -1,6 +1,5 @@
 const CallLog = require('../../models/CallLog');
 const ActiveCall = require('../../models/ActiveCall');
-const Wallet = require('../../models/Wallet');
 
 /**
  * Signaling Socket Handlers
@@ -33,7 +32,7 @@ module.exports = (io, socket) => {
             console.log('Answer call received:', data);
             const { to, callId } = data;
 
-            io.to(to).emit('callAccepted', { accepted: true, callId });
+            io.to(to).emit('callAccepted', { accepted: true });
 
             // Update CallLog with accepted time
             if (callId) {
@@ -47,7 +46,6 @@ module.exports = (io, socket) => {
                 // Create ActiveCall for server-side tracking
                 const callLog = await CallLog.findById(callId);
                 if (callLog) {
-                    // Create ActiveCall entry
                     const activeCall = new ActiveCall({
                         callId: callLog._id,
                         callerId: callLog.callerId,
@@ -55,29 +53,11 @@ module.exports = (io, socket) => {
                         startTime: callLog.startTime,
                         acceptedTime,
                         status: 'active',
-                        rate: 1, // ₹1 per minute
-                        prepaid: 0
+                        rate: 1 // ₹1 per minute
                     });
                     await activeCall.save();
 
-                    // Immediately debit ₹1 from caller as accept precharge
-                    const callerWallet = await Wallet.findOne({ userId: callLog.callerId });
-                    if (callerWallet && callerWallet.balance >= 1) {
-                        callerWallet.balance -= 1;
-                        callerWallet.transactions.push({
-                            amount: 1,
-                            type: 'debit',
-                            description: 'Initial call charge on accept',
-                            date: new Date()
-                        });
-                        await callerWallet.save();
-
-                        // Update ActiveCall prepaid
-                        activeCall.prepaid = 1;
-                        await activeCall.save();
-                    }
-
-                    console.log(`Call ${callId} accepted, initial ₹1 charged`);
+                    console.log(`Call ${callId} accepted and tracked`);
                 }
             }
         } catch (err) {

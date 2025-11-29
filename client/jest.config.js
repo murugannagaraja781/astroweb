@@ -25,11 +25,4 @@ export default {
             statements: 70,
         },
     },
-    globals: {
-        'import.meta': {
-            env: {
-                VITE_API_URL: 'http://localhost:9001'
-            }
-        }
-    }
 };

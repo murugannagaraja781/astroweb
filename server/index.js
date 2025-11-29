@@ -1,106 +1,64 @@
-require("dotenv").config();
-const express = require("express");
-const http = require("http");
-const mongoose = require("mongoose");
-const cors = require("cors");
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const http = require('http');
+const { Server } = require('socket.io');
+const BillingTracker = require('./services/billingTracker');
 
-// Optional service
-let BillingTracker;
-try {
-  BillingTracker = require("./services/billingTracker");
-} catch (e) {
-  console.warn("[WARN] BillingTracker not found. Continuing without it.");
-}
-
-const initSocket = require("./socket"); // << USE YOUR FIRST FILE HERE
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-
-// -------------------------
-// CORS
-// -------------------------
-
-
-app.use(
-  cors({
-    origin: true, // Allow all origins
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
-  })
-);
-
-
-app.use(express.json({ limit: "10mb" }));
-
-// -------------------------
-// ROUTES
-// -------------------------
-const chatRoutes = require("./routes/chatRoutes");
-const authRoutes = require("./routes/authRoutes");
-const publicRoutes = require("./routes/publicRoutes");
-const adminRoutes = require("./routes/adminRoutes");
-const walletRoutes = require("./routes/walletRoutes");
-const astrologerRoutes = require("./routes/astrologerRoutes");
-const callRoutes = require("./routes/callRoutes");
-
-app.use("/api/auth", authRoutes);
-app.use("/api/chat", chatRoutes);
-app.use("/api/public", publicRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/wallet", walletRoutes);
-app.use("/api/astrologer", astrologerRoutes);
-app.use("/api/call", callRoutes);
-
-// Health check
-app.get("/health", (req, res) =>
-  res.json({ status: "ok", time: new Date().toISOString() })
-);
-
-// -------------------------
-// SOCKET.IO (ONLY ONE INSTANCE)
-// -------------------------
-const io = initSocket(server);
-app.set("io", io);
-
-// -------------------------
-// MONGO
-// -------------------------
-const MONGO_URI = process.env.MONGO_URI || process.env.MONGO_URL;
-if (!MONGO_URI) {
-  console.error("[FATAL] MONGO_URI missing");
-  process.exit(1);
-}
-
-mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log("MongoDB connected ✔"))
-  .catch((err) => {
-    console.error("Mongo connection error ❌", err);
-    process.exit(1);
-  });
-
-// -------------------------
-// BILLING TRACKER
-// -------------------------
-if (BillingTracker) {
-  try {
-    if (typeof BillingTracker === "function") {
-      const tracker = new BillingTracker(io);
-      if (tracker.start) tracker.start();
-    } else if (BillingTracker.start) {
-      BillingTracker.start(io);
-    }
-  } catch (e) {
-    console.warn("[BillingTracker] init failed:", e);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all for dev simplicity
+    methods: ["GET", "POST"]
   }
-}
+});
 
-// -------------------------
-// START SERVER
-// -------------------------
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.use(cors());
+app.use(express.json());
 
-module.exports = { app, server, io };
+// Make socket.io instance available to controllers
+app.set('io', io);
+
+// Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/otp', require('./routes/otpRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/wallet', require('./routes/walletRoutes'));
+app.use('/api/astrologer', require('./routes/astrologerRoutes'));
+app.use('/api/call', require('./routes/callRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes')); // NEW: Chat routes
+app.use('/api/public', require('./routes/publicRoutes'));
+app.use('/api/horoscope', require('./routes/horoscopeRoutes'));
+
+// Database Connection
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.log('❌ MongoDB Error:', err));
+
+// Socket.IO Setup (Modular Handlers)
+require('./socket')(io);
+
+// Start Billing Tracker (Server-side time tracking)
+const billingTracker = new BillingTracker(io);
+billingTracker.start();
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  billingTracker.stop();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Socket.IO ready`);
+  console.log(`💰 Billing Tracker active`);
+});

@@ -9,8 +9,6 @@ describe('OTP Controller', () => {
     let mockReq, mockRes;
 
     beforeEach(() => {
-        process.env.MSG91_AUTHKEY = 'test-auth-key';
-        process.env.MSG91_TEMPLATE_ID = 'test-template-id';
         mockReq = {
             body: {}
         };
@@ -95,7 +93,7 @@ describe('OTP Controller', () => {
 
             expect(mockRes.status).toHaveBeenCalledWith(400);
             expect(mockRes.json).toHaveBeenCalledWith({
-                msg: 'Phone number and OTP are required'
+                mg: 'Phone number and OTP are required'
             });
         });
 

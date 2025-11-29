@@ -110,14 +110,12 @@ class BillingTracker {
                 cost: call.currentCost
             });
 
-            // Deduct final amount from caller (minus any prepaid)
+            // Deduct final amount from caller
             const callerWallet = await Wallet.findOne({ userId: call.callerId });
-            const prepaid = call.prepaid || 0;
-            const netCost = Math.max(call.currentCost - prepaid, 0);
-            if (callerWallet && callerWallet.balance >= netCost) {
-                callerWallet.balance -= netCost;
+            if (callerWallet && callerWallet.balance >= call.currentCost) {
+                callerWallet.balance -= call.currentCost;
                 callerWallet.transactions.push({
-                    amount: netCost,
+                    amount: call.currentCost,
                     type: 'debit',
                     description: `Call charge - ${call.currentDuration}s`,
                     date: new Date()
@@ -128,8 +126,8 @@ class BillingTracker {
             // Add to receiver's wallet
             const receiverWallet = await Wallet.findOne({ userId: call.receiverId });
             if (receiverWallet) {
-                const adminCommission = netCost * 0.1; // 10% admin commission
-                const expertEarning = netCost * 0.9; // 90% to expert
+                const adminCommission = call.currentCost * 0.1; // 10% admin commission
+                const expertEarning = call.currentCost * 0.9; // 90% to expert
 
                 receiverWallet.balance += expertEarning;
                 receiverWallet.transactions.push({

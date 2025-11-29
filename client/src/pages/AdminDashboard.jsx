@@ -4,23 +4,16 @@ import AuthContext from '../context/AuthContext';
 import {
   Bell, LogOut, Settings, Users, BarChart3, Gift, Image, Zap,
   Crown, Sparkles, Edit, Trash2, Eye, Star, Calendar, Clock,
-  DollarSign, UserPlus, Search, Filter, ChevronRight, Menu, X, MessageCircle
+  DollarSign, UserPlus, Search, Filter, ChevronRight, Menu, X
 } from 'lucide-react';
 
-import ThemeContext from '../context/ThemeContext';
-
 const AdminDashboard = () => {
-  const { user } = useContext(AuthContext);
-  const { theme, activeThemeName, updateTheme, ZODIAC_THEMES } = useContext(ThemeContext);
   const [astrologers, setAstrologers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // ZODIAC_THEMES removed (imported from context)
-  // activeTheme state removed (using context)
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -58,21 +51,6 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [walletAmount, setWalletAmount] = useState('');
 
-  // Stats and Activity
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalAstrologers: 0,
-    totalEarnings: 0,
-    activeCalls: 0
-  });
-  const [recentLogins, setRecentLogins] = useState([]);
-
-  // Tab Data
-  const [offers, setOffers] = useState([]);
-  const [banners, setBanners] = useState([]);
-  const [horoscopes, setHoroscopes] = useState([]);
-  const [pendingSessions, setPendingSessions] = useState([]);
-
   useEffect(() => {
     fetchStats();
     fetchSettings();
@@ -82,7 +60,6 @@ const AdminDashboard = () => {
     if (activeTab === 'horoscope') fetchHoroscopes();
     if (activeTab === 'offers') fetchOffers();
     if (activeTab === 'banners') fetchBanners();
-    if (activeTab === 'inbox') fetchPending();
   }, [activeTab]);
 
   const fetchUsers = async () => {
@@ -332,108 +309,88 @@ const AdminDashboard = () => {
   const SidebarItem = ({ id, icon: Icon, label }) => (
     <button
       onClick={() => { setActiveTab(id); setSidebarOpen(false); }}
-      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 mb-1 relative overflow-hidden group ${
+      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 mb-1 ${
         activeTab === id
-          ? 'text-white shadow-lg'
-          : 'text-gray-400 hover:text-white hover:bg-white/5'
+          ? 'bg-indigo-600 text-white shadow-md'
+          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
       }`}
     >
-      {activeTab === id && (
-        <div className="absolute inset-0 opacity-20" style={{ backgroundColor: theme.hex }}></div>
-      )}
-      <Icon size={20} className={`relative z-10 ${activeTab === id ? 'animate-pulse' : ''}`} style={{ color: activeTab === id ? theme.hex : 'inherit' }} />
-      <span className="font-medium relative z-10">{label}</span>
-      {activeTab === id && (
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-l-full" style={{ backgroundColor: theme.hex }}></div>
-      )}
+      <Icon size={20} />
+      <span className="font-medium">{label}</span>
     </button>
   );
 
-  const StatCard = ({ label, value, icon: Icon, trend }) => (
-    <div className="bg-gray-800/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-xl hover:border-white/10 transition-all duration-300 group relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500"></div>
-
-      <div className="flex justify-between items-start relative z-10">
+  const StatCard = ({ label, value, icon: Icon, color, trend }) => (
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start">
         <div>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{label}</p>
-          <h3 className="text-3xl font-bold text-white mb-1">{value}</h3>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{label}</p>
+          <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
           {trend && (
             <div className={`flex items-center mt-2 text-xs font-medium ${
-              trend.startsWith('+') ? 'text-emerald-400' : 'text-gray-400'
+              trend.startsWith('+') ? 'text-emerald-600' : 'text-slate-600'
             }`}>
-              <span className={`px-1.5 py-0.5 rounded bg-white/5 border border-white/5`}>{trend}</span>
-              <span className="ml-2 text-gray-500">vs last month</span>
+              <span className={`px-1.5 py-0.5 rounded ${
+                trend.startsWith('+') ? 'bg-emerald-50' : 'bg-slate-100'
+              }`}>{trend}</span>
+              <span className="ml-1 text-slate-400">vs last month</span>
             </div>
           )}
         </div>
-        <div className={`p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300`} style={{ backgroundColor: `${theme.hex}20`, color: theme.hex }}>
-          <Icon size={28} />
+        <div className={`p-3 rounded-lg ${color}`}>
+          <Icon size={24} className="text-white" />
         </div>
       </div>
-
-      {/* Bottom Glow */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ backgroundImage: `linear-gradient(to right, transparent, ${theme.hex}, transparent)` }}></div>
     </div>
   );
 
   return (
-    <div className="flex h-screen bg-[#0a0015] text-gray-100 overflow-hidden relative">
-      {/* Cosmic Background Effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
-        <div className="absolute w-96 h-96 bg-purple-900/20 rounded-full blur-3xl -top-20 -left-20 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-indigo-900/20 rounded-full blur-3xl bottom-0 right-0 animate-pulse" style={{ animationDelay: '2s' }}></div>
-      </div>
-
+    <div className="flex h-screen bg-slate-50">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900/80 backdrop-blur-xl border-r border-white/10 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <div className="flex flex-col h-full relative z-10">
+        <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="h-20 flex items-center px-6 border-b border-white/10">
+          <div className="h-16 flex items-center px-6 border-b border-slate-800">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-${theme.color}-500/20`} style={{ background: `linear-gradient(135deg, ${theme.hex}, #1e1b4b)` }}>
-                <span className="text-xl">{theme.icon}</span>
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                <span className="text-lg font-bold">{settings.platformLogo}</span>
               </div>
-              <div>
-                <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">AstroElite</span>
-                <p className="text-[10px] text-gray-400 tracking-widest uppercase">Admin Panel</p>
-              </div>
+              <span className="text-xl font-bold tracking-tight">{settings.platformTitle}</span>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 overflow-y-auto custom-scrollbar">
-            <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Main</p>
+          <nav className="flex-1 px-4 py-6 overflow-y-auto">
+            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Main</p>
             <SidebarItem id="dashboard" icon={BarChart3} label="Dashboard" />
             <SidebarItem id="users" icon={Users} label="Users" />
             <SidebarItem id="astrologers" icon={Crown} label="Astrologers" />
             <SidebarItem id="horoscope" icon={Sparkles} label="Horoscope" />
-            <SidebarItem id="inbox" icon={MessageCircle} label="Inbox" />
 
-            <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mt-8 mb-4">Marketing</p>
+            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-8 mb-4">Marketing</p>
             <SidebarItem id="offers" icon={Gift} label="Offers" />
             <SidebarItem id="banners" icon={Image} label="Banners" />
 
-            <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mt-8 mb-4">System</p>
+            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-8 mb-4">System</p>
             <SidebarItem id="settings" icon={Settings} label="Settings" />
           </nav>
 
           {/* User Profile */}
-          <div className="p-4 border-t border-white/10 bg-black/20">
+          <div className="p-4 border-t border-slate-800">
             <div className="flex items-center gap-3 px-2 mb-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg`} style={{ backgroundColor: theme.hex }}>
+              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-indigo-400 font-bold">
                 {user?.name?.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate text-white">{user?.name}</p>
-                <p className="text-xs text-gray-400 truncate">Super Admin</p>
+                <p className="text-sm font-medium truncate">{user?.name}</p>
+                <p className="text-xs text-slate-500 truncate">Super Admin</p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-red-500/20 hover:border-red-500/50"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
             >
               <LogOut size={16} />
               <span>Logout</span>
@@ -443,50 +400,33 @@ const AdminDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="bg-gray-900/50 backdrop-blur-md border-b border-white/5 h-20 flex items-center justify-between px-4 lg:px-8">
+        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 lg:px-8">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 text-gray-400 hover:bg-white/5 rounded-lg"
+              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
             >
               <Menu size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-white capitalize tracking-wide">
+            <h1 className="text-xl font-semibold text-slate-800 capitalize">
               {activeTab.replace('-', ' ')}
             </h1>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Theme Selector */}
-            <div className="hidden md:flex items-center gap-2 bg-black/30 p-1.5 rounded-full border border-white/10">
-              {Object.keys(ZODIAC_THEMES).map((sign) => (
-                <button
-                  key={sign}
-                  onClick={() => updateTheme(sign)}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] transition-all duration-300 ${
-                    activeThemeName === sign ? 'scale-125 shadow-lg ring-2 ring-white/50' : 'opacity-50 hover:opacity-100 hover:scale-110'
-                  }`}
-                  style={{ backgroundColor: ZODIAC_THEMES[sign].hex }}
-                  title={sign}
-                >
-                  {ZODIAC_THEMES[sign].icon}
-                </button>
-              ))}
-            </div>
-
             <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="text"
                 placeholder="Search..."
-                className="pl-10 pr-4 py-2 bg-black/30 border border-white/10 rounded-full text-sm focus:ring-2 focus:ring-white/20 text-white w-64 placeholder-gray-600"
+                className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 w-64"
               />
             </div>
-            <button className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full relative transition-colors">
+            <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-full relative">
               <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
           </div>
         </header>
@@ -506,32 +446,32 @@ const AdminDashboard = () => {
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard label="Total Users" value={stats.totalUsers} icon={Users} trend="+12%" />
-                <StatCard label="Astrologers" value={stats.totalAstrologers} icon={Crown} trend="+5%" />
-                <StatCard label="Earnings" value={`${settings.currency}${stats.totalEarnings}`} icon={DollarSign} trend="+18%" />
-                <StatCard label="Active Calls" value={stats.activeCalls} icon={Zap} trend="Live" />
+                <StatCard label="Total Users" value={stats.totalUsers} icon={Users} color="bg-blue-500" trend="+12%" />
+                <StatCard label="Astrologers" value={stats.totalAstrologers} icon={Crown} color="bg-purple-500" trend="+5%" />
+                <StatCard label="Earnings" value={`${settings.currency}${stats.totalEarnings}`} icon={DollarSign} color="bg-emerald-500" trend="+18%" />
+                <StatCard label="Active Calls" value={stats.activeCalls} icon={Zap} color="bg-amber-500" trend="Live" />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Recent Activity */}
-                <div className="lg:col-span-2 bg-gray-800/50 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl">
-                  <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center">
-                    <h3 className="font-bold text-white">Recent Logins</h3>
-                    <button className="text-sm font-medium hover:text-white transition-colors" style={{ color: theme.hex }}>View All</button>
+                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm">
+                  <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                    <h3 className="font-semibold text-slate-800">Recent Logins</h3>
+                    <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">View All</button>
                   </div>
-                  <div className="divide-y divide-white/5">
+                  <div className="divide-y divide-slate-100">
                     {recentLogins.slice(0, 5).map((login, i) => (
-                      <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                      <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-black/30 flex items-center justify-center font-bold text-xs text-gray-300 border border-white/5">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">
                             {login.name?.charAt(0)}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-white">{login.name}</p>
-                            <p className="text-xs text-gray-500">{login.email}</p>
+                            <p className="text-sm font-medium text-slate-900">{login.name}</p>
+                            <p className="text-xs text-slate-500">{login.email}</p>
                           </div>
                         </div>
-                        <span className="text-xs text-gray-500 font-mono">
+                        <span className="text-xs text-slate-400 font-mono">
                           {new Date(login.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
@@ -541,68 +481,23 @@ const AdminDashboard = () => {
 
                 {/* Quick Actions */}
                 <div className="space-y-6">
-                  <div className="bg-gray-800/50 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-6">
-                    <h3 className="font-bold text-white mb-4">Quick Actions</h3>
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                    <h3 className="font-semibold text-slate-800 mb-4">Quick Actions</h3>
                     <div className="space-y-3">
-                      <button onClick={() => setActiveTab('astrologers')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/5 hover:bg-white/5 transition-all group">
-                        <div className="p-2 rounded-lg transition-colors" style={{ backgroundColor: `${theme.hex}20`, color: theme.hex }}>
+                      <button onClick={() => setActiveTab('astrologers')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group">
+                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                           <UserPlus size={18} />
                         </div>
-                        <span className="text-sm font-medium text-gray-300 group-hover:text-white">Add Astrologer</span>
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-indigo-700">Add Astrologer</span>
                       </button>
-                      <button onClick={() => setActiveTab('horoscope')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/5 hover:bg-white/5 transition-all group">
-                        <div className="p-2 rounded-lg transition-colors" style={{ backgroundColor: `${theme.hex}20`, color: theme.hex }}>
+                      <button onClick={() => setActiveTab('horoscope')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:border-purple-500 hover:bg-purple-50 transition-all group">
+                        <div className="p-2 bg-purple-100 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
                           <Sparkles size={18} />
                         </div>
-                        <span className="text-sm font-medium text-gray-300 group-hover:text-white">Update Horoscope</span>
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-purple-700">Update Horoscope</span>
                       </button>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'inbox' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Inbox</h2>
-                  <p className="text-gray-400">Pending and active chat requests</p>
-                </div>
-                <button onClick={fetchPending} className="px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-lg text-sm font-medium hover:bg-white/10">Refresh</button>
-              </div>
-              <div className="bg-gray-800/50 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-black/20 text-gray-400 font-medium border-b border-white/5">
-                      <tr>
-                        <th className="px-6 py-4">Session</th>
-                        <th className="px-6 py-4">Client</th>
-                        <th className="px-6 py-4">Astrologer</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4">Rate</th>
-                        <th className="px-6 py-4">Created</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {pendingSessions.map((s) => (
-                        <tr key={s.sessionId} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4 text-gray-300 font-mono">{s.sessionId}</td>
-                          <td className="px-6 py-4 text-white">{s.client?.name || s.client?.id}</td>
-                          <td className="px-6 py-4 text-white">{s.astrologer?.name || s.astrologer?.id}</td>
-                          <td className="px-6 py-4"><span className={`px-2 py-0.5 rounded-full text-xs ${s.status === 'requested' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'}`}>{s.status}</span></td>
-                          <td className="px-6 py-4 text-white">₹{s.ratePerMinute}/min</td>
-                          <td className="px-6 py-4 text-gray-400">{new Date(s.createdAt).toLocaleString()}</td>
-                        </tr>
-                      ))}
-                      {pendingSessions.length === 0 && (
-                        <tr>
-                          <td colSpan="6" className="px-6 py-12 text-center text-gray-500">No sessions</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             </div>
@@ -613,19 +508,19 @@ const AdminDashboard = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">User Management</h2>
-                  <p className="text-gray-400">Manage client accounts and wallets</p>
+                  <h2 className="text-2xl font-bold text-slate-900">User Management</h2>
+                  <p className="text-slate-500">Manage client accounts and wallets</p>
                 </div>
-                <div className="bg-gray-800/50 px-4 py-2 rounded-lg border border-white/10 shadow-sm">
-                  <span className="text-sm font-medium text-gray-400">Total Users: </span>
-                  <span className="text-lg font-bold" style={{ color: theme.hex }}>{users.length}</span>
+                <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                  <span className="text-sm font-medium text-slate-600">Total Users: </span>
+                  <span className="text-lg font-bold text-indigo-600">{users.length}</span>
                 </div>
               </div>
 
-              <div className="bg-gray-800/50 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl overflow-hidden">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
-                    <thead className="bg-black/20 text-gray-400 font-medium border-b border-white/5">
+                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                       <tr>
                         <th className="px-6 py-4">User</th>
                         <th className="px-6 py-4">Email</th>
@@ -634,20 +529,20 @@ const AdminDashboard = () => {
                         <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-slate-100">
                       {users.map((user) => (
-                        <tr key={user._id} className="hover:bg-white/5 transition-colors">
+                        <tr key={user._id} className="hover:bg-slate-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-black/30 flex items-center justify-center font-bold text-gray-300 border border-white/5">
+                              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold">
                                 {user.name?.charAt(0)}
                               </div>
-                              <span className="font-medium text-white">{user.name}</span>
+                              <span className="font-medium text-slate-900">{user.name}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-gray-400">{user.email}</td>
-                          <td className="px-6 py-4 font-bold text-emerald-400">{settings.currency}{user.walletBalance}</td>
-                          <td className="px-6 py-4 text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 text-slate-600">{user.email}</td>
+                          <td className="px-6 py-4 font-bold text-emerald-600">{settings.currency}{user.walletBalance}</td>
+                          <td className="px-6 py-4 text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</td>
                           <td className="px-6 py-4 text-right">
                             <button
                               onClick={() => {
@@ -655,8 +550,7 @@ const AdminDashboard = () => {
                                 setWalletAmount('');
                                 setShowWalletModal(true);
                               }}
-                              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-white/5 hover:bg-white/10 text-white"
-                              style={{ border: `1px solid ${theme.hex}40` }}
+                              className="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-medium transition-colors"
                             >
                               Add Money
                             </button>
@@ -665,7 +559,7 @@ const AdminDashboard = () => {
                       ))}
                       {users.length === 0 && (
                         <tr>
-                          <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                          <td colSpan="5" className="px-6 py-12 text-center text-slate-500">
                             No users found.
                           </td>
                         </tr>
@@ -682,17 +576,16 @@ const AdminDashboard = () => {
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Astrologer Management</h2>
-                  <p className="text-sm text-gray-400">Manage your platform's experts</p>
+                  <h2 className="text-lg font-bold text-slate-900">Astrologer Management</h2>
+                  <p className="text-sm text-slate-500">Manage your platform's experts</p>
                 </div>
                 <div className="flex gap-3">
-                  <button className="px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-lg text-sm font-medium hover:bg-white/10">
+                  <button className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50">
                     Export List
                   </button>
                   <button
                     onClick={() => document.getElementById('add-astro-form').scrollIntoView({ behavior: 'smooth' })}
-                    className="px-4 py-2 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: theme.hex }}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 flex items-center gap-2"
                   >
                     <UserPlus size={16} />
                     Add New
@@ -701,10 +594,10 @@ const AdminDashboard = () => {
               </div>
 
               {/* List */}
-              <div className="bg-gray-800/50 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl overflow-hidden">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
-                    <thead className="bg-black/20 text-gray-400 font-medium border-b border-white/5">
+                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                       <tr>
                         <th className="px-6 py-4">Astrologer</th>
                         <th className="px-6 py-4">Contact</th>
@@ -713,25 +606,25 @@ const AdminDashboard = () => {
                         <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-slate-100">
                       {astrologers.map((astro) => (
-                        <tr key={astro._id} className="hover:bg-white/5 transition-colors">
+                        <tr key={astro._id} className="hover:bg-slate-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-black/30 flex items-center justify-center font-bold text-gray-300 border border-white/5">
+                              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold">
                                 {astro.name?.charAt(0)}
                               </div>
                               <div>
-                                <p className="font-medium text-white">{astro.name}</p>
-                                <p className="text-xs text-gray-500">{astro.specialties?.slice(0, 2).join(', ')}</p>
+                                <p className="font-medium text-slate-900">{astro.name}</p>
+                                <p className="text-xs text-slate-500">{astro.specialties?.slice(0, 2).join(', ')}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-gray-400">{astro.email}</td>
-                          <td className="px-6 py-4 font-medium text-white">{settings.currency}{astro.profile?.ratePerMinute}/min</td>
+                          <td className="px-6 py-4 text-slate-600">{astro.email}</td>
+                          <td className="px-6 py-4 font-medium text-slate-900">{settings.currency}{astro.profile?.ratePerMinute}/min</td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              astro.isOnline ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                              astro.isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'
                             }`}>
                               {astro.isOnline ? 'Online' : 'Offline'}
                             </span>
@@ -741,7 +634,7 @@ const AdminDashboard = () => {
                               <button
                                 onClick={() => toggleAstrologerStatus(astro._id, astro.isOnline)}
                                 className={`p-1.5 rounded-md transition-colors ${
-                                  astro.isOnline ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-gray-400 hover:bg-white/10'
+                                  astro.isOnline ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'
                                 }`}
                                 title="Toggle Status"
                               >
@@ -749,7 +642,7 @@ const AdminDashboard = () => {
                               </button>
                               <button
                                 onClick={() => deleteItem('astrologer', astro._id)}
-                                className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-colors"
+                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                                 title="Remove"
                               >
                                 <Trash2 size={16} />
@@ -760,7 +653,7 @@ const AdminDashboard = () => {
                       ))}
                       {astrologers.length === 0 && (
                         <tr>
-                          <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                          <td colSpan="5" className="px-6 py-12 text-center text-slate-500">
                             No astrologers found. Add one to get started.
                           </td>
                         </tr>
@@ -771,60 +664,51 @@ const AdminDashboard = () => {
               </div>
 
               {/* Add Form */}
-              <div id="add-astro-form" className="bg-gray-800/50 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl p-6 lg:p-8">
-                <h3 className="text-lg font-bold text-white mb-6">Register New Astrologer</h3>
+              <div id="add-astro-form" className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 lg:p-8">
+                <h3 className="text-lg font-bold text-slate-900 mb-6">Register New Astrologer</h3>
                 <form onSubmit={onSubmitAstrologer} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Full Name</label>
-                    <input type="text" required className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all text-white"
-                      style={{ '--tw-ring-color': theme.hex }}
+                    <label className="text-sm font-medium text-slate-700">Full Name</label>
+                    <input type="text" required className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                       value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Email Address</label>
-                    <input type="email" required className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all text-white"
-                      style={{ '--tw-ring-color': theme.hex }}
+                    <label className="text-sm font-medium text-slate-700">Email Address</label>
+                    <input type="email" required className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                       value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Password</label>
-                    <input type="password" required className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all text-white"
-                      style={{ '--tw-ring-color': theme.hex }}
+                    <label className="text-sm font-medium text-slate-700">Password</label>
+                    <input type="password" required className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                       value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Phone Number</label>
-                    <input type="tel" className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all text-white"
-                      style={{ '--tw-ring-color': theme.hex }}
+                    <label className="text-sm font-medium text-slate-700">Phone Number</label>
+                    <input type="tel" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                       value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Rate per Minute ({settings.currency})</label>
-                    <input type="number" required min="1" className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all text-white"
-                      style={{ '--tw-ring-color': theme.hex }}
+                    <label className="text-sm font-medium text-slate-700">Rate per Minute ({settings.currency})</label>
+                    <input type="number" required min="1" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                       value={formData.ratePerMinute} onChange={e => setFormData({...formData, ratePerMinute: e.target.value})} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Experience (Years)</label>
-                    <input type="number" className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all text-white"
-                      style={{ '--tw-ring-color': theme.hex }}
+                    <label className="text-sm font-medium text-slate-700">Experience (Years)</label>
+                    <input type="number" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                       value={formData.experience} onChange={e => setFormData({...formData, experience: e.target.value})} />
                   </div>
                   <div className="md:col-span-2 space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Languages (comma separated)</label>
-                    <input type="text" placeholder="English, Tamil, Hindi" className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all text-white placeholder-gray-600"
-                      style={{ '--tw-ring-color': theme.hex }}
+                    <label className="text-sm font-medium text-slate-700">Languages (comma separated)</label>
+                    <input type="text" placeholder="English, Tamil, Hindi" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                       value={formData.languages} onChange={e => setFormData({...formData, languages: e.target.value})} />
                   </div>
                   <div className="md:col-span-2 space-y-1">
-                    <label className="text-sm font-medium text-gray-400">Specialties (comma separated)</label>
-                    <input type="text" placeholder="Vedic, Numerology, Tarot" className="w-full px-3 py-2 bg-black/30 border border-white/10 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all text-white placeholder-gray-600"
-                      style={{ '--tw-ring-color': theme.hex }}
+                    <label className="text-sm font-medium text-slate-700">Specialties (comma separated)</label>
+                    <input type="text" placeholder="Vedic, Numerology, Tarot" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                       value={formData.specialties} onChange={e => setFormData({...formData, specialties: e.target.value})} />
                   </div>
                   <div className="md:col-span-2 pt-4">
-                    <button type="submit" disabled={submitLoading} className="w-full text-white py-3 rounded-xl font-bold hover:opacity-90 transition-all shadow-lg disabled:opacity-50"
-                      style={{ backgroundColor: theme.hex }}>
+                    <button type="submit" disabled={submitLoading} className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50">
                       {submitLoading ? 'Creating Account...' : 'Create Astrologer Account'}
                     </button>
                   </div>
@@ -1095,14 +979,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-  const fetchPending = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`);
-      setPendingSessions(res.data);
-    } catch (err) {
-      showNotification('Failed to fetch inbox', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };

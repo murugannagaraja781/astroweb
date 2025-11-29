@@ -18,22 +18,7 @@ const BannerSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
-    },
-    deviceType: {
-        type: String,
-        enum: ['mobile', 'desktop', 'tablet', 'all'],
-        default: 'all'
-    },
-    position: {
-        type: String,
-        enum: ['home_top', 'home_middle', 'home_bottom', 'dashboard', 'profile'],
-        default: 'home_top'
-    },
-    priority: {
-        type: Number,
-        default: 0
     }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Banner', BannerSchema);
-
