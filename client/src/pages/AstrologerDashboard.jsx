@@ -832,7 +832,7 @@ const AstrologerDashboard = () => {
             >
               <div>
                 <h4 className="font-semibold text-gray-800">
-                  Session ID: {session.sessionId}
+                  Session ID: {session.sessionId} Date: {session.Date}
                 </h4>
                 <span className="text-sm text-gray-600">{session.status}</span>
               </div>
