@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useContext, useCallback } from "react";
+ import { useEffect, useState, useRef, useContext, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
@@ -19,7 +19,7 @@ const Chat = () => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const messagesEndRef = useRef(null);
-  const lastMessageRef = useRef(""); // Prevent duplicate messages
+  const lastMessageRef = useRef("");
 
   // Auto scroll
   const scrollToBottom = () => {
@@ -50,7 +50,6 @@ const Chat = () => {
     fetchChat();
 
     socket.on("chat:message", (newMessage) => {
-      // Prevent duplicate messages by checking if we already have this message
       setConversation((prev) => {
         const isDuplicate = prev.some(
           msg => msg.text === newMessage.text &&
@@ -86,7 +85,7 @@ const Chat = () => {
       status: "sent",
     };
 
-    lastMessageRef.current = message; // Store last sent message
+    lastMessageRef.current = message;
 
     socket.emit("chat:message", {
       sessionId: id,
@@ -166,6 +165,21 @@ const Chat = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
+      <style jsx>{`
+        input, textarea, select {
+          color: #f9f4f4 !important;
+          font-size: large;
+        }
+        .message-container {
+          padding-bottom: 140px; /* Extra space for mobile footer */
+        }
+        @media (min-width: 768px) {
+          .message-container {
+            padding-bottom: 120px;
+          }
+        }
+      `}</style>
+
       {/* Gold Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 left-10 w-2 h-2 bg-yellow-400 rounded-full opacity-60 animate-pulse"></div>
@@ -196,11 +210,11 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Messages Container - Centered */}
+      {/* Messages Container - Centered with extra bottom padding */}
       <div className="flex-1 overflow-y-auto relative z-0">
         <div className="max-w-4xl mx-auto h-full flex flex-col">
-          {/* Messages List */}
-          <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+          {/* Messages List with extra bottom padding */}
+          <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container">
             {conversation.length === 0 ? (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full mb-4">
@@ -249,7 +263,7 @@ const Chat = () => {
                       </div>
                     )}
 
-                    {/* Timestamp */}
+                    {/* Timestamp - Always visible */}
                     <div className={`text-xs mt-2 ${
                       msg.sender === user.id ? 'text-yellow-300' : 'text-yellow-400'
                     }`}>
@@ -282,8 +296,8 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Input Area - Better Mobile Footer */}
-      <div className="relative z-10 bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-6 pb-4 md:pb-6">
+      {/* Input Area - Fixed at bottom with safe area for mobile */}
+      <div className="relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-safe-or-6">
         <div className="max-w-4xl mx-auto px-4">
           {/* Recording Indicator - Only shows when recording */}
           {isRecording && (
@@ -303,7 +317,7 @@ const Chat = () => {
               {/* Gold glow effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
 
-              <div className="relative bg-black/60 backdrop-blur-xl border border-yellow-600/30 rounded-2xl shadow-2xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3">
+              <div className="relative bg-black/70 backdrop-blur-xl border border-yellow-600/40 rounded-2xl shadow-2xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3">
                 {/* Record Button */}
                 {!isRecording ? (
                   <button
@@ -325,14 +339,15 @@ const Chat = () => {
                   </button>
                 )}
 
-                {/* Message Input */}
+                {/* Message Input with custom color */}
                 <input
                   type="text"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onInput={handleTyping}
                   placeholder="Send your message..."
-                  className="flex-1 bg-transparent text-yellow-50 placeholder-yellow-400/70 focus:outline-none text-sm md:text-base min-w-0"
+                  className="flex-1 bg-transparent placeholder-yellow-400/70 focus:outline-none text-lg min-w-0"
+                  style={{ color: '#f9f4f4' }}
                 />
 
                 {/* Send Button */}
@@ -351,10 +366,10 @@ const Chat = () => {
             </div>
           </form>
 
-          {/* Mobile optimization note */}
+          {/* Mobile safe area indicator */}
           <div className="text-center mt-2">
             <p className="text-yellow-600/60 text-xs">
-              💫 Your cosmic connection is secure
+              🔮 Secure cosmic connection
             </p>
           </div>
         </div>
