@@ -246,7 +246,7 @@ const AstrologerDashboard = () => {
                       className="flex justify-between items-center p-4 border rounded-lg"
                     >
                       <div>
-                        <p className="font-semibold">Chat Request</p>
+                        <p className="font-semibold">{session.userId.name}</p>
                         <p className="text-sm text-gray-600">
                           Session: {session.sessionId}
                         </p>
