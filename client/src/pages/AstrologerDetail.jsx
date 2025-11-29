@@ -1,123 +1,268 @@
-import { useEffect, useState, useContext, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
-import axios from "axios";
-import AuthContext from "../context/AuthContext";
+import { useState, useEffect, useContext } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import AuthContext from '../context/AuthContext';
+import { Video, MessageCircle, Star, Award, Globe, Languages, Sparkles, ArrowLeft } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 const AstrologerDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-
-  const [astro, setAstro] = useState(null);
-  const [waiting, setWaiting] = useState(false);
-  const [errorPopup, setErrorPopup] = useState(null);
+  const navigate = useNavigate();
+  const [astrologer, setAstrologer] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
-
-  const API_URL =
-    (typeof import.meta !== "undefined" &&
-      import.meta.env &&
-      import.meta.env.VITE_API_URL) ||
-    process.env.VITE_API_URL ||
-    "https://astroweb-production.up.railway.app";
-
-  // Socket needs to be initialized with the URL
-  // Note: In a real app, socket might be a singleton or from context
-  const socket = io(API_URL);
+  const [waiting, setWaiting] = useState(false);
+  const socket = io(import.meta.env.VITE_API_URL);
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/astrologers/${id}`).then((res) => setAstro(res.data));
-  }, [id, API_URL]);
+    fetchAstrologer();
+    if (user) {
+      fetchBalance();
+    }
+  }, [id, user]);
 
-  const handleAction = useCallback((action) => {
+  const fetchBalance = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
+      setBalance(res.data.balance);
+    } catch (err) {
+      console.error('Error fetching balance:', err);
+    }
+  };
+
+  const fetchAstrologer = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/astrologers`);
+      const astro = res.data.find(a => a._id === id);
+      setAstrologer(astro);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching astrologer:', err);
+      setLoading(false);
+    }
+  };
+
+  const getInitials = (name) => {
+    if (!name) return '??';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
+  const handleAction = (action) => {
+    // Check if user is logged in
     if (!user) {
-      alert("Please login to continue");
-      navigate("/login");
+      alert('Please login to continue');
+      navigate('/login');
       return;
     }
 
-    if (user.role === "client" && balance < 1) {
-      alert(
-        "Insufficient balance! Please add money to your wallet. Minimum ₹1 required."
-      );
-      navigate("/dashboard");
+    // Check if user has sufficient balance (minimum ₹1)
+    // Skip balance check for admin and astrologer users
+    if (user.role === 'client' && balance < 1) {
+      alert('Insufficient balance! Please add money to your wallet. Minimum ₹1 required.');
+      navigate('/dashboard');
       return;
     }
 
-    if (!astro || !astro.isOnline) {
-      alert("This astrologer is currently offline. Please try again later.");
+    // Check if astrologer is online
+    if (!astrologer.isOnline) {
+      alert('This astrologer is currently offline. Please try again later.');
       return;
     }
 
-    if (action === "call") {
+    if (action === 'call') {
       navigate(`/call/${id}`);
-    } else if (action === "chat") {
+    } else if (action === 'chat') {
       setWaiting(true);
-      setErrorPopup(null);
-
-      const timeoutId = setTimeout(() => {
-        setWaiting(false);
-        setErrorPopup({
-            message: "Connection timed out. The server is taking too long to respond.",
-            type: "error"
-        });
-      }, 15000);
-
-      socket.emit("user_online", { userId: user.id });
-
-      socket.once("chat:requested", ({ sessionId }) => {
-        console.log("Session created, joining room:", sessionId);
-        socket.emit("join_chat", { sessionId });
+      socket.emit('user_online', { userId: user.id });
+      socket.emit('chat:request', {
+        clientId: user.id,
+        astrologerId: id,
+        ratePerMinute: astrologer.profile?.ratePerMinute || 1
       });
-
-      axios.post(`${API_URL}/api/chat/request`, {
-        astrologerId: id
-      }, {
-        headers: { 'x-auth-token': localStorage.getItem('token') }
-      }).catch(err => {
-        console.error("API Request Error:", err);
-        clearTimeout(timeoutId);
-        setWaiting(false);
-        setErrorPopup({
-            message: err.response?.data?.msg || "Failed to send chat request via API",
-            type: "error"
-        });
-      });
-
-      socket.once("chat:joined", ({ sessionId }) => {
-        clearTimeout(timeoutId);
+      socket.once('chat:joined', ({ sessionId }) => {
+        console.log("[DEBUG] Client received chat:joined:", sessionId);
         setWaiting(false);
         navigate(`/chat/${sessionId}`);
       });
-
-      socket.once("chat:error", (err) => {
-        clearTimeout(timeoutId);
+      socket.once('chat:error', () => {
         setWaiting(false);
-        console.error("Chat Error:", err);
-        setErrorPopup({
-            message: err.error || "Failed to connect to chat server.",
-            type: "error"
-        });
+        alert('Failed to request chat');
       });
     }
-  }, [user, balance, astro, id, navigate, API_URL]);
+  };
 
-  if (!astro) return <p>Loading...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-orange-200 border-t-orange-600"></div>
+      </div>
+    );
+  }
+
+  if (!astrologer) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-xl text-gray-600">Astrologer not found</p>
+          <button
+            onClick={() => navigate('/')}
+            className="mt-4 text-orange-600 hover:text-orange-700 font-semibold"
+          >
+            Go back home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1>{astro.name}</h1>
-      <p>₹{astro.ratePerMinute}/min</p>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-purple-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-orange-500 to-purple-600 text-white py-8 px-4">
+        <div className="container mx-auto">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-white hover:text-orange-100 mb-4 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Home
+          </button>
+        </div>
+      </div>
 
-      <button onClick={() => handleAction('chat')}>
-        Start Chat
-      </button>
-      <button onClick={() => handleAction('call')}>
-        Start Call
-      </button>
+      <div className="container mx-auto px-4 -mt-16">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
+          {/* Profile Header */}
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-8">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-2xl">
+                <span className="text-white text-5xl font-bold">
+                  {getInitials(astrologer.name)}
+                </span>
+              </div>
+              {astrologer.isOnline && (
+                <span className="absolute bottom-2 right-2 w-8 h-8 bg-green-500 border-4 border-white rounded-full animate-pulse"></span>
+              )}
+            </div>
 
-      {waiting && <p>Waiting for astrologer to accept…</p>}
-      {errorPopup && <p style={{ color: 'red' }}>{errorPopup.message}</p>}
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">{astrologer.name}</h1>
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                {astrologer.isOnline ? (
+                  <span className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-semibold flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Available Now
+                  </span>
+                ) : (
+                  <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold">
+                    Offline
+                  </span>
+                )}
+              </div>
+              {waiting && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="bg-white rounded-xl shadow-xl p-6 w-80 text-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-600 mx-auto mb-4"></div>
+                    <p className="text-gray-700 font-medium">Waiting for astrologer to accept…</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-center md:justify-start gap-2 text-2xl font-bold text-orange-600 mb-6">
+                <Star className="w-6 h-6 fill-orange-600" />
+                ₹{astrologer.profile?.ratePerMinute || 0}/min
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                <button
+                  onClick={() => handleAction('call')}
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Video size={20} />
+                  Video Call 3
+                </button>
+                <button
+                  onClick={() => handleAction('chat')}
+                  className="flex items-center gap-2 bg-white text-orange-600 border-2 border-orange-500 px-6 py-3 rounded-xl font-semibold hover:bg-orange-50 transition-all transform hover:scale-105"
+                >
+                  <MessageCircle size={20} />
+                  Chat
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Details Grid */}
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            {/* Experience */}
+            {astrologer.profile?.experience && (
+              <div className="bg-orange-50 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Award className="w-6 h-6 text-orange-600" />
+                  <h3 className="text-lg font-bold text-gray-800">Experience</h3>
+                </div>
+                <p className="text-gray-700 text-lg">{astrologer.profile.experience} years</p>
+              </div>
+            )}
+
+            {/* Languages */}
+            {astrologer.profile?.languages && astrologer.profile.languages.length > 0 && (
+              <div className="bg-purple-50 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Languages className="w-6 h-6 text-purple-600" />
+                  <h3 className="text-lg font-bold text-gray-800">Languages</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {astrologer.profile.languages.map((lang, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-purple-200 text-purple-800 rounded-full text-sm font-medium"
+                    >
+                      {lang}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Specialties */}
+          {astrologer.profile?.specialties && astrologer.profile.specialties.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Sparkles className="w-6 h-6 text-orange-600" />
+                <h3 className="text-2xl font-bold text-gray-800">Specialties</h3>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {astrologer.profile.specialties.map((specialty, idx) => (
+                  <span
+                    key={idx}
+                    className="px-4 py-2 bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 rounded-xl text-sm font-semibold"
+                  >
+                    {specialty}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Bio */}
+          {astrologer.profile?.bio && (
+            <div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">About</h3>
+              <p className="text-gray-700 leading-relaxed text-lg">
+                {astrologer.profile.bio}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

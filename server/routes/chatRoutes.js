@@ -10,9 +10,7 @@ const {
   saveMessage,
   requestSession,
   getSessionHistory,
-
   getPendingSessions,
-  acceptSession,
 } = require("../controllers/chatController");
 
 const auth = require("../middleware/auth");
@@ -21,7 +19,6 @@ const auth = require("../middleware/auth");
 router.post("/initiate", auth, initiateChat);
 router.post("/end", auth, endChat);
 router.post("/request", auth, requestSession);
-router.post("/accept", auth, acceptSession);
 
 // HISTORY + SESSIONS
 router.get("/history/:userId/:peerId", auth, getChatHistory);

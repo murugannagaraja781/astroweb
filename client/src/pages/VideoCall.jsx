@@ -17,7 +17,7 @@ import OffersList from "../components/OffersList";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 
-const SOCKET_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || process.env.VITE_API_URL || 'https://astroweb-production.up.railway.app';
+const SOCKET_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || process.env.VITE_API_URL || '';
 const APP_ID = (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_AGORA_APP_ID || import.meta.env.VITE_APP_ID)) || process.env.VITE_AGORA_APP_ID || process.env.VITE_APP_ID || '';
 
 const AGORA_DEBUG = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_AGORA_DEBUG) || process.env.VITE_AGORA_DEBUG;
@@ -110,9 +110,10 @@ export default function VideoCall() {
     if (!user || !socket) return;
 
     // Events
-    socket.on("connect", () => {});
+    socket.on("connect", () => console.log("socket connected", socket.id));
 
     socket.on("callAccepted", async ({ callId: acceptedCallId }) => {
+      console.log("call accepted", acceptedCallId);
       addToast("Call accepted", "success");
 
       // If we are the client initiator we probably already have callId but ensure

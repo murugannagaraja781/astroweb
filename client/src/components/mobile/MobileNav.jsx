@@ -31,18 +31,7 @@ const MobileNav = () => {
     { to: "/chat/0", icon: MessageCircle, label: "Chat" },
     { to: "/call/0", icon: Video, label: "Call" },
     { to: "/profile", icon: User, label: "Profile" },
-  ].filter(item => {
-    // Hide Home link ONLY if on Astrologer or Admin dashboard pages
-    // Client dashboard (/dashboard) SHOULD see the Home link
-    if (item.label === "Home" && (
-      location.pathname === '/astrologer-dashboard' ||
-      location.pathname === '/admin-dashboard' ||
-      location.pathname === '/astrology'
-    )) {
-      return false;
-    }
-    return true;
-  });
+  ];
 
   return (
     <motion.nav

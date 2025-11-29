@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const API_URL = process.env.VITE_API_URL || 'https://astroweb-production.up.railway.app';
+const API_URL = process.env.VITE_API_URL || 'http://localhost:5000';
 const MONGO_URI = process.env.MONGO_URI;
 
 console.log('\n🔍 VIDEO CALL & CHAT TROUBLESHOOTER\n');

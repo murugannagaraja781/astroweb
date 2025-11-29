@@ -4,7 +4,7 @@ try {
     // set path to your ephemeris folder
     swe.swe_set_ephe_path(__dirname + '/../ephe');
 } catch (e) {
-    console.info("ℹ️  swisseph module not found, using mock data (safe for dev)");
+    console.warn("swisseph module not found, using mock data");
     swe = null;
 }
 

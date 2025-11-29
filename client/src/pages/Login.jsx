@@ -25,12 +25,8 @@ const Login = () => {
   const onSubmit = async e => {
     e.preventDefault();
     try {
-      const userData = await login(email, password);
-      if (userData?.role === 'astrologer') {
-        navigate('/astrologer-dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      await login(email, password);
+      navigate('/dashboard');
     } catch (err) {
       console.error(err);
       alert('Login failed');
@@ -55,6 +51,8 @@ const Login = () => {
         }
       );
 
+      console.log('OTP Send Response:', response.data);
+
       if (response.data.type === 'success') {
         setOtpSent(true);
         alert('OTP sent successfully! Please check your phone.');
@@ -62,6 +60,8 @@ const Login = () => {
         alert('Failed to send OTP. Please try again.');
       }
     } catch (error) {
+      console.error('Error sending OTP:', error);
+      console.error('Error response:', error.response?.data);
       alert(`Error sending OTP: ${error.response?.data?.msg || error.message}`);
     } finally {
       setIsSendingOtp(false);
@@ -86,17 +86,14 @@ const Login = () => {
         }
       );
 
+      console.log('OTP Verification Response:', response.data);
+
       if (response.data.type === 'success' && response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
 
         alert('OTP verified successfully!');
-
-        if (response.data.user?.role === 'astrologer') {
-          navigate('/astrologer-dashboard');
-        } else {
-          navigate('/dashboard');
-        }
+        navigate('/dashboard');
         window.location.reload();
       } else {
         alert('Invalid OTP. Please try again.');
