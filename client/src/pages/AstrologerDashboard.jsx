@@ -812,7 +812,7 @@ const AstrologerDashboard = () => {
       </div>
     );
   };
-
+console.log("pendingSessions",pendingSessions)
   const InboxTab = () => (
     <div className="bg-white rounded-xl shadow-sm p-6">
       <h3 className="text-xl font-semibold text-gray-800 mb-4">
@@ -832,7 +832,10 @@ const AstrologerDashboard = () => {
             >
               <div>
                 <h4 className="font-semibold text-gray-800">
-                  Session ID: {session.sessionId} Date: {session.Date}
+                 Name : {session.sessionId}
+                </h4>
+                <h4 className="font-semibold text-gray-800">
+                  Session ID: {session.sessionId}
                 </h4>
                 <span className="text-sm text-gray-600">{session.status}</span>
               </div>
