@@ -1,4 +1,4 @@
- import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
@@ -32,9 +32,12 @@ const AstrologerDashboard = () => {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/astrologer/profile`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/profile`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setProfile(res.data);
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -44,9 +47,12 @@ const AstrologerDashboard = () => {
   const fetchPendingSessions = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/chatcalldetails`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setPendingSessions(res.data);
     } catch (err) {
       console.error("Error fetching sessions:", err);
@@ -64,7 +70,7 @@ const AstrologerDashboard = () => {
         from: payload.clientId,
         name: "Client",
         callId: payload.sessionId,
-        type: "chat"
+        type: "chat",
       });
       fetchPendingSessions();
     });
@@ -83,7 +89,7 @@ const AstrologerDashboard = () => {
     } else {
       socket.emit("answerCall", {
         to: incomingCall.from,
-        callId: incomingCall.callId
+        callId: incomingCall.callId,
       });
       navigate(`/call/${incomingCall.from}`);
     }
@@ -160,22 +166,37 @@ const AstrologerDashboard = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Astrologer Dashboard</h1>
-            <p className="text-gray-600">Manage your profile and accept client calls</p>
+            <h1 className="text-3xl font-bold text-gray-800">
+              Astrologer Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Manage your profile and accept client calls
+            </p>
           </div>
 
           <div className="bg-white rounded-xl p-4">
             <div className="flex items-center gap-4">
-              <div className={`w-3 h-3 rounded-full ${profile.isOnline ? "bg-green-500" : "bg-red-500"}`}></div>
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  profile.isOnline ? "bg-green-500" : "bg-red-500"
+                }`}
+              ></div>
               <span className="text-gray-600">
-                Status: <span className={profile.isOnline ? "text-green-600" : "text-red-600"}>
+                Status:{" "}
+                <span
+                  className={
+                    profile.isOnline ? "text-green-600" : "text-red-600"
+                  }
+                >
                   {profile.isOnline ? "Online" : "Offline"}
                 </span>
               </span>
               <button
                 onClick={toggleStatus}
                 className={`px-4 py-2 rounded-lg font-semibold text-white ${
-                  profile.isOnline ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+                  profile.isOnline
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-green-500 hover:bg-green-600"
                 }`}
               >
                 {profile.isOnline ? "Go Offline" : "Go Online"}
@@ -210,16 +231,25 @@ const AstrologerDashboard = () => {
         <div>
           {activeTab === "inbox" && (
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Pending Chat Requests</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Pending Chat Requests
+              </h3>
               {pendingSessions.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No pending requests</p>
+                <p className="text-gray-500 text-center py-8">
+                  No pending requests
+                </p>
               ) : (
                 <div className="space-y-4">
                   {pendingSessions.map((session) => (
-                    <div key={session.sessionId} className="flex justify-between items-center p-4 border rounded-lg">
+                    <div
+                      key={session.sessionId}
+                      className="flex justify-between items-center p-4 border rounded-lg"
+                    >
                       <div>
                         <p className="font-semibold">Chat Request</p>
-                        <p className="text-sm text-gray-600">Session: {session.sessionId}</p>
+                        <p className="text-sm text-gray-600">
+                          Session: {session.sessionId}
+                        </p>
                       </div>
                       <button
                         onClick={() => acceptChat(session.sessionId)}
@@ -236,17 +266,31 @@ const AstrologerDashboard = () => {
 
           {activeTab === "overview" && (
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Welcome, {profile.name}</h3>
-              <p className="text-gray-600">You are currently {profile.isOnline ? "online" : "offline"} and ready to accept calls.</p>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Welcome, {profile.name}
+              </h3>
+              <p className="text-gray-600">
+                You are currently {profile.isOnline ? "online" : "offline"} and
+                ready to accept calls.
+              </p>
             </div>
           )}
 
           {activeTab === "profile" && (
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Your Profile</h3>
-              <p><strong>Name:</strong> {profile.name}</p>
-              <p><strong>Rate:</strong> ₹{profile.ratePerMinute || 0}/min</p>
-              <p><strong>Experience:</strong> {profile.experience || "Not set"} years</p>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Your Profile
+              </h3>
+              <p>
+                <strong>Name:</strong> {profile.name}
+              </p>
+              <p>
+                <strong>Rate:</strong> ₹{profile.ratePerMinute || 0}/min
+              </p>
+              <p>
+                <strong>Experience:</strong> {profile.experience || "Not set"}{" "}
+                years
+              </p>
             </div>
           )}
         </div>
