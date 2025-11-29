@@ -81,6 +81,19 @@ exports.getChatCallRequests = async (req, res) => {
         // Filter based on user role (case-insensitive)
         const role = userRole ? userRole.toLowerCase() : '';
 
+        // DEBUG MODE: If debug=true is passed, return ALL records to see what's in DB
+        if (req.query.debug === 'true') {
+            console.log('[DEBUG] Debug mode enabled - returning ALL records');
+            const allRecords = await ChatCallDetails.find({});
+            console.log('[DEBUG] Total records in DB:', allRecords.length);
+            if (allRecords.length > 0) {
+                console.log('[DEBUG] Sample record:', JSON.stringify(allRecords[0]));
+                console.log('[DEBUG] Sample userId type:', typeof allRecords[0].userId);
+                console.log('[DEBUG] Sample astrologerId type:', typeof allRecords[0].astrologerId);
+            }
+            // Don't return here, let it filter normally but we logged the DB state
+        }
+
         if (role === 'astrologer') {
             // Ensure we're querying with ObjectId if possible
             query.astrologerId = mongoose.Types.ObjectId.isValid(userId)
@@ -98,7 +111,11 @@ exports.getChatCallRequests = async (req, res) => {
             query.status = status;
         }
 
-        console.log('[DEBUG] getChatCallRequests - query:', JSON.stringify(query));
+        console.log('[DEBUG] Final Query:', JSON.stringify(query));
+
+        // Log the types being used in query
+        if (query.astrologerId) console.log('[DEBUG] Query astrologerId type:', typeof query.astrologerId, query.astrologerId.constructor.name);
+        if (query.userId) console.log('[DEBUG] Query userId type:', typeof query.userId, query.userId.constructor.name);
 
         const chatCallRequests = await ChatCallDetails.find(query)
             .populate('userId', 'name email phone')
