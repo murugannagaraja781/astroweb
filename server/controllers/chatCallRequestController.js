@@ -94,19 +94,24 @@ exports.getChatCallRequests = async (req, res) => {
         let query = {};
         const role = userRole ? userRole.toLowerCase() : '';
 
-        // Prepare ID versions (String and ObjectId)
-        const idString = String(userId);
-        let idObject = null;
-        try {
-            if (mongoose.Types.ObjectId.isValid(userId)) {
-                idObject = new mongoose.Types.ObjectId(userId);
-            }
-        } catch (e) { console.error('ObjectId conversion error:', e); }
+        // CHECK: If all=true is passed, bypass role filtering (Show ALL data)
+        if (req.query.all === 'true') {
+            console.log('[DEBUG] "all=true" requested - Bypassing role filter');
+            // No role filter applied
+        }
+        else if (role === 'astrologer') {
+            // Prepare ID versions (String and ObjectId)
+            const idString = String(userId);
+            let idObject = null;
+            try {
+                if (mongoose.Types.ObjectId.isValid(userId)) {
+                    idObject = new mongoose.Types.ObjectId(userId);
+                }
+            } catch (e) { console.error('ObjectId conversion error:', e); }
 
-        console.log('[DEBUG] ID String:', idString);
-        console.log('[DEBUG] ID Object:', idObject);
+            console.log('[DEBUG] ID String:', idString);
+            console.log('[DEBUG] ID Object:', idObject);
 
-        if (role === 'astrologer') {
             // Match EITHER ObjectId OR String version of ID
             if (idObject) {
                 query.$or = [
@@ -117,6 +122,15 @@ exports.getChatCallRequests = async (req, res) => {
                 query.astrologerId = idString;
             }
         } else if (role === 'client') {
+            // Prepare ID versions (String and ObjectId)
+            const idString = String(userId);
+            let idObject = null;
+            try {
+                if (mongoose.Types.ObjectId.isValid(userId)) {
+                    idObject = new mongoose.Types.ObjectId(userId);
+                }
+            } catch (e) { console.error('ObjectId conversion error:', e); }
+
             if (idObject) {
                 query.$or = [
                     { userId: idObject },
@@ -129,7 +143,9 @@ exports.getChatCallRequests = async (req, res) => {
             // Admin sees all, no ID filter needed
             console.log('[DEBUG] Admin role detected, no ID filter applied');
         } else {
-            console.log('[DEBUG] Unknown role, returning empty');
+            // Default: If not admin/astro/client and no 'all=true', show nothing?
+            // Or maybe show nothing for safety.
+            console.log('[DEBUG] Unknown role and no all=true, returning empty');
             return res.json([]);
         }
 

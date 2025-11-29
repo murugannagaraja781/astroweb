@@ -102,6 +102,11 @@ const AstrologerDetail = () => {
       ratePerMinute: astrologer.profile?.ratePerMinute || 1
     });
 
+    // Listen for confirmation that request was stored
+    socket.once('chat:requested', () => {
+      alert("Chat request sent successfully! Waiting for astrologer to accept...");
+    });
+
     // Once astrologer accepts
     socket.once('chat:joined', async ({ sessionId }) => {
       console.log("[DEBUG] Client received chat:joined:", sessionId);
