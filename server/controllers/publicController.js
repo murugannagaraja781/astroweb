@@ -6,17 +6,27 @@ const Offer = require('../models/Offer');
 exports.getPublicAstrologers = async (req, res) => {
     try {
         const astrologers = await User.find({ role: 'astrologer' }).select('name email'); // Select basic info
+        if (astrologers.length > 0) {
+            console.log('First astrologer ID:', astrologers[0]._id);
+            console.log('Type of _id:', typeof astrologers[0]._id);
+            console.log('Is instance of ObjectId:', astrologers[0]._id instanceof require('mongoose').Types.ObjectId);
+            const result = await Promise.all(astrologers.map(async (astro) => {
+                const profile = await AstrologerProfile.findOne({ userId: astro._id }).select('profileImage languages specialties ratePerMinute isOnline bio');
 
-        const result = await Promise.all(astrologers.map(async (astro) => {
-            const profile = await AstrologerProfile.findOne({ userId: astro._id }).select('profileImage languages specialties ratePerMinute isOnline bio');
-            return {
-                _id: astro._id,
-                name: astro.name,
-                ...profile?._doc
-            };
-        }));
+                const profileData = profile ? profile._doc : {};
+                const { _id, ...profileRest } = profileData;
 
-        res.json(result);
+                return {
+                    _id: astro._id,
+                    name: astro.name,
+                    ...profileRest
+                };
+            }));
+
+            res.json(result);
+        } else {
+            res.json([]); // Return an empty array if no astrologers are found
+        }
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
@@ -26,9 +36,12 @@ exports.getPublicAstrologers = async (req, res) => {
 exports.getPublicAstrologerById = async (req, res) => {
     try {
         const { id } = req.params;
+        console.log('getPublicAstrologerById called with id:', id);
         const user = await User.findById(id).select('name email role');
+        console.log('Found user:', user);
 
         if (!user || user.role !== 'astrologer') {
+            console.log('User not found or not astrologer');
             return res.status(404).json({ msg: 'Astrologer not found' });
         }
 
