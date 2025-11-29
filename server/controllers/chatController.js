@@ -353,3 +353,71 @@ exports.getPendingSessions = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+exports.storeChatCall = async (req, res) => {
+  try {
+    const { userId, astrologerId, sessionId, initiatedAt } = req.body;
+
+    // Validate required fields
+    if (!sessionId || !userId || !astrologerId) {
+      return res.status(400).json({ msg: "Missing required fields" });
+    }
+
+    // Find existing session or create new one if not found (though it should exist from requestSession)
+    let session = await ChatSession.findOne({ sessionId });
+
+    if (session) {
+      // Update existing session
+      session.status = 'active';
+      session.startedAt = initiatedAt || new Date();
+      await session.save();
+    } else {
+      // Create new session (fallback)
+      session = await ChatSession.create({
+        sessionId,
+        clientId: userId,
+        astrologerId,
+        status: 'active',
+        startedAt: initiatedAt || new Date()
+      });
+    }
+
+    res.json({ success: true, session });
+  } catch (err) {
+    console.error("Error storing chat call:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+exports.getChatCall = async (req, res) => {
+  try {
+    const { sessionId } = req.query;
+
+    if (sessionId) {
+      const session = await ChatSession.findOne({ sessionId })
+        .populate('clientId', 'name email')
+        .populate('astrologerId', 'name');
+
+      if (!session) {
+        return res.status(404).json({ msg: "Session not found" });
+      }
+      return res.json(session);
+    }
+
+    // If no sessionId, return all sessions for the user (astrologer or client)
+    const sessions = await ChatSession.find({
+      $or: [
+        { astrologerId: req.user.id },
+        { clientId: req.user.id }
+      ]
+    })
+      .sort({ createdAt: -1 })
+      .populate('clientId', 'name email')
+      .populate('astrologerId', 'name');
+
+    res.json(sessions);
+  } catch (err) {
+    console.error("Error retrieving chat call:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};

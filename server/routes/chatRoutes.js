@@ -11,6 +11,8 @@ const {
   requestSession,
   getSessionHistory,
   getPendingSessions,
+  storeChatCall,
+  getChatCall,
 } = require("../controllers/chatController");
 
 const auth = require("../middleware/auth");
@@ -32,5 +34,9 @@ router.post("/upload/voice", auth, uploadVoiceNote);
 
 // FOR MESSAGE SAVE (FROM SOCKET)
 router.post("/save", auth, saveMessage);
+
+// CHAT CALL DETAILS
+router.post("/call", auth, storeChatCall);
+router.get("/call", auth, getChatCall);
 
 module.exports = router;

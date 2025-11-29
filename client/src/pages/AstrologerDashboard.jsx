@@ -70,7 +70,7 @@ const AstrologerDashboard = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
+          `${import.meta.env.VITE_API_URL}/api/chat/call`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -79,8 +79,10 @@ const AstrologerDashboard = () => {
             params: { _t: Date.now() },
           }
         );
-        setPendingSessions(res.data);
-        console.log('[DEBUG] Fetched pending sessions:', res.data);
+        // Filter for requested or active sessions to mimic previous behavior
+        const pending = res.data.filter(s => ['requested', 'active'].includes(s.status));
+        setPendingSessions(pending);
+        console.log('[DEBUG] Fetched pending sessions from /api/chat/call:', pending);
       } catch (err) {
         console.error('Error fetching pending sessions:', err);
       }
@@ -168,13 +170,14 @@ const AstrologerDashboard = () => {
 
       // Fetch pending sessions
       const pendingRes = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
+        `${import.meta.env.VITE_API_URL}/api/chat/call`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setPendingSessions(pendingRes.data);
-      console.log('[DEBUG] fetchDashboardData pending sessions:', pendingRes.data);
+      const pending = pendingRes.data.filter(s => ['requested', 'active'].includes(s.status));
+      setPendingSessions(pending);
+      console.log('[DEBUG] fetchDashboardData pending sessions from /api/chat/call:', pending);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration
