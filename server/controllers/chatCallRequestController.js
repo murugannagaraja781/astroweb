@@ -16,10 +16,15 @@ exports.createChatCallRequest = async (req, res) => {
             return res.status(400).json({ msg: 'Missing required fields: userId, astrologerId, sessionId' });
         }
 
-        // Check if session already exists
+        // Check if session already exists - IDEMPOTENT BEHAVIOR
         const existingSession = await ChatCallDetails.findOne({ sessionId });
         if (existingSession) {
-            return res.status(400).json({ msg: 'Session already exists' });
+            // Instead of error, return the existing session
+            return res.status(200).json({
+                success: true,
+                msg: 'Session already exists',
+                data: existingSession
+            });
         }
 
         // Get astrologer's rate
@@ -62,96 +67,148 @@ exports.getChatCallRequests = async (req, res) => {
         const userId = req.user.id;
         const userRole = req.user.role;
 
-        console.log('[DEBUG] getChatCallRequests - userId:', userId, 'role:', userRole);
+        console.log('------------------------------------------------');
+        console.log('[DEBUG] API Request: GET /api/chatcallrequest');
+        console.log('[DEBUG] User ID from Token:', userId, 'Type:', typeof userId);
+        console.log('[DEBUG] User Role from Token:', userRole);
+        console.log('[DEBUG] Query Params:', req.query);
 
-        let query = {};
-
-        // If sessionId is provided, return that specific session
+        // 1. Handle Session ID specific query
         if (sessionId) {
             const session = await ChatCallDetails.findOne({ sessionId })
                 .populate('userId', 'name email phone')
                 .populate('astrologerId', 'name email phone');
 
-            if (!session) {
-                return res.status(404).json({ msg: 'Session not found' });
-            }
+            if (!session) return res.status(404).json({ msg: 'Session not found' });
             return res.json(session);
         }
 
-        // Filter based on user role (case-insensitive)
+        // 2. DEBUG MODE: Return everything if requested
+        if (req.query.debug === 'true') {
+            console.log('[DEBUG] Debug mode: Returning ALL records');
+            const all = await ChatCallDetails.find({}).sort({ createdAt: -1 });
+            return res.json(all);
+        }
+
+        // 3. Build Query based on Role
+        let query = {};
         const role = userRole ? userRole.toLowerCase() : '';
 
-        // DEBUG MODE: If debug=true is passed, return ALL records to see what's in DB
-        if (req.query.debug === 'true') {
-            console.log('[DEBUG] Debug mode enabled - returning ALL records');
-            const allRecords = await ChatCallDetails.find({});
-            console.log('[DEBUG] Total records in DB:', allRecords.length);
-            if (allRecords.length > 0) {
-                console.log('[DEBUG] Sample record:', JSON.stringify(allRecords[0]));
-                console.log('[DEBUG] Sample userId type:', typeof allRecords[0].userId);
-                console.log('[DEBUG] Sample astrologerId type:', typeof allRecords[0].astrologerId);
+        // Prepare ID versions (String and ObjectId)
+        const idString = String(userId);
+        let idObject = null;
+        try {
+            if (mongoose.Types.ObjectId.isValid(userId)) {
+                idObject = new mongoose.Types.ObjectId(userId);
             }
-            // Don't return here, let it filter normally but we logged the DB state
-        }
+        } catch (e) { console.error('ObjectId conversion error:', e); }
+
+        console.log('[DEBUG] ID String:', idString);
+        console.log('[DEBUG] ID Object:', idObject);
 
         if (role === 'astrologer') {
-            // Ensure we're querying with ObjectId if possible
-            query.astrologerId = mongoose.Types.ObjectId.isValid(userId)
-                ? new mongoose.Types.ObjectId(userId)
-                : userId;
+            // Match EITHER ObjectId OR String version of ID
+            if (idObject) {
+                query.$or = [
+                    { astrologerId: idObject },
+                    { astrologerId: idString }
+                ];
+            } else {
+                query.astrologerId = idString;
+            }
         } else if (role === 'client') {
-            query.userId = mongoose.Types.ObjectId.isValid(userId)
-                ? new mongoose.Types.ObjectId(userId)
-                : userId;
+            if (idObject) {
+                query.$or = [
+                    { userId: idObject },
+                    { userId: idString }
+                ];
+            } else {
+                query.userId = idString;
+            }
+        } else if (role === 'admin') {
+            // Admin sees all, no ID filter needed
+            console.log('[DEBUG] Admin role detected, no ID filter applied');
+        } else {
+            console.log('[DEBUG] Unknown role, returning empty');
+            return res.json([]);
         }
-        // Admin can see all requests (no filter)
 
-        // Filter by status if provided
+        // 4. Apply Status Filter
         if (status) {
-            query.status = status;
+            // If we already have an $or query, we must wrap it in an $and
+            if (query.$or) {
+                query = {
+                    $and: [
+                        { $or: query.$or },
+                        { status: status }
+                    ]
+                };
+            } else {
+                query.status = status;
+            }
         }
 
-        console.log('[DEBUG] Final Query:', JSON.stringify(query));
+        console.log('[DEBUG] Final MongoDB Query:', JSON.stringify(query, null, 2));
 
-        // Log the types being used in query
-        if (query.astrologerId) console.log('[DEBUG] Query astrologerId type:', typeof query.astrologerId, query.astrologerId.constructor.name);
-        if (query.userId) console.log('[DEBUG] Query userId type:', typeof query.userId, query.userId.constructor.name);
-
-        const chatCallRequests = await ChatCallDetails.find(query)
+        // 5. Execute Query
+        const results = await ChatCallDetails.find(query)
             .populate('userId', 'name email phone')
             .populate('astrologerId', 'name email phone')
             .sort({ createdAt: -1 });
 
-        console.log('[DEBUG] getChatCallRequests - found:', chatCallRequests.length, 'requests');
+        console.log('[DEBUG] Records Found:', results.length);
 
-        // Format response for compatibility with existing code
-        const formattedRequests = chatCallRequests.map(request => ({
-            sessionId: request.sessionId,
-            clientId: request.userId,
-            astrologerId: request.astrologerId,
-            status: request.status,
-            ratePerMinute: request.ratePerMinute,
-            createdAt: request.createdAt,
-            initiatedAt: request.initiatedAt,
-            acceptedAt: request.acceptedAt,
-            completedAt: request.completedAt,
-            duration: request.duration,
-            totalCost: request.totalCost,
+        // 6. Format Response
+        const formatted = results.map(r => ({
+            sessionId: r.sessionId,
+            clientId: r.userId,
+            astrologerId: r.astrologerId,
+            status: r.status,
+            ratePerMinute: r.ratePerMinute,
+            createdAt: r.createdAt,
+            initiatedAt: r.initiatedAt,
+            acceptedAt: r.acceptedAt,
+            completedAt: r.completedAt,
+            duration: r.duration,
+            totalCost: r.totalCost,
             client: {
-                id: request.userId?._id,
-                name: request.userId?.name,
-                email: request.userId?.email
+                id: r.userId?._id,
+                name: r.userId?.name,
+                email: r.userId?.email
             },
             astrologer: {
-                id: request.astrologerId?._id,
-                name: request.astrologerId?.name,
-                email: request.astrologerId?.email
+                id: r.astrologerId?._id,
+                name: r.astrologerId?.name,
+                email: r.astrologerId?.email
             }
         }));
 
-        console.log('[DEBUG] getChatCallRequests - returning:', formattedRequests.length, 'formatted requests');
+        // IF EMPTY: Return debug info to help user diagnose
+        if (formatted.length === 0) {
+            console.log('[DEBUG] No records found. Returning debug info.');
+            // Check if any records exist at all for this user (ignoring status)
+            const anyForUser = await ChatCallDetails.countDocuments(query);
 
-        res.json(formattedRequests);
+            // Check total records in DB
+            const totalInDb = await ChatCallDetails.countDocuments({});
+
+            return res.json({
+                msg: "No records found",
+                debugInfo: {
+                    yourUserId: userId,
+                    yourRole: userRole,
+                    queryUsed: query,
+                    totalRecordsInDb: totalInDb,
+                    recordsMatchingYourQuery: anyForUser,
+                    tip: "Check if 'yourUserId' matches the 'astrologerId' or 'userId' in your database records."
+                },
+                data: []
+            });
+        }
+
+        res.json(formatted);
+        console.log('------------------------------------------------');
+
     } catch (err) {
         console.error('Error fetching chat call requests:', err);
         res.status(500).json({ msg: 'Server error', error: err.message });
