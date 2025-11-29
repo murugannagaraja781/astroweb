@@ -36,7 +36,7 @@ const AstrologerDetail = () => {
       return;
     }
 
-    if (user.role === "client" && balance < 1) {
+    if (user.role === "client" && balance < 0) {
       alert(
         "Insufficient balance! Please add money to your wallet. Minimum ₹1 required."
       );
