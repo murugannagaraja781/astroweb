@@ -68,23 +68,26 @@ const AstrologerDashboard = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/chat/call`,
+          `${import.meta.env.VITE_API_URL}/api/chatcallrequest`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
               "Cache-Control": "no-cache",
             },
-            params: { _t: Date.now() },
+            params: {
+              status: 'requested',
+              _t: Date.now()
+            },
           }
         );
-        // Filter for requested or active sessions to mimic previous behavior
+        // Filter for requested or active sessions
         const pending = res.data.filter((s) =>
           ["requested", "active"].includes(s.status)
         );
         console.log("chat ready think", pending);
         setPendingSessions(pending);
         console.log(
-          "[DEBUG] Fetched pending sessions from /api/chat/call:",
+          "[DEBUG] Fetched pending sessions from /api/chatcallrequest:",
           pending
         );
       } catch (err) {

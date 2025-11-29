@@ -101,8 +101,8 @@ const AstrologerDetail = () => {
       setWaiting(false);
 
       try {
-        // FIRST: store chat session details
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/chat/call`, {
+        // FIRST: store chat session details using new endpoint
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/chatcallrequest`, {
           userId: user.id,
           astrologerId: id,
           sessionId,

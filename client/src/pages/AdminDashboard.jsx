@@ -333,7 +333,7 @@ const AdminDashboard = () => {
   const fetchPending = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/call`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chatcallrequest`);
       setPendingSessions(res.data);
     } catch (err) {
       showNotification('Failed to fetch inbox', 'error');
