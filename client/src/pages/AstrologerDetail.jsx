@@ -53,6 +53,7 @@ const AstrologerDetail = () => {
   };
 
   const handleAction = (action) => {
+    debugger
     console.log("userid",user)
                 console.log("sessionId",sessionId)
     // Check if user is logged in
@@ -92,7 +93,6 @@ const AstrologerDetail = () => {
 
 
 
-        alert(user)
         navigate(`/chat/${sessionId}`);
 
 
