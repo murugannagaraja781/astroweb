@@ -5,8 +5,7 @@ import axios from "axios";
 import AuthContext from "../context/AuthContext";
 import { Send, Mic, MicOff, PhoneCall, PhoneOff, Loader } from "lucide-react";
 
-const API_URL = process.env.VITE_API_URL || "https://astroweb-production.up.railway.app";
-const socket = io(API_URL);
+const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com");
 
 const Chat = () => {
   const { user } = useContext(AuthContext);
@@ -34,19 +33,17 @@ const Chat = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `${API_URL}/api/chat/history/session/${id}`,
+        `${import.meta.env.VITE_API_URL}/api/chat/history/session/${id}`,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       setConversation(res.data.messages || []);
       setOtherUser(null);
-    } catch (error) {
-      console.error('[Chat] Failed to fetch chat history:', error);
-      setConversation([]);
-    }
+    } catch (error) {}
   }, [id]);
 
   useEffect(() => {
     if (id) {
+      console.log(`[Chat] Joining session: ${id}`);
       socket.emit("join_chat", { sessionId: id });
     }
 
@@ -155,16 +152,16 @@ const Chat = () => {
   };
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-gradient-to-b from-purple-900 to-black text-white">
+    <div className="h-screen flex flex-col bg-gradient-to-b from-purple-900 to-black text-white">
       {/* Header */}
-      <div className="flex-none flex items-center p-4 bg-white/10 backdrop-blur-lg border-b border-white/20 z-20">
+      <div className="flex items-center p-4 bg-white/10 backdrop-blur-lg border-b border-white/20">
         <h1 className="text-xl font-semibold">
           Chat with {otherUser?.name || "User"}
         </h1>
       </div>
 
       {/* Messages List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
         {conversation.map((msg, index) => (
           <div
             key={index}
@@ -173,13 +170,13 @@ const Chat = () => {
             }`}
           >
             <div
-              className={`max-w-[85%] sm:max-w-[75%] p-3 rounded-2xl shadow-lg break-words ${
+              className={`max-w-[75%] p-3 rounded-2xl shadow-lg ${
                 msg.sender === user.id
                   ? "bg-purple-600 text-white"
                   : "bg-white/15 border border-white/20"
               }`}
             >
-              {msg.text && <p className="text-sm sm:text-base">{msg.text}</p>}
+              {msg.text && <p className="text-sm">{msg.text}</p>}
 
               {msg.audioUrl && (
                 <audio controls className="mt-2 w-full">
@@ -197,65 +194,63 @@ const Chat = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Footer Input Area */}
-      <div className="flex-none w-full px-2 sm:px-4 pb-4 pt-2 bg-transparent z-20">
-        <form
-          onSubmit={sendMessage}
-          className="
-            max-w-3xl mx-auto
-            bg-white/10 backdrop-blur-xl
-            border border-white/20
-            shadow-lg
-            rounded-3xl
-            flex items-center gap-2 sm:gap-3
-            px-3 py-2 sm:px-4 sm:py-3
-          "
-        >
-          {!isRecording ? (
-            <button
-              type="button"
-              onClick={startRecording}
-              className="text-purple-300 hover:text-purple-100 p-1"
-            >
-              <Mic size={20} className="sm:w-[22px] sm:h-[22px]" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={stopRecording}
-              className="text-red-400 hover:text-red-300 p-1"
-            >
-              <MicOff size={20} className="sm:w-[22px] sm:h-[22px]" />
-            </button>
-          )}
-
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onInput={handleTyping}
-            placeholder="Type a message..."
+      {/* Floating Footer */}
+      <form onSubmit={sendMessage} className="relative w-full px-4 pb-4">
+        <div className="absolute bottom-3 left-0 right-0 px-4">
+          <div
             className="
-              flex-1 bg-transparent text-white placeholder-gray-400
-              focus:outline-none text-sm sm:text-base min-w-0
-            "
-          />
-
-          <button
-            type="submit"
-            disabled={!message.trim()}
-            className="
-              bg-gradient-to-br from-purple-600 to-pink-600
-              text-white p-2 rounded-full shadow-lg
-              hover:scale-105 transition-transform
-              disabled:opacity-50 disabled:cursor-not-allowed
-              flex-shrink-0
+              max-w-3xl mx-auto
+              bg-white/15 backdrop-blur-xl
+              border border-white/20
+              shadow-[0_8px_20px_rgba(0,0,0,0.4)]
+              rounded-3xl
+              flex items-center gap-3
+              px-4 py-3
             "
           >
-            <Send size={18} className="sm:w-[20px] sm:h-[20px]" />
-          </button>
-        </form>
-      </div>
+            {!isRecording ? (
+              <button
+                type="button"
+                onClick={startRecording}
+                className="text-purple-300 hover:text-purple-100"
+              >
+                <Mic size={22} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="text-red-400 hover:text-red-300"
+              >
+                <MicOff size={22} />
+              </button>
+            )}
+
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onInput={handleTyping}
+              placeholder="Type your message…"
+              className="
+                flex-1 bg-transparent text-white placeholder-gray-300
+                focus:outline-none text-sm md:text-base
+              "
+            />
+
+            <button
+              type="submit"
+              className="
+                bg-gradient-to-br from-purple-600 to-pink-600
+                text-white p-2 rounded-full shadow-lg
+                hover:scale-110 transition-transform
+              "
+            >
+              <Send size={20} />
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 };
