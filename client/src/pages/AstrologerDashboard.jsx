@@ -56,8 +56,6 @@ const AstrologerDashboard = () => {
     };
   }, []);
 
-
-
   useEffect(() => {
     if (profile?.userId) {
       socket.emit("join", profile.userId);
@@ -74,17 +72,23 @@ const AstrologerDashboard = () => {
           {
             headers: {
               Authorization: `Bearer ${token}`,
-              'Cache-Control': 'no-cache',
+              "Cache-Control": "no-cache",
             },
             params: { _t: Date.now() },
           }
         );
         // Filter for requested or active sessions to mimic previous behavior
-        const pending = res.data.filter(s => ['requested', 'active'].includes(s.status));
+        const pending = res.data.filter((s) =>
+          ["requested", "active"].includes(s.status)
+        );
+        console.log("chat ready think", pending);
         setPendingSessions(pending);
-        console.log('[DEBUG] Fetched pending sessions from /api/chat/call:', pending);
+        console.log(
+          "[DEBUG] Fetched pending sessions from /api/chat/call:",
+          pending
+        );
       } catch (err) {
-        console.error('Error fetching pending sessions:', err);
+        console.error("Error fetching pending sessions:", err);
       }
     };
     if (activeTab === "inbox" && profile?.userId) {
@@ -175,13 +179,18 @@ const AstrologerDashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-        // Filter for requested or active sessions AND belonging to this astrologer
-        const pending = pendingRes.data.filter(s =>
-          ['requested', 'active'].includes(s.status) &&
-          (s.astrologerId?._id === profile?.userId || s.astrologerId === profile?.userId)
-        );
-        setPendingSessions(pending);
-        console.log('[DEBUG] fetchDashboardData pending sessions from /api/chat/call:', pending);
+      // Filter for requested or active sessions AND belonging to this astrologer
+      const pending = pendingRes.data.filter(
+        (s) =>
+          ["requested", "active"].includes(s.status) &&
+          (s.astrologerId?._id === profile?.userId ||
+            s.astrologerId === profile?.userId)
+      );
+      setPendingSessions(pending);
+      console.log(
+        "[DEBUG] fetchDashboardData pending sessions from /api/chat/call:",
+        pending
+      );
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       // Set mock data for demonstration
@@ -301,9 +310,12 @@ const AstrologerDashboard = () => {
       navigate(`/chat/${sessionId}`);
     });
     socket.on("chat:request", (payload) => {
-       // Duplicate listener found in original code, merging logic or keeping as is but adding log
-       // The original code had duplicate listeners. I will keep the structure but add logs.
-       console.log("[DEBUG] Dashboard received chat:request (duplicate handler):", payload);
+      // Duplicate listener found in original code, merging logic or keeping as is but adding log
+      // The original code had duplicate listeners. I will keep the structure but add logs.
+      console.log(
+        "[DEBUG] Dashboard received chat:request (duplicate handler):",
+        payload
+      );
       setIncomingCall({
         from: payload.clientId,
         name: "",
@@ -329,17 +341,20 @@ const AstrologerDashboard = () => {
       });
     });
 
-    socket.on('chat:joined', ({ sessionId }) => {
-        console.log('[DEBUG] Dashboard received chat:joined (duplicate handler):', sessionId);
-        // Remove from pending if present
-        setPendingSessions((prev) =>
-          prev.filter((s) => s.sessionId !== sessionId)
-        );
-        // Store as an active chat for the astrologer to click later
-        setActiveChats((prev) => [...prev, sessionId]);
-        // Optionally auto‑navigate; comment out if you prefer manual click
-        // navigate(`/chat/${sessionId}`);
-      });
+    socket.on("chat:joined", ({ sessionId }) => {
+      console.log(
+        "[DEBUG] Dashboard received chat:joined (duplicate handler):",
+        sessionId
+      );
+      // Remove from pending if present
+      setPendingSessions((prev) =>
+        prev.filter((s) => s.sessionId !== sessionId)
+      );
+      // Store as an active chat for the astrologer to click later
+      setActiveChats((prev) => [...prev, sessionId]);
+      // Optionally auto‑navigate; comment out if you prefer manual click
+      // navigate(`/chat/${sessionId}`);
+    });
   };
 
   const handleAcceptChat = (sessionId) => {
@@ -812,7 +827,7 @@ const AstrologerDashboard = () => {
       </div>
     );
   };
-console.log("pendingSessions",pendingSessions)
+  console.log("pendingSessions", pendingSessions);
   const InboxTab = () => (
     <div className="bg-white rounded-xl shadow-sm p-6">
       <h3 className="text-xl font-semibold text-gray-800 mb-4">
@@ -832,7 +847,7 @@ console.log("pendingSessions",pendingSessions)
             >
               <div>
                 <h4 className="font-semibold text-gray-800">
-                 Name : {session.sessionId}
+                  Name : {session.sessionId}
                 </h4>
                 <h4 className="font-semibold text-gray-800">
                   Session ID: {session.sessionId}
@@ -840,7 +855,10 @@ console.log("pendingSessions",pendingSessions)
                 <span className="text-sm text-gray-600">{session.status}</span>
               </div>
               <button
-                onClick={(e) => { e.stopPropagation(); handleAcceptChat(session.sessionId); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAcceptChat(session.sessionId);
+                }}
                 className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
               >
                 <span>Chat</span>
