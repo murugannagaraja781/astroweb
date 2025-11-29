@@ -58,12 +58,22 @@ exports.initiateCall = async (req, res) => {
       return res.status(404).json({ msg: 'Astrologer not found' });
     }
 
-    // Check if user has at least ₹1 balance (₹1 per minute rate)
-    if (wallet.balance < 1) {
-      console.warn(`Insufficient balance for user ${callerId}: ₹${wallet.balance}`);
+    // Compute effective balance from wallet document and its transactions
+    let effectiveBalance = wallet.balance;
+    if (Array.isArray(wallet.transactions)) {
+      wallet.transactions.forEach(t => {
+        if (t.type === 'credit') effectiveBalance += t.amount;
+        else if (t.type === 'debit') effectiveBalance -= t.amount;
+      });
+    }
+    console.log(`User ${callerId} effective balance: ₹${effectiveBalance}`);
+
+    // Check if user has at least ₹1 effective balance
+    if (effectiveBalance < 1) {
+      console.warn(`Insufficient effective balance for user ${callerId}: ₹${effectiveBalance}`);
       return res.status(400).json({
         msg: 'Insufficient balance. Minimum ₹1 required to start call/chat.',
-        balance: wallet.balance
+        balance: effectiveBalance
       });
     }
 
