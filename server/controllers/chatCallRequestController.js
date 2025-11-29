@@ -173,9 +173,3 @@ exports.updateChatCallRequest = async (req, res) => {
         res.status(500).json({ msg: 'Server error', error: err.message });
     }
 };
-
-module.exports = {
-    createChatCallRequest,
-    getChatCallRequests,
-    updateChatCallRequest
-};
