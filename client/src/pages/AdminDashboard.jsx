@@ -72,6 +72,9 @@ const AdminDashboard = () => {
   const [banners, setBanners] = useState([]);
   const [horoscopes, setHoroscopes] = useState([]);
   const [pendingSessions, setPendingSessions] = useState([]);
+  const [horoscopeList, setHoroscopeList] = useState([]);
+
+  const zodiacSigns = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
   useEffect(() => {
     fetchStats();
@@ -324,6 +327,37 @@ const AdminDashboard = () => {
       fetchAstrologers();
     } catch (err) {
       showNotification('Failed to update status', 'error');
+    }
+  };
+
+  const fetchPending = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/call`);
+      setPendingSessions(res.data);
+    } catch (err) {
+      showNotification('Failed to fetch inbox', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAcceptSession = async (sessionId, clientId, ratePerMinute) => {
+    try {
+      setSubmitLoading(true);
+      // Accept the chat session and deduct wallet balance
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/chat/accept`, {
+        sessionId,
+        clientId,
+        ratePerMinute
+      });
+
+      showNotification('Chat session accepted! Wallet deducted.');
+      fetchPending(); // Refresh the list
+    } catch (err) {
+      showNotification(err.response?.data?.msg || 'Failed to accept session', 'error');
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -583,22 +617,53 @@ const AdminDashboard = () => {
                         <th className="px-6 py-4">Status</th>
                         <th className="px-6 py-4">Rate</th>
                         <th className="px-6 py-4">Created</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {pendingSessions.map((s) => (
                         <tr key={s.sessionId} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4 text-gray-300 font-mono">{s.sessionId}</td>
-                          <td className="px-6 py-4 text-white">{s.client?.name || s.client?.id}</td>
-                          <td className="px-6 py-4 text-white">{s.astrologer?.name || s.astrologer?.id}</td>
-                          <td className="px-6 py-4"><span className={`px-2 py-0.5 rounded-full text-xs ${s.status === 'requested' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'}`}>{s.status}</span></td>
-                          <td className="px-6 py-4 text-white">₹{s.ratePerMinute}/min</td>
-                          <td className="px-6 py-4 text-gray-400">{new Date(s.createdAt).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-gray-300 font-mono text-xs">{s.sessionId}</td>
+                          <td className="px-6 py-4 text-white">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-xs font-bold text-indigo-300">
+                                {(s.clientId?.name || s.client?.name || 'U')?.charAt(0)}
+                              </div>
+                              <span>{s.clientId?.name || s.client?.name || s.client?.id || 'Unknown'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-white">{s.astrologerId?.name || s.astrologer?.name || s.astrologer?.id || 'N/A'}</td>
+                          <td className="px-6 py-4">
+                            {s.status === 'requested' ? (
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-300 border border-yellow-500/30 flex items-center gap-1 w-fit">
+                                <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></span>
+                                Waiting for Accept
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">{s.status}</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-white font-semibold">₹{s.ratePerMinute}/min</td>
+                          <td className="px-6 py-4 text-gray-400 text-xs">{new Date(s.createdAt).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right">
+                            {s.status === 'requested' && (
+                              <button
+                                onClick={() => handleAcceptSession(s.sessionId, s.clientId?._id || s.clientId, s.ratePerMinute)}
+                                disabled={submitLoading}
+                                className="px-4 py-2 rounded-lg text-xs font-semibold transition-all shadow-sm disabled:opacity-50 bg-emerald-600 hover:bg-emerald-700 text-white"
+                              >
+                                Accept & Deduct
+                              </button>
+                            )}
+                            {s.status === 'active' && (
+                              <span className="text-xs text-emerald-400 font-medium">Active</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                       {pendingSessions.length === 0 && (
                         <tr>
-                          <td colSpan="6" className="px-6 py-12 text-center text-gray-500">No sessions</td>
+                          <td colSpan="7" className="px-6 py-12 text-center text-gray-500">No pending chat sessions</td>
                         </tr>
                       )}
                     </tbody>
@@ -1095,14 +1160,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-  const fetchPending = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`);
-      setPendingSessions(res.data);
-    } catch (err) {
-      showNotification('Failed to fetch inbox', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };

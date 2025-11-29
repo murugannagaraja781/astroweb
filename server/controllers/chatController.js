@@ -421,3 +421,64 @@ exports.getChatCall = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+/**
+ * Accept chat session and deduct wallet balance
+ */
+exports.acceptChatSession = async (req, res) => {
+  try {
+    const { sessionId, clientId, ratePerMinute } = req.body;
+
+    if (!sessionId || !clientId || !ratePerMinute) {
+      return res.status(400).json({ msg: "Missing required fields" });
+    }
+
+    // Find the session
+    const session = await ChatSession.findOne({ sessionId });
+    if (!session) {
+      return res.status(404).json({ msg: "Session not found" });
+    }
+
+    if (session.status !== 'requested') {
+      return res.status(400).json({ msg: "Session already accepted or completed" });
+    }
+
+    // Find the client user
+    const client = await User.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ msg: "Client not found" });
+    }
+
+    // Check if client has sufficient balance (minimum 1 rupee)
+    if (client.walletBalance < 1) {
+      return res.status(400).json({ msg: "Insufficient wallet balance. Minimum ₹1 required." });
+    }
+
+    // Deduct initial amount (1 minute worth)
+    const initialDeduction = ratePerMinute;
+
+    if (client.walletBalance < initialDeduction) {
+      return res.status(400).json({ msg: `Insufficient balance. Need at least ₹${initialDeduction}` });
+    }
+
+    // Update client wallet
+    client.walletBalance -= initialDeduction;
+    await client.save();
+
+    // Update session status
+    session.status = 'active';
+    session.startedAt = new Date();
+    session.initialDeduction = initialDeduction;
+    await session.save();
+
+    res.json({
+      success: true,
+      msg: `Session accepted. ₹${initialDeduction} deducted from client wallet.`,
+      session,
+      remainingBalance: client.walletBalance
+    });
+  } catch (err) {
+    console.error("Error accepting chat session:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};

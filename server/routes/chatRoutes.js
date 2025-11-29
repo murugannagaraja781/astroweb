@@ -13,6 +13,7 @@ const {
   getPendingSessions,
   storeChatCall,
   getChatCall,
+  acceptChatSession,
 } = require("../controllers/chatController");
 
 const auth = require("../middleware/auth");
@@ -38,5 +39,6 @@ router.post("/save", auth, saveMessage);
 // CHAT CALL DETAILS
 router.post("/call", auth, storeChatCall);
 router.get("/call", auth, getChatCall);
+router.post("/accept", auth, acceptChatSession);
 
 module.exports = router;
