@@ -1,6 +1,30 @@
-@import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global input text color fix */
+input,
+textarea,
+select {
+  color: #000000 !important;
+}
+
+/* Placeholder text */
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important;
+  opacity: 1;
+}
+
+/* Dark mode inputs (if needed) */
+.dark input,
+.dark textarea,
+.dark select {
+  color: #ffffff !important;
+}
+
 
 :root {
   --color-space-900: #0f172a;

@@ -6,28 +6,65 @@ const AstrologerProfile = require('../models/AstrologerProfile');
 exports.initiateCall = async (req, res) => {
   const { receiverId, type = 'video' } = req.body;
   const callerId = req.user.id;
-  console.log('Initiating Call:', { callerId, receiverId, type, user: req.user });
+  const callerRole = req.user.role;
+
+  console.log('Initiating Call:', { callerId, receiverId, type, role: callerRole });
 
   try {
     // Validate receiverId
     if (!receiverId || !receiverId.match(/^[0-9a-fA-F]{24}$/)) {
+      console.error('Invalid receiver ID:', receiverId);
       return res.status(400).json({ msg: 'Invalid receiver ID' });
     }
 
-    // Check balance
+    // Admin and Astrologer can call without balance checks
+    if (callerRole === 'admin') {
+      console.log('✅ Admin user - skipping balance check');
+      const newCall = new CallLog({
+        callerId: callerId,
+        receiverId: receiverId,
+        startTime: Date.now(),
+        type: type
+      });
+      await newCall.save();
+      return res.json({ callId: newCall._id, msg: 'Call initiated (Admin)' });
+    }
+
+    if (callerRole === 'astrologer') {
+      console.log('✅ Astrologer user - skipping balance check');
+      const newCall = new CallLog({
+        callerId: callerId,
+        receiverId: receiverId,
+        startTime: Date.now(),
+        type: type
+      });
+      await newCall.save();
+      return res.json({ callId: newCall._id, msg: 'Call initiated (Astrologer)' });
+    }
+
+    // For clients, check balance and astrologer profile
     const wallet = await Wallet.findOne({ userId: callerId });
     const astrologerProfile = await AstrologerProfile.findOne({ userId: receiverId });
 
     if (!wallet) {
-      return res.status(404).json({ msg: 'Wallet not found' });
+      console.error(`Wallet not found for user ${callerId}`);
+      return res.status(404).json({ msg: 'Wallet not found. Please contact support.' });
     }
+
+    console.log(`User ${callerId} balance: ₹${wallet.balance}`);
+
     if (!astrologerProfile) {
+      console.error(`Astrologer not found for receiverId ${receiverId}`);
       return res.status(404).json({ msg: 'Astrologer not found' });
     }
 
     // Check if user has at least ₹1 balance (₹1 per minute rate)
     if (wallet.balance < 1) {
-      return res.status(400).json({ msg: 'Insufficient balance. Minimum ₹1 required to start call/chat.' });
+      console.warn(`Insufficient balance for user ${callerId}: ₹${wallet.balance}`);
+      return res.status(400).json({
+        msg: 'Insufficient balance. Minimum ₹1 required to start call/chat.',
+        balance: wallet.balance
+      });
     }
 
     const newCall = new CallLog({
@@ -38,11 +75,29 @@ exports.initiateCall = async (req, res) => {
     });
 
     await newCall.save();
+    console.log(`✅ Call initiated successfully: ${newCall._id}`);
 
-    res.json({ callId: newCall._id, msg: 'Call initiated' });
+    res.json({ callId: newCall._id, msg: 'Call initiated', balance: wallet.balance });
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
+    console.error('❌ Error in initiateCall:', err);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+};
+
+exports.getCallHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const calls = await CallLog.find({
+      $or: [{ callerId: userId }, { receiverId: userId }]
+    })
+      .sort({ startTime: -1 })
+      .populate('callerId', 'name')
+      .populate('receiverId', 'name');
+
+    res.json(calls);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 };
 
@@ -80,17 +135,21 @@ exports.endCall = async (req, res) => {
 
     await callLog.save();
 
-    // Deduct from caller
+    // Deduct from caller (minus any prepaid amount from ActiveCall)
     const callerWallet = await Wallet.findOne({ userId: callLog.callerId });
-    callerWallet.balance -= cost;
+    const activeCall = await require('../models/ActiveCall').findOne({ callId: callLog._id });
+    const prepaid = activeCall?.prepaid || 0;
+    const netCost = Math.max(cost - prepaid, 0);
+    callerWallet.balance -= netCost;
     await callerWallet.save();
 
-    // Add to receiver (optional, or just track earnings)
+    // Add to receiver earnings (90%) and consider commission on net amount
     const receiverWallet = await Wallet.findOne({ userId: callLog.receiverId });
-    receiverWallet.balance += cost;
+    const expertEarning = netCost * 0.9;
+    receiverWallet.balance += expertEarning;
     await receiverWallet.save();
 
-    res.json({ msg: 'Call ended', cost, remainingBalance: callerWallet.balance });
+    res.json({ msg: 'Call ended', cost, charged: netCost, remainingBalance: callerWallet.balance });
 
   } catch (err) {
     console.error(err.message);

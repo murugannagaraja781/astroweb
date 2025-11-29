@@ -24,6 +24,10 @@ const SettingsSchema = new mongoose.Schema({
     timezone: {
         type: String,
         default: 'Asia/Kolkata'
+    },
+    theme: {
+        type: String,
+        default: 'Aries'
     }
 }, { timestamps: true });
 

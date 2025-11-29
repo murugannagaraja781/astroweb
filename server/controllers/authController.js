@@ -55,11 +55,11 @@ exports.register = async (req, res) => {
     // Create Wallet for every user
     const wallet = new Wallet({ userId: user._id });
 
-    // Add ₹20 welcome bonus for new clients
+    // Add ₹100 welcome bonus for new clients
     if (role === 'client') {
-      wallet.balance = 20;
+      wallet.balance = 100;
       wallet.transactions.push({
-        amount: 20,
+        amount: 100,
         type: 'credit',
         description: 'Welcome Bonus',
         date: new Date()
@@ -114,7 +114,9 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
+    const userObj = user.toObject();
+    userObj.id = user._id;
+    res.json(userObj);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

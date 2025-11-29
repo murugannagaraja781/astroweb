@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Star, Clock, Zap, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
-const MobileHome = ({ astrologers, loading }) => {
+const MobileHome = ({ astrologers, banners = [], loading }) => {
   const navigate = useNavigate();
+  const [currentBanner, setCurrentBanner] = useState(0);
 
   const getInitials = (name) => {
     if (!name) return '??';
@@ -55,6 +57,58 @@ const MobileHome = ({ astrologers, loading }) => {
       </motion.div>
 
       <div className="px-4 py-6">
+        {/* Banners - Carousel */}
+        {banners.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 relative"
+          >
+            <div className="relative rounded-2xl overflow-hidden shadow-xl">
+              {banners.map((banner, index) => (
+                <div
+                  key={banner._id}
+                  className={`transition-opacity duration-500 ${
+                    index === currentBanner ? 'opacity-100' : 'opacity-0 absolute inset-0'
+                  }`}
+                  onClick={() => banner.targetUrl && navigate(banner.targetUrl)}
+                >
+                  <div className="relative h-48 bg-gradient-to-br from-purple-600 to-indigo-600">
+                    {banner.image && (
+                      <img
+                        src={banner.image}
+                        alt={banner.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
+                      <h3 className="text-white text-xl font-bold mb-1">{banner.title}</h3>
+                      {banner.subtitle && (
+                        <p className="text-white/90 text-sm">{banner.subtitle}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Dots indicator */}
+              {banners.length > 1 && (
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                  {banners.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentBanner(index)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        index === currentBanner ? 'bg-white w-6' : 'bg-white/50'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         {/* Online Astrologers - Horizontal Scroll */}
         {onlineAstrologers.length > 0 && (
           <motion.div
