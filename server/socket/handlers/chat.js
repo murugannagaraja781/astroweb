@@ -1,5 +1,6 @@
 const ChatMessage = require('../../models/ChatMessage');
 const ChatSession = require('../../models/ChatSession');
+const ChatCallDetails = require('../../models/ChatCallDetails');
 const Wallet = require('../../models/Wallet');
 const presence = require('./presence');
 const onlineUsers = presence.onlineUsers;
@@ -34,6 +35,15 @@ const startChatSession = async (io, sessionId) => {
         s.status = 'active';
         s.startedAt = new Date();
         await s.save();
+
+        // ALSO update ChatCallDetails
+        await ChatCallDetails.findOneAndUpdate(
+            { sessionId },
+            {
+                status: 'active',
+                acceptedAt: new Date()
+            }
+        );
 
         const clientSock = onlineUsers.get(s.clientId.toString());
         const astroSock = onlineUsers.get(s.astrologerId.toString());
@@ -112,10 +122,21 @@ module.exports = (io, socket) => {
             const sid = crypto.randomUUID();
             const profileRate = ratePerMinute || 1;
 
+            // Create in ChatSession (for real-time socket tracking)
             await ChatSession.create({
                 sessionId: sid,
                 clientId,
                 astrologerId,
+                status: 'requested',
+                ratePerMinute: profileRate
+            });
+
+            // ALSO create in ChatCallDetails (for API tracking)
+            await ChatCallDetails.create({
+                userId: clientId,
+                astrologerId,
+                sessionId: sid,
+                initiatedAt: new Date(),
                 status: 'requested',
                 ratePerMinute: profileRate
             });
@@ -186,6 +207,18 @@ module.exports = (io, socket) => {
             s.duration = durationSec;
             s.totalCost = totalCost;
             await s.save();
+
+            // ALSO update ChatCallDetails
+            await ChatCallDetails.findOneAndUpdate(
+                { sessionId },
+                {
+                    status: 'completed',
+                    completedAt: now,
+                    duration: Math.floor(durationSec / 60), // Convert to minutes
+                    totalCost
+                }
+            );
+
             io.to(sessionId).emit('chat:end', { sessionId, reason: 'ended' });
         } catch (err) {
             socket.emit('chat:error', { error: 'end_failed' });
