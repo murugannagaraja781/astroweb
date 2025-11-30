@@ -78,22 +78,17 @@ const Chat = () => {
     e.preventDefault();
     if (!message.trim() || message === lastMessageRef.current) return;
 
-    const newMsg = {
-      senderId: user.id,
-      text: message,
-      timestamp: new Date(),
-      status: "sent",
-    };
+    const messageText = message;
+    lastMessageRef.current = messageText;
 
-    lastMessageRef.current = message;
-
+    // Don't add to conversation here - let socket listener handle it
+    // This prevents duplicate messages
     socket.emit("chat:message", {
       sessionId: id,
       senderId: user.id,
-      text: message,
+      text: messageText,
     });
 
-    setConversation((prev) => [...prev, newMsg]);
     setMessage("");
   };
 
@@ -171,11 +166,11 @@ const Chat = () => {
           font-size: large;
         }
         .message-container {
-          padding-bottom: 180px; /* Increased space for mobile footer */
+          padding-bottom: 200px; /* Extra space for mobile footer */
         }
         @media (min-width: 768px) {
           .message-container {
-            padding-bottom: 140px;
+            padding-bottom: 160px;
           }
         }
         /* Prevent keyboard from pushing footer up on mobile */
@@ -184,6 +179,7 @@ const Chat = () => {
           bottom: 0;
           left: 0;
           right: 0;
+          z-index: 20;
         }
         /* Safe area for iOS devices */
         @supports (padding-bottom: env(safe-area-inset-bottom)) {

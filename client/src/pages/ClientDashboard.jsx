@@ -14,9 +14,10 @@ const ClientDashboard = () => {
   const [callHistory, setCallHistory] = useState([]);
   const [chatSessions, setChatSessions] = useState([]);
   const [astrologers, setAstrologers] = useState([]);
-  const [activeTab, setActiveTab] = useState('wallet'); // wallet, calls, chats
+  const [activeTab, setActiveTab] = useState('wallet');
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [amount, setAmount] = useState(''); // Custom amount input
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -50,8 +51,18 @@ const ClientDashboard = () => {
   };
 
   const handleAddMoney = async () => {
-    // Directly initiate payment with default amount
-    const defaultAmount = 500; // Default ₹500
+    const paymentAmount = parseInt(amount);
+
+    // Validate amount
+    if (!paymentAmount || paymentAmount < 50) {
+      addToast('Minimum amount is ₹50', 'error');
+      return;
+    }
+
+    if (paymentAmount > 50000) {
+      addToast('Maximum amount is ₹50,000', 'error');
+      return;
+    }
 
     try {
       setPaymentLoading(true);
@@ -61,7 +72,7 @@ const ClientDashboard = () => {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/payment/phonepe/initiate`,
         {
-          amount: defaultAmount,
+          amount: paymentAmount,
           userId: user.id,
           userName: user.name,
           mobileNumber: user.mobile || '9999999999'
@@ -83,7 +94,8 @@ const ClientDashboard = () => {
 
     } catch (error) {
       console.error('Payment error:', error);
-      addToast(error.response?.data?.error || 'Payment failed', 'error');
+      const errorMsg = error.response?.data?.error || error.message || 'Payment failed';
+      addToast(`Payment failed: ${errorMsg}`, 'error');
       setPaymentLoading(false);
     }
   };
@@ -161,23 +173,57 @@ const ClientDashboard = () => {
                     <Wallet className="w-8 h-8" />
                   </div>
                 </div>
-                <button
-                  onClick={handleAddMoney}
-                  disabled={paymentLoading}
-                  className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-semibold hover:bg-indigo-50 transition-colors flex items-center gap-2 w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {paymentLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
-                      Redirecting...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-5 h-5" />
-                      Add ₹500 via PhonePe
-                    </>
-                  )}
-                </button>
+
+                {/* Amount Input Section */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">Enter Amount (₹)</label>
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="Enter amount (min ₹50)"
+                      min="50"
+                      max="50000"
+                      className="w-full px-4 py-3 rounded-xl border-2 border-white/20 bg-white/10 text-white placeholder-white/60 focus:outline-none focus:border-white/40 text-lg"
+                    />
+                  </div>
+
+                  {/* Quick Amount Suggestions */}
+                  <div>
+                    <p className="text-sm text-indigo-100 mb-2">Quick Select:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[50, 100, 500].map((suggestedAmount) => (
+                        <button
+                          key={suggestedAmount}
+                          onClick={() => setAmount(suggestedAmount.toString())}
+                          className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-semibold transition-all border border-white/30 hover:border-white/50"
+                        >
+                          ₹{suggestedAmount}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Add Money Button */}
+                  <button
+                    onClick={handleAddMoney}
+                    disabled={paymentLoading || !amount}
+                    className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-semibold hover:bg-indigo-50 transition-colors flex items-center gap-2 w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {paymentLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                        Redirecting...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-5 h-5" />
+                        Add Money via PhonePe
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <h3 className="text-xl font-semibold text-gray-800 mb-6">Transaction History</h3>

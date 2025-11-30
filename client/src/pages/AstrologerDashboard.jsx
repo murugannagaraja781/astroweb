@@ -3,31 +3,64 @@ import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 
-const socket = io(import.meta.env.VITE_API_URL);
-
 const AstrologerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [profile, setProfile] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [pendingSessions, setPendingSessions] = useState([]);
+  const [socket, setSocket] = useState(null);
   const navigate = useNavigate();
 
+  // Initialize socket connection
   useEffect(() => {
-    fetchProfile();
-    setupSocketListeners();
+    const newSocket = io(import.meta.env.VITE_API_URL);
+    setSocket(newSocket);
 
     return () => {
-      socket.off("callUser");
-      socket.off("chat:request");
+      newSocket.disconnect();
     };
   }, []);
 
   useEffect(() => {
-    if (profile?.userId) {
+    fetchProfile();
+  }, []);
+
+  // Setup socket listeners when socket is ready
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("callUser", (data) => {
+      setIncomingCall(data);
+    });
+
+    socket.on("chat:request", (payload) => {
+      console.log("Chat request received:", payload);
+      setIncomingCall({
+        from: payload.clientId,
+        name: "Client",
+        callId: payload.sessionId,
+        type: "chat",
+      });
+      fetchPendingSessions();
+    });
+
+    socket.on("chat:joined", ({ sessionId }) => {
+      navigate(`/chat/${sessionId}`);
+    });
+
+    return () => {
+      socket.off("callUser");
+      socket.off("chat:request");
+      socket.off("chat:joined");
+    };
+  }, [socket, navigate]);
+
+  useEffect(() => {
+    if (profile?.userId && socket) {
       socket.emit("join", profile.userId);
       fetchPendingSessions();
     }
-  }, [profile?.userId, activeTab]);
+  }, [profile?.userId, activeTab, socket]);
 
   const fetchProfile = async () => {
     try {
@@ -59,29 +92,10 @@ const AstrologerDashboard = () => {
     }
   };
 
-  const setupSocketListeners = () => {
-    socket.on("callUser", (data) => {
-      setIncomingCall(data);
-    });
 
-    socket.on("chat:request", (payload) => {
-      console.log("Chat request received:", payload);
-      setIncomingCall({
-        from: payload.clientId,
-        name: "Client",
-        callId: payload.sessionId,
-        type: "chat",
-      });
-      fetchPendingSessions();
-    });
-
-    socket.on("chat:joined", ({ sessionId }) => {
-      navigate(`/chat/${sessionId}`);
-    });
-  };
 
   const acceptCall = () => {
-    if (!incomingCall) return;
+    if (!incomingCall || !socket) return;
 
     if (incomingCall.type === "chat") {
       socket.emit("chat:accept", { sessionId: incomingCall.callId });
@@ -91,13 +105,13 @@ const AstrologerDashboard = () => {
         to: incomingCall.from,
         callId: incomingCall.callId,
       });
-      navigate(`/call/${incomingCall.from}`);
+      navigate(`/call/${incomingCall.from}?callId=${incomingCall.callId}`);
     }
     setIncomingCall(null);
   };
 
   const rejectCall = () => {
-    if (incomingCall) {
+    if (incomingCall && socket) {
       socket.emit("rejectCall", { to: incomingCall.from });
     }
     setIncomingCall(null);
@@ -118,7 +132,9 @@ const AstrologerDashboard = () => {
   };
 
   const acceptChat = (sessionId) => {
-    socket.emit("chat:accept", { sessionId });
+    if (socket) {
+      socket.emit("chat:accept", { sessionId });
+    }
     navigate(`/chat/${sessionId}`);
   };
 

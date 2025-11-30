@@ -91,6 +91,49 @@ const MobileNav = () => {
                 >
                   Profile
                 </Link>
+
+                {/* Show Sign In/Sign Up buttons when not logged in */}
+                {profileOpen && !user && (
+                  <div
+                    className="absolute bottom-16 left-1/2 -translate-x-1/2 w-48 rounded-xl border shadow-xl p-4"
+                    style={{
+                      background: `linear-gradient(to bottom, #0a0015, #1a0033)`,
+                      borderColor: `${theme.hex}30`,
+                      boxShadow: `0 8px 20px ${theme.hex}30`,
+                    }}
+                  >
+                    <div className="text-xs font-medium text-gray-400 mb-3 text-center">
+                      Join Astroweb
+                    </div>
+                    <div className="space-y-2">
+                      <Link
+                        to="/login"
+                        onClick={() => setProfileOpen(false)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-white font-medium transition-all hover:scale-105"
+                        style={{
+                          background: `linear-gradient(to right, ${theme.hex}, #4f46e5)`,
+                          boxShadow: `0 4px 12px ${theme.hex}40`,
+                        }}
+                      >
+                        <User size={16} />
+                        <span className="text-sm">Sign In</span>
+                      </Link>
+                      <Link
+                        to="/register"
+                        onClick={() => setProfileOpen(false)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-white font-medium transition-all hover:scale-105"
+                        style={{
+                          background: "rgba(212, 175, 55, 0.15)",
+                          border: "1px solid rgba(212, 175, 55, 0.4)",
+                        }}
+                      >
+                        <span className="text-sm">Sign Up</span>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show logout button when logged in */}
                 {profileOpen && user && (
                   <div
                     className="absolute bottom-16 left-1/2 -translate-x-1/2 w-40 rounded-xl border shadow-xl p-3"

@@ -158,7 +158,11 @@ const AstrologerDetail = () => {
       } catch (err) {
         console.error("Error initiating call:", err);
         setWaiting(false);
-        alert("Failed to initiate call. Please try again.");
+
+        // Show detailed error for debugging
+        const errorMsg = err.response?.data?.message || err.message || "Unknown error";
+        const apiUrl = import.meta.env.VITE_API_URL;
+        alert(`Failed to initiate call.\n\nError: ${errorMsg}\n\nAPI URL: ${apiUrl}\n\nPlease check:\n1. Server is running\n2. API URL is correct\n3. Network connection`);
       }
     } else if (action === "chat") {
       if (!socket) {
