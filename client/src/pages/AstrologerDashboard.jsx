@@ -281,7 +281,7 @@ const AstrologerDashboard = () => {
                 </p>
               ) : (
                 <div className="space-y-4">
-                  <AstrologerVideoCall/>
+
                   {pendingSessions.map((session) => (
                     <div
                       key={session.sessionId}
@@ -312,6 +312,12 @@ const AstrologerDashboard = () => {
 
                 </div>
               )}
+            </div>
+          )}
+           {activeTab === "calls" && (
+            <div className="bg-white rounded-xl shadow-sm p-6">
+            <AstrologerVideoCall/>
+
             </div>
           )}
 
