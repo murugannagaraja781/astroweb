@@ -74,32 +74,16 @@ const Chat = () => {
     fetchChat();
     fetchSessionInfo();
 
-  socket.on("chat:message", (newMessage) => {
-  setConversation((prev) => {
-    // 1. TEMP ID MATCH → Replace pending message
-    if (newMessage.tempId) {
-      const exists = prev.some((msg) => msg.tempId === newMessage.tempId);
-      if (exists) {
-        return prev.map((msg) =>
-          msg.tempId === newMessage.tempId
-            ? { ...msg, ...newMessage, pending: false }
-            : msg
+    socket.on("chat:message", (newMessage) => {
+      setConversation((prev) => {
+        const isDuplicate = prev.some(
+          msg => msg.text === newMessage.text &&
+                 msg.senderId === newMessage.senderId &&
+                 new Date(msg.timestamp).getTime() === new Date(newMessage.timestamp).getTime()
         );
-      }
-    }
-
-    // 2. REAL DB ID MATCH → do NOT add again
-    if (newMessage._id) {
-      const exists = prev.some((msg) => msg._id === newMessage._id);
-      if (exists) return prev;
-    }
-
-    // 3. Otherwise add new message normally
-    return [...prev, newMessage];
-  });
-});
-
-
+        return isDuplicate ? prev : [...prev, newMessage];
+      });
+    });
 
     socket.on("chat:typing", () => {
       setIsTyping(true);
@@ -143,35 +127,28 @@ const Chat = () => {
   };
 
   // --- Send Message ---
- const sendMessage = async (e) => {
-  e.preventDefault();
-  if (!message.trim()) return;
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!message.trim() || message === lastMessageRef.current) return;
 
-  // Create TEMP ID for client-side dedupe
-  const tempId = "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    const newMsg = {
+      senderId: user.id,
+      text: message,
+      timestamp: new Date(),
+      status: "sent",
+    };
 
-  const newMsg = {
-    tempId,
-    senderId: user.id,
-    text: message,
-    timestamp: new Date(),
-    pending: true,
+    lastMessageRef.current = message;
+
+    socket.emit("chat:message", {
+      sessionId: id,
+      senderId: user.id,
+      text: message,
+    });
+
+    setConversation((prev) => [...prev, newMsg]);
+    setMessage("");
   };
-
-  // Add to UI immediately
-  setConversation((prev) => [...prev, newMsg]);
-
-  // Send to server
-  socket.emit("chat:message", {
-    sessionId: id,
-    senderId: user.id,
-    text: message,
-    tempId, // VERY IMPORTANT
-  });
-
-  setMessage("");
-};
-
 
   // --- Typing Event ---
   const handleTyping = () => {
