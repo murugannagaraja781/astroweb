@@ -185,15 +185,7 @@ const AstrologerDetail = () => {
       socket.once("chat:joined", ({ sessionId }) => {
         console.log("[DEBUG] Client received chat:joined:", sessionId);
         setWaiting(false);
-        // Store chat session details in backend
-        axios
-          .post(`${import.meta.env.VITE_API_URL}/api/chatcalldetails`, {
-            userId: user.id,
-            astrologerId: id,
-            sessionId,
-            initiatedAt: new Date().toISOString(),
-          })
-          .catch((err) => console.error("Error storing chat call:", err));
+        // Chat session is already created by the socket event 'chat:request'
         navigate(`/chat/${sessionId}`);
       });
       socket.once("chat:error", () => {
