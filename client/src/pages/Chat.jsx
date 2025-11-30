@@ -308,9 +308,24 @@ const Chat = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-yellow-300">
-          <Star size={16} className="fill-yellow-400" />
-          <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-yellow-300">
+            <Star size={16} className="fill-yellow-400" />
+            <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
+          </div>
+
+          {/* End Chat Button */}
+          <button
+            onClick={() => {
+              if (window.confirm('Are you sure you want to end this chat session?')) {
+                socket.emit('chat:end', { sessionId: id });
+                window.history.back();
+              }
+            }}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-semibold transition-colors shadow-lg"
+          >
+            End Chat
+          </button>
         </div>
       </div>
 
