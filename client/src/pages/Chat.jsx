@@ -101,12 +101,9 @@ const Chat = () => {
 
 
 
-    socket.on("chat:typing", (data) => {
-      // Only show typing if it's from the OTHER user
-      if (data.userId && data.userId !== user.id) {
-        setIsTyping(true);
-        setTimeout(() => setIsTyping(false), 1500);
-      }
+    socket.on("chat:typing", () => {
+      setIsTyping(true);
+      setTimeout(() => setIsTyping(false), 1500);
     });
 
     // Listen for session info from socket
@@ -308,24 +305,9 @@ const Chat = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-yellow-300">
-            <Star size={16} className="fill-yellow-400" />
-            <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
-          </div>
-
-          {/* End Chat Button */}
-          <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to end this chat session?')) {
-                socket.emit('chat:end', { sessionId: id });
-                window.history.back();
-              }
-            }}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-semibold transition-colors shadow-lg"
-          >
-            End Chat
-          </button>
+        <div className="flex items-center gap-2 text-sm text-yellow-300">
+          <Star size={16} className="fill-yellow-400" />
+          <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
         </div>
       </div>
 
@@ -447,9 +429,7 @@ const Chat = () => {
                     <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-150"></div>
                     <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-300"></div>
                   </div>
-                  <p className="text-xs text-yellow-400 mt-1">
-                    {user?.role === 'astrologer' ? 'Client' : 'Astrologer'} is typing...
-                  </p>
+                  <p className="text-xs text-yellow-400 mt-1">Astrologer is typing...</p>
                 </div>
               </div>
             )}
