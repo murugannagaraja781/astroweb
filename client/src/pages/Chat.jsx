@@ -1,16 +1,15 @@
  import { useEffect, useState, useRef, useContext, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, PhoneOff } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles } from "lucide-react";
 
 const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com");
 
 const Chat = () => {
   const { user } = useContext(AuthContext);
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [message, setMessage] = useState("");
   const [conversation, setConversation] = useState([]);
@@ -79,17 +78,22 @@ const Chat = () => {
     e.preventDefault();
     if (!message.trim() || message === lastMessageRef.current) return;
 
-    const messageText = message;
-    lastMessageRef.current = messageText;
+    const newMsg = {
+      senderId: user.id,
+      text: message,
+      timestamp: new Date(),
+      status: "sent",
+    };
 
-    // Don't add to conversation here - let socket listener handle it
-    // This prevents duplicate messages
+    lastMessageRef.current = message;
+
     socket.emit("chat:message", {
       sessionId: id,
       senderId: user.id,
-      text: messageText,
+      text: message,
     });
 
+    setConversation((prev) => [...prev, newMsg]);
     setMessage("");
   };
 
@@ -114,21 +118,35 @@ const Chat = () => {
 
         const audioMsg = {
           senderId: user.id,
-          text: "",
-          audioUrl: URL.createObjectURL(blob),
+          audioUrl: url,
           timestamp: new Date(),
-          type: "audio",
-          status: "sending",
+          status: "sent",
         };
 
         socket.emit("chat:message", {
           sessionId: id,
           senderId: user.id,
-          audioUrl: audioMsg.audioUrl,
+          text: "",
           type: "audio",
         });
 
         setConversation((prev) => [...prev, audioMsg]);
+
+        const formData = new FormData();
+        formData.append("audio", blob);
+        formData.append("chatId", id);
+        formData.append("sender", user.id);
+
+        try {
+          await axios.post(
+            `${import.meta.env.VITE_API_URL}/api/chat/send-audio`,
+            formData,
+            { headers: { "Content-Type": "multipart/form-data" } }
+          );
+          audioMsg.status = "delivered";
+        } catch (e) {
+          audioMsg.status = "failed";
+        }
       };
 
       mediaRecorderRef.current.start();
@@ -145,27 +163,19 @@ const Chat = () => {
     }
   };
 
-  if (!user) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-black text-yellow-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-screen w-full flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
       <style jsx>{`
         input, textarea, select {
           color: #f9f4f4 !important;
           font-size: large;
         }
         .message-container {
-          padding-bottom: 200px; /* Extra space for mobile footer */
+          padding-bottom: 180px; /* Increased space for mobile footer */
         }
         @media (min-width: 768px) {
           .message-container {
-            padding-bottom: 160px;
+            padding-bottom: 140px;
           }
         }
         /* Prevent keyboard from pushing footer up on mobile */
@@ -174,7 +184,6 @@ const Chat = () => {
           bottom: 0;
           left: 0;
           right: 0;
-          z-index: 20;
         }
         /* Safe area for iOS devices */
         @supports (padding-bottom: env(safe-area-inset-bottom)) {
@@ -195,17 +204,6 @@ const Chat = () => {
 
       {/* Header */}
       <div className="relative flex items-center justify-between p-4 bg-black/80 backdrop-blur-lg border-b border-yellow-600/30 z-10">
-        {/* Back Button */}
-        <button
-          onClick={() => {
-            const dashboardPath = user?.role === 'astrologer' ? '/astrologer-dashboard' : '/dashboard';
-            navigate(dashboardPath);
-          }}
-          className="p-2 hover:bg-yellow-600/20 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={24} className="text-yellow-400" />
-        </button>
-
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full">
             <Crown size={20} className="text-yellow-200" />
@@ -219,27 +217,17 @@ const Chat = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-yellow-300">
-            <Star size={16} className="fill-yellow-400" />
-            <span>Online</span>
-          </div>
-
-          {/* End Chat Button */}
-          <button
-            onClick={handleEndChat}
-            className="flex items-center gap-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 rounded-lg transition-all text-red-400 hover:text-red-300"
-            title="End Chat"
-          >
-            <PhoneOff size={18} />
-            <span className="text-sm font-medium hidden sm:inline">End Chat</span>
-          </button>
+        <div className="flex items-center gap-2 text-sm text-yellow-300">
+          <Star size={16} className="fill-yellow-400" />
+          <span>Online</span>
         </div>
       </div>
 
-      {/* Messages Container - Scrollable area */}
-      <div className="flex-1 overflow-y-auto relative z-0 px-4">
-        <div className="max-w-4xl mx-auto py-6 space-y-4 message-container">
+      {/* Messages Container - Centered with extra bottom padding */}
+      <div className="flex-1 overflow-y-auto relative z-0">
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+          {/* Messages List with extra bottom padding */}
+          <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container">
             {conversation.length === 0 ? (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full mb-4">
@@ -319,9 +307,10 @@ const Chat = () => {
             <div ref={messagesEndRef} className="h-4" />
           </div>
         </div>
+      </div>
 
       {/* Input Area - Fixed at bottom with safe area for mobile */}
-      <div className="chat-footer relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-6">
+      <div className="chat-footer relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-safe-or-6">
         <div className="max-w-4xl mx-auto px-4">
           {/* Recording Indicator - Only shows when recording */}
           {isRecording && (
@@ -384,7 +373,7 @@ const Chat = () => {
                       : "text-yellow-600 opacity-50"
                   }`}
                 >
-                  <Send size={18} />
+                  <Send size={18} className="md:size-20" />
                 </button>
               </div>
             </div>
