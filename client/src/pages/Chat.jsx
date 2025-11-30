@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, PhoneOff } from "lucide-react";
 
 const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com");
 
@@ -114,35 +114,21 @@ const Chat = () => {
 
         const audioMsg = {
           senderId: user.id,
-          audioUrl: url,
+          text: "",
+          audioUrl: URL.createObjectURL(blob),
           timestamp: new Date(),
-          status: "sent",
+          type: "audio",
+          status: "sending",
         };
 
         socket.emit("chat:message", {
           sessionId: id,
           senderId: user.id,
-          text: "",
+          audioUrl: audioMsg.audioUrl,
           type: "audio",
         });
 
         setConversation((prev) => [...prev, audioMsg]);
-
-        const formData = new FormData();
-        formData.append("audio", blob);
-        formData.append("chatId", id);
-        formData.append("sender", user.id);
-
-        try {
-          await axios.post(
-            `${import.meta.env.VITE_API_URL}/api/chat/send-audio`,
-            formData,
-            { headers: { "Content-Type": "multipart/form-data" } }
-          );
-          audioMsg.status = "delivered";
-        } catch (e) {
-          audioMsg.status = "failed";
-        }
       };
 
       mediaRecorderRef.current.start();
@@ -225,9 +211,21 @@ const Chat = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-yellow-300">
-          <Star size={16} className="fill-yellow-400" />
-          <span>Online</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-yellow-300">
+            <Star size={16} className="fill-yellow-400" />
+            <span>Online</span>
+          </div>
+
+          {/* End Chat Button */}
+          <button
+            onClick={handleEndChat}
+            className="flex items-center gap-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 rounded-lg transition-all text-red-400 hover:text-red-300"
+            title="End Chat"
+          >
+            <PhoneOff size={18} />
+            <span className="text-sm font-medium hidden sm:inline">End Chat</span>
+          </button>
         </div>
       </div>
 
