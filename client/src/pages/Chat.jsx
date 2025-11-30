@@ -5,7 +5,9 @@ import axios from "axios";
 import AuthContext from "../context/AuthContext";
 import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles } from "lucide-react";
 
-const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com");
+const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com", {
+  autoConnect: false
+});
 
 const Chat = () => {
   const { user } = useContext(AuthContext);
@@ -42,6 +44,11 @@ const Chat = () => {
   }, [id]);
 
   useEffect(() => {
+    if (user?.name) {
+      socket.io.opts.query = { username: user.name };
+      socket.connect();
+    }
+
     if (id) {
       console.log(`[Chat] Joining session: ${id}`);
       socket.emit("join_chat", { sessionId: id });

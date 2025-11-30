@@ -13,13 +13,17 @@ const AstrologerDashboard = () => {
 
   // Initialize socket connection
   useEffect(() => {
-    const newSocket = io(import.meta.env.VITE_API_URL);
+    if (!profile?.name) return;
+
+    const newSocket = io(import.meta.env.VITE_API_URL, {
+      query: { username: profile.name }
+    });
     setSocket(newSocket);
 
     return () => {
       newSocket.disconnect();
     };
-  }, []);
+  }, [profile?.name]);
 
   useEffect(() => {
     fetchProfile();

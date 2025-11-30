@@ -9,7 +9,9 @@ const presenceHandler = require('./handlers/presence');
 
 module.exports = (io) => {
     io.on('connection', (socket) => {
-        console.log('✅ User Connected:', socket.id);
+        const username = socket.handshake.query.username;
+        socket.username = username;
+        console.log(`✅ User Connected: ${socket.id} (Name: ${username || 'Unknown'})`);
 
         // Register all handlers
         chatHandler(io, socket);

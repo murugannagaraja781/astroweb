@@ -27,13 +27,17 @@ const AstrologerDetail = () => {
 
   // Initialize socket connection
   useEffect(() => {
-    const newSocket = io(import.meta.env.VITE_API_URL);
+    if (!user?.name) return;
+
+    const newSocket = io(import.meta.env.VITE_API_URL, {
+      query: { username: user.name }
+    });
     setSocket(newSocket);
 
     return () => {
       newSocket.disconnect();
     };
-  }, []);
+  }, [user?.name]);
 
   useEffect(() => {
     fetchAstrologer();
