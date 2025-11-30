@@ -3,9 +3,12 @@ import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft } from "lucide-react";
 
 const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com", {
+   query: {
+    username: userNameFromLogin  // இந்த user name தான் socketக்கு tag ஆகும்
+  },
   autoConnect: false
 });
 
@@ -18,6 +21,8 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [otherUser, setOtherUser] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState(null);
+  const [sessionDuration, setSessionDuration] = useState(0);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const messagesEndRef = useRef(null);
@@ -43,6 +48,20 @@ const Chat = () => {
     }
   }, [id]);
 
+  // Fetch session info
+  const fetchSessionInfo = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/chat/session/${id}`,
+        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
+      );
+      setSessionInfo(res.data);
+    } catch (error) {
+      console.error("Error fetching session info:", error);
+    }
+  }, [id]);
+
   useEffect(() => {
     if (user?.name) {
       socket.io.opts.query = { username: user.name };
@@ -55,6 +74,7 @@ const Chat = () => {
     }
 
     fetchChat();
+    fetchSessionInfo();
 
     socket.on("chat:message", (newMessage) => {
       setConversation((prev) => {
@@ -72,13 +92,41 @@ const Chat = () => {
       setTimeout(() => setIsTyping(false), 1500);
     });
 
+    // Listen for session info from socket
+    socket.on("chat:session_info", (info) => {
+      console.log("[Chat] Received session info:", info);
+      setSessionInfo(info);
+    });
+
     return () => {
       socket.off("chat:message");
       socket.off("chat:typing");
+      socket.off("chat:session_info");
     };
-  }, [id, fetchChat]);
+  }, [id, fetchChat, fetchSessionInfo]);
 
   useEffect(scrollToBottom, [conversation]);
+
+  // Session timer
+  useEffect(() => {
+    if (!sessionInfo?.startedAt) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const started = new Date(sessionInfo.startedAt);
+      const diff = Math.floor((now - started) / 1000);
+      setSessionDuration(diff);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [sessionInfo?.startedAt]);
+
+  // Helper function to format duration
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // --- Send Message ---
   const sendMessage = async (e) => {
@@ -212,21 +260,33 @@ const Chat = () => {
       {/* Header */}
       <div className="relative flex items-center justify-between p-4 bg-black/80 backdrop-blur-lg border-b border-yellow-600/30 z-10">
         <div className="flex items-center gap-3">
+          {/* Back Button */}
+          <button
+            onClick={() => window.history.back()}
+            className="p-2 hover:bg-yellow-600/20 rounded-full transition-colors"
+            title="Go back"
+          >
+            <ArrowLeft size={20} className="text-yellow-200" />
+          </button>
+
           <div className="p-2 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full">
             <Crown size={20} className="text-yellow-200" />
           </div>
+
           <div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-              Royal Astrology
+              {user?.role === 'client'
+                ? sessionInfo?.astrologer?.name || 'Astrologer'
+                : sessionInfo?.client?.name || 'Client'}
             </h1>
             <p className="text-sm text-yellow-300">
-              Chat with {otherUser?.name || "Astrologer"}
+              {sessionDuration > 0 ? formatDuration(sessionDuration) : 'Starting...'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 text-sm text-yellow-300">
           <Star size={16} className="fill-yellow-400" />
-          <span>Online</span>
+          <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
         </div>
       </div>
 
@@ -250,57 +310,88 @@ const Chat = () => {
               </div>
             ) : (
               conversation.map((msg, index) => {
-                const isMe = msg.sender === user.id;
+                const isMe = msg.senderId === user.id || msg.sender === user.id;
                 const isAstrologerMsg = user.role === 'client' && !isMe;
+
+                // Get name and initials for the sender
+                const senderName = isMe
+                  ? user.name
+                  : (user.role === 'client'
+                      ? sessionInfo?.astrologer?.name
+                      : sessionInfo?.client?.name) || 'User';
+
+                const getInitials = (name) => {
+                  if (!name) return '?';
+                  return name
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2);
+                };
 
                 return (
                   <div
                     key={index}
-                    className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                    className={`flex gap-2 ${isMe ? "flex-row-reverse" : "flex-row"} items-end`}
                   >
-                    {/* Sender Name Label for Astrologer */}
-                    {isAstrologerMsg && (
-                      <span className="text-[10px] text-yellow-500 mb-1 ml-2 font-medium flex items-center gap-1">
-                        <Crown size={10} /> Astrologer
-                      </span>
-                    )}
+                    {/* Profile Icon */}
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      isMe
+                        ? 'bg-gradient-to-br from-yellow-500 to-yellow-700 text-white'
+                        : 'bg-gradient-to-br from-purple-500 to-purple-700 text-white'
+                    }`}>
+                      {getInitials(senderName)}
+                    </div>
 
-                    <div
-                      className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl shadow-lg relative ${
-                        isMe
-                          ? "bg-gradient-to-br from-yellow-600 to-yellow-800 text-yellow-50 border border-yellow-500/30 rounded-tr-none"
-                          : "bg-zinc-800 text-yellow-50 border border-yellow-600/50 rounded-tl-none"
-                      }`}
-                    >
-                      {/* Message Bubble Decoration */}
-                      {isMe && (
-                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full opacity-80 shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
-                      )}
-
-                      {msg.text && (
-                        <p className="text-sm leading-relaxed text-yellow-50 font-medium">{msg.text}</p>
-                      )}
-
-                      {msg.audioUrl && (
-                        <div className="mt-2">
-                          <audio
-                            controls
-                            className="w-48 h-8 rounded-lg bg-black/40 border border-yellow-600/30"
-                          >
-                            <source src={msg.audioUrl} type="audio/mp3" />
-                          </audio>
-                        </div>
-                      )}
-
-                      {/* Timestamp */}
-                      <div className={`text-[10px] mt-2 flex items-center gap-1 ${
-                        isMe ? 'text-yellow-200 justify-end' : 'text-gray-400 justify-start'
+                    {/* Message Container */}
+                    <div className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[75%] md:max-w-[65%]`}>
+                      {/* Sender Name Label */}
+                      <span className={`text-[10px] mb-1 font-medium flex items-center gap-1 ${
+                        isMe ? 'text-yellow-400' : 'text-purple-400'
                       }`}>
-                        {new Date(msg.timestamp).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                        {isMe && <span>✓</span>}
+                        {isAstrologerMsg && <Crown size={10} />}
+                        {senderName}
+                      </span>
+
+                      {/* Message Bubble */}
+                      <div
+                        className={`p-4 rounded-2xl shadow-lg relative ${
+                          isMe
+                            ? "bg-gradient-to-br from-yellow-600 to-yellow-800 text-yellow-50 border border-yellow-500/30 rounded-tr-none"
+                            : "bg-zinc-800 text-yellow-50 border border-yellow-600/50 rounded-tl-none"
+                        }`}
+                      >
+                        {/* Message Bubble Decoration */}
+                        {isMe && (
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full opacity-80 shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
+                        )}
+
+                        {msg.text && (
+                          <p className="text-sm leading-relaxed text-yellow-50 font-medium">{msg.text}</p>
+                        )}
+
+                        {msg.audioUrl && (
+                          <div className="mt-2">
+                            <audio
+                              controls
+                              className="w-48 h-8 rounded-lg bg-black/40 border border-yellow-600/30"
+                            >
+                              <source src={msg.audioUrl} type="audio/mp3" />
+                            </audio>
+                          </div>
+                        )}
+
+                        {/* Timestamp */}
+                        <div className={`text-[10px] mt-2 flex items-center gap-1 ${
+                          isMe ? 'text-yellow-200 justify-end' : 'text-gray-400 justify-start'
+                        }`}>
+                          {new Date(msg.timestamp).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                          {isMe && <span>✓</span>}
+                        </div>
                       </div>
                     </div>
                   </div>

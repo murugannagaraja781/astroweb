@@ -15,6 +15,7 @@ const {
   getChatCall,
   acceptChatSession,
   rejectChatSession,
+  getSessionInfo,
 } = require("../controllers/chatController");
 
 const auth = require("../middleware/auth");
@@ -29,6 +30,7 @@ router.get("/history/:userId/:peerId", auth, getChatHistory);
 router.get("/sessions", auth, getChatSessions);
 router.get("/history/session/:sessionId", auth, getSessionHistory);
 router.get("/sessions/pending", auth, getPendingSessions);
+router.get("/session/:sessionId", auth, getSessionInfo);
 
 // MEDIA
 router.post("/upload/image", auth, uploadImage);

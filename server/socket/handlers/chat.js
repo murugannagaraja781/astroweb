@@ -57,6 +57,25 @@ const startChatSession = async (io, sessionId) => {
             if (as) as.join(sessionId);
         }
 
+        // Emit session info to both participants for header display
+        const User = require('../../models/User');
+        const clientUser = await User.findById(s.clientId).select('name');
+        const astrologerUser = await User.findById(s.astrologerId).select('name');
+
+        io.to(sessionId).emit('chat:session_info', {
+            sessionId,
+            client: {
+                id: s.clientId.toString(),
+                name: clientUser?.name || 'Client'
+            },
+            astrologer: {
+                id: s.astrologerId.toString(),
+                name: astrologerUser?.name || 'Astrologer'
+            },
+            ratePerMinute: s.ratePerMinute,
+            startedAt: s.startedAt
+        });
+
         io.to(sessionId).emit('chat:joined', { sessionId });
 
         const ratePerSecond = (s.ratePerMinute || 1) / 60;

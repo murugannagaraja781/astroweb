@@ -526,3 +526,49 @@ exports.rejectChatSession = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+/**
+ * Get session information with participant details
+ */
+exports.getSessionInfo = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await ChatSession.findOne({ sessionId })
+      .populate('clientId', 'name')
+      .populate('astrologerId', 'name');
+
+    if (!session) {
+      return res.status(404).json({ msg: 'Session not found' });
+    }
+
+    // Verify user is authorized to view this session
+    if (
+      req.user.id !== session.clientId._id.toString() &&
+      req.user.id !== session.astrologerId._id.toString()
+    ) {
+      return res.status(403).json({ msg: 'Unauthorized' });
+    }
+
+    res.json({
+      sessionId: session.sessionId,
+      client: {
+        id: session.clientId._id,
+        name: session.clientId.name
+      },
+      astrologer: {
+        id: session.astrologerId._id,
+        name: session.astrologerId.name
+      },
+      ratePerMinute: session.ratePerMinute,
+      status: session.status,
+      startedAt: session.startedAt,
+      duration: session.duration,
+      totalCost: session.totalCost
+    });
+  } catch (err) {
+    console.error('Error fetching session info:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
