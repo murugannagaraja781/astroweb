@@ -75,17 +75,29 @@ const Chat = () => {
     fetchSessionInfo();
 
     socket.on("chat:message", (newMessage) => {
-      setConversation((prev) => {
-        // Check if message already exists (deduplication)
-        const isDuplicate = prev.some(
-          msg => (msg._id && msg._id === newMessage._id) ||
-                 (msg.text === newMessage.text &&
-                  msg.senderId === newMessage.senderId &&
-                  Math.abs(new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()) < 1000)
+  setConversation((prev) => {
+    // 1. Dedupe using tempId
+    if (newMessage.tempId) {
+      const exists = prev.some((msg) => msg.tempId === newMessage.tempId);
+      if (exists) {
+        // Replace the pending message with server message
+        return prev.map((msg) =>
+          msg.tempId === newMessage.tempId ? { ...msg, ...newMessage, pending: false } : msg
         );
-        return isDuplicate ? prev : [...prev, newMessage];
-      });
-    });
+      }
+    }
+
+    // 2. Dedupe using _id
+    if (newMessage._id) {
+      const exists = prev.some((msg) => msg._id === newMessage._id);
+      if (exists) return prev;
+    }
+
+    // 3. Otherwise add normally
+    return [...prev, newMessage];
+  });
+});
+
 
     socket.on("chat:typing", () => {
       setIsTyping(true);
@@ -129,29 +141,33 @@ const Chat = () => {
   };
 
   // --- Send Message ---
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!message.trim() || message === lastMessageRef.current) return;
+ const sendMessage = async (e) => {
+  e.preventDefault();
+  if (!message.trim()) return;
 
-    const newMsg = {
-      senderId: user.id,
-      text: message,
-      timestamp: new Date(),
-      status: "sent",
-    };
+  const tempId = Date.now() + "-" + Math.random().toString(36).slice(2);
 
-    lastMessageRef.current = message;
-
-    socket.emit("chat:message", {
-      sessionId: id,
-      senderId: user.id,
-      text: message,
-    });
-
-    // Optimistic update removed to prevent duplicates - waiting for server echo
-    // setConversation((prev) => [...prev, newMsg]);
-    setMessage("");
+  const newMsg = {
+    tempId,
+    senderId: user.id,
+    text: message,
+    timestamp: new Date(),
+    pending: true,
   };
+
+  // Add to UI immediately
+  setConversation((prev) => [...prev, newMsg]);
+
+  socket.emit("chat:message", {
+    sessionId: id,
+    senderId: user.id,
+    text: message,
+    tempId,
+  });
+
+  setMessage("");
+};
+
 
   // --- Typing Event ---
   const handleTyping = () => {
