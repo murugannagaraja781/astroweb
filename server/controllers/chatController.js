@@ -502,10 +502,16 @@ exports.rejectChatSession = async (req, res) => {
     }
 
     // Verify authorization (only astrologer or client involved can reject/cancel)
+    console.log(`[DEBUG] Rejecting Session: ${sessionId}`);
+    console.log(`[DEBUG] User ID: ${userId}`);
+    console.log(`[DEBUG] Session Astrologer ID: ${session.astrologerId}`);
+    console.log(`[DEBUG] Session Client ID: ${session.clientId}`);
+
     if (
       session.astrologerId.toString() !== userId &&
       session.clientId.toString() !== userId
     ) {
+      console.log("[DEBUG] Unauthorized rejection attempt");
       return res.status(403).json({ msg: "Unauthorized" });
     }
 
