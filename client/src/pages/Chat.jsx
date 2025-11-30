@@ -242,52 +242,63 @@ const Chat = () => {
                 </p>
               </div>
             ) : (
-              conversation.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`flex ${
-                    msg.sender === user.id ? "justify-end" : "justify-start"
-                  }`}
-                >
+              conversation.map((msg, index) => {
+                const isMe = msg.sender === user.id;
+                const isAstrologerMsg = user.role === 'client' && !isMe;
+
+                return (
                   <div
-                    className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl shadow-lg relative ${
-                      msg.sender === user.id
-                        ? "bg-gradient-to-br from-yellow-600 to-yellow-800 text-yellow-50 border border-yellow-500/30"
-                        : "bg-black/60 backdrop-blur-sm border border-yellow-600/30 text-yellow-100"
-                    }`}
+                    key={index}
+                    className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
                   >
-                    {/* Message Bubble Decoration */}
-                    {msg.sender === user.id && (
-                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-yellow-600 rounded-full opacity-60"></div>
+                    {/* Sender Name Label for Astrologer */}
+                    {isAstrologerMsg && (
+                      <span className="text-[10px] text-yellow-500 mb-1 ml-2 font-medium flex items-center gap-1">
+                        <Crown size={10} /> Astrologer
+                      </span>
                     )}
 
-                    {msg.text && (
-                      <p className="text-sm leading-relaxed text-yellow-50">{msg.text}</p>
-                    )}
+                    <div
+                      className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl shadow-lg relative ${
+                        isMe
+                          ? "bg-gradient-to-br from-yellow-600 to-yellow-800 text-yellow-50 border border-yellow-500/30 rounded-tr-none"
+                          : "bg-zinc-800 text-yellow-50 border border-yellow-600/50 rounded-tl-none"
+                      }`}
+                    >
+                      {/* Message Bubble Decoration */}
+                      {isMe && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full opacity-80 shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
+                      )}
 
-                    {msg.audioUrl && (
-                      <div className="mt-2">
-                        <audio
-                          controls
-                          className="w-48 h-8 rounded-lg bg-black/40 border border-yellow-600/30"
-                        >
-                          <source src={msg.audioUrl} type="audio/mp3" />
-                        </audio>
+                      {msg.text && (
+                        <p className="text-sm leading-relaxed text-yellow-50 font-medium">{msg.text}</p>
+                      )}
+
+                      {msg.audioUrl && (
+                        <div className="mt-2">
+                          <audio
+                            controls
+                            className="w-48 h-8 rounded-lg bg-black/40 border border-yellow-600/30"
+                          >
+                            <source src={msg.audioUrl} type="audio/mp3" />
+                          </audio>
+                        </div>
+                      )}
+
+                      {/* Timestamp */}
+                      <div className={`text-[10px] mt-2 flex items-center gap-1 ${
+                        isMe ? 'text-yellow-200 justify-end' : 'text-gray-400 justify-start'
+                      }`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                        {isMe && <span>✓</span>}
                       </div>
-                    )}
-
-                    {/* Timestamp - Always visible */}
-                    <div className={`text-xs mt-2 ${
-                      msg.sender === user.id ? 'text-yellow-300' : 'text-yellow-400'
-                    }`}>
-                      {new Date(msg.timestamp).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
 
             {/* Typing Indicator */}
@@ -373,7 +384,7 @@ const Chat = () => {
                       : "text-yellow-600 opacity-50"
                   }`}
                 >
-                  <Send size={18} className="md:size-20" />
+                  <Send size={18} className="md:w-5 md:h-5" />
                 </button>
               </div>
             </div>
