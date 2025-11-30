@@ -306,7 +306,7 @@ const AstrologerDetail = () => {
                 > */}
                   {/* <Video size={20} /> */}
 
-                  <ClientVideoCall name={astrologer.name}/>
+                  <ClientVideoCall astrologerId={id}/>
                 {/* </button> */}
                 <button
                   onClick={() => handleAction("chat")}
