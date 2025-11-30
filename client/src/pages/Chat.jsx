@@ -145,8 +145,16 @@ const Chat = () => {
     }
   };
 
+  if (!user) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-black text-yellow-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
+    <div className="h-screen w-full flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
       <style jsx>{`
         input, textarea, select {
           color: #f9f4f4 !important;
@@ -311,10 +319,9 @@ const Chat = () => {
             <div ref={messagesEndRef} className="h-4" />
           </div>
         </div>
-      </div>
 
       {/* Input Area - Fixed at bottom with safe area for mobile */}
-      <div className="chat-footer relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-safe-or-6">
+      <div className="chat-footer relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-6">
         <div className="max-w-4xl mx-auto px-4">
           {/* Recording Indicator - Only shows when recording */}
           {isRecording && (
@@ -377,7 +384,7 @@ const Chat = () => {
                       : "text-yellow-600 opacity-50"
                   }`}
                 >
-                  <Send size={18} className="md:size-20" />
+                  <Send size={18} />
                 </button>
               </div>
             </div>
