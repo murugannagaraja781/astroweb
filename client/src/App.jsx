@@ -78,6 +78,9 @@ const AppLayout = ({ children }) => {
   // Hide all navigation on auth pages (login, register)
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
+  // Hide mobile nav on chat pages
+  const isChatPage = location.pathname.startsWith('/chat/');
+
   // Home page - mobile nav only
   if (isHomePage) {
     return (
@@ -104,6 +107,10 @@ const AppLayout = ({ children }) => {
   }
 
   if (isAuthPage) {
+    return <>{children}</>;
+  }
+
+  if (isChatPage) {
     return <>{children}</>;
   }
 

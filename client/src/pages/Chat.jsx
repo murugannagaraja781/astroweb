@@ -1,15 +1,16 @@
  import { useEffect, useState, useRef, useContext, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft } from "lucide-react";
 
 const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com");
 
 const Chat = () => {
   const { user } = useContext(AuthContext);
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [message, setMessage] = useState("");
   const [conversation, setConversation] = useState([]);
@@ -200,6 +201,17 @@ const Chat = () => {
 
       {/* Header */}
       <div className="relative flex items-center justify-between p-4 bg-black/80 backdrop-blur-lg border-b border-yellow-600/30 z-10">
+        {/* Back Button */}
+        <button
+          onClick={() => {
+            const dashboardPath = user?.role === 'astrologer' ? '/astrologer-dashboard' : '/dashboard';
+            navigate(dashboardPath);
+          }}
+          className="p-2 hover:bg-yellow-600/20 rounded-lg transition-colors"
+        >
+          <ArrowLeft size={24} className="text-yellow-400" />
+        </button>
+
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full">
             <Crown size={20} className="text-yellow-200" />
