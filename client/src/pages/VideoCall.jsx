@@ -20,14 +20,14 @@ const ICE_SERVERS = {
   ]
 };
 
-export default function VideoCall() {
+export default function VideoCall({name}) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const pcRef = useRef(null);
   const socketRef = useRef(null);
   const localStreamRef = useRef(null);
 
-  const [roomId, setRoomId] = useState("");
+  const [roomId, setRoomId] = useState(name);
   const [joined, setJoined] = useState(false);
   const [calling, setCalling] = useState(false);
   const [muted, setMuted] = useState(false);
