@@ -81,11 +81,17 @@ const AstrologerDashboard = () => {
     }
   };
 
+  useEffect(() => {
+    if (activeTab === 'inbox') {
+      fetchPendingSessions();
+    }
+  }, [activeTab]);
+
   const fetchPendingSessions = async () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chatcalldetails`,
+        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

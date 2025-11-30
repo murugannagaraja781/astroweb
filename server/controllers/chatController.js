@@ -314,12 +314,14 @@ exports.getSessionHistory = async (req, res) => {
 
 exports.getPendingSessions = async (req, res) => {
   try {
+    console.log(`[DEBUG] getPendingSessions called for user: ${req.user.id}`);
     const sessions = await ChatSession.find({
       status: { $in: ["requested", "active"] },
       astrologerId: req.user.id,
     })
       .sort({ createdAt: -1 })
       .lean();
+    console.log(`[DEBUG] Found ${sessions.length} pending sessions for astrologer ${req.user.id}`);
     const userIds = Array.from(
       new Set(
         sessions.flatMap((s) => [
