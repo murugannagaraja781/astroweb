@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 const AstrologerDashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("inbox");
   const [profile, setProfile] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [pendingSessions, setPendingSessions] = useState([]);
