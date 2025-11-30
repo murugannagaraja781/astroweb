@@ -476,14 +476,14 @@ const Chat = () => {
                   setMessage(e.target.value);
                   handleTyping();
                 }}
-                disabled={sessionInfo?.status !== 'active'}
+                // disabled={sessionInfo?.status !== 'active'}
                 placeholder={sessionInfo?.status === 'active' ? "Type a message..." : "Chat not started"}
                 className="w-full bg-gray-900/50 border border-gray-700 text-white rounded-full py-3 pl-5 pr-12 focus:outline-none focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
-                disabled={sessionInfo?.status !== 'active'}
+                // disabled={sessionInfo?.status !== 'active'}
                 className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all ${
                   isRecording
                     ? "bg-red-600 shadow-lg shadow-red-500/50"
