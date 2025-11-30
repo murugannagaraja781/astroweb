@@ -2,7 +2,9 @@ import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import ClienttoAstrologyvideocall from './ClientcalltoAstrologerVideoCall'
+import ClienttoAstrologyvideocall from './AstrologertoClientVideoCall'
+
+// import ClienttoAstrologyvideocall from './ClientcalltoAstrologerVideoCall'
 import {
   Video,
   MessageCircle,
