@@ -1,4 +1,4 @@
- import { useEffect, useState, useRef, useContext, useCallback } from "react";
+  import { useEffect, useState, useRef, useContext, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
@@ -413,10 +413,10 @@ const Chat = () => {
                           <div className="mt-2">
                             <audio
                               controls
-                              src={msg.audioUrl}
-                              className="w-full max-w-xs h-10 rounded-lg"
-                              style={{ filter: 'hue-rotate(45deg)' }}
-                            />
+                              className="w-48 h-8 rounded-lg bg-black/40 border border-yellow-600/30"
+                            >
+                              <source src={msg.audioUrl} type="audio/mp3" />
+                            </audio>
                           </div>
                         )}
 
