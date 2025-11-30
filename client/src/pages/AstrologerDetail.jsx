@@ -13,7 +13,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { io } from "socket.io-client";
-
+import VideoCall from './VideoCall'
 const AstrologerDetail = () => {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
@@ -306,6 +306,7 @@ const AstrologerDetail = () => {
                 >
                   <Video size={20} />
                   Video Call
+                  <VideoCall/>
                 </button>
                 <button
                   onClick={() => handleAction("chat")}
