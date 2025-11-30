@@ -436,150 +436,85 @@ export default function VideoCall() {
 
   // If we have a user and an otherUserId (normal call page)
   return (
-    <div className="relative h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden">
-      {/* Animated Background Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-10 w-2 h-2 bg-yellow-400 rounded-full opacity-60 animate-pulse"></div>
-        <div className="absolute top-20 right-20 w-1 h-1 bg-purple-400 rounded-full opacity-40"></div>
-        <div className="absolute bottom-32 left-1/4 w-1 h-1 bg-yellow-500 rounded-full opacity-50 animate-pulse delay-700"></div>
-        <div className="absolute top-1/2 right-16 w-1 h-1 bg-yellow-400 rounded-full opacity-30"></div>
-        <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-purple-600 rounded-full opacity-40 animate-pulse delay-300"></div>
-      </div>
-
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-20">
-        <div className="flex items-center justify-between">
-          {/* Back Button */}
+    <div
+      className={user?.role === "astrologer" ? "theme-orange" : "theme-dark"}
+    >
+      <div className="h-screen flex flex-col items-center justify-center text-white bg-slate-900">
+        <div className="absolute top-4 left-4 z-10">
           <button
             onClick={() => navigate(`/call/0`)}
-            className="p-2 bg-yellow-600/20 hover:bg-yellow-600/40 rounded-full transition-colors"
+            className="bg-white/10 p-2 rounded-full hover:bg-white/20 mb-2"
           >
-            <ArrowLeft className="text-yellow-200" size={20} />
+            <ArrowLeft />
           </button>
-
-          {/* Call Info */}
-          <div className="text-center">
-            <p className="text-yellow-200 font-semibold text-lg">
-              {user?.role === 'client' ? 'Astrologer' : 'Client'}
-            </p>
-            <p className="text-yellow-300 text-sm">
-              {formatDuration(duration)}
-            </p>
-          </div>
-
-          {/* Rate Badge */}
-          <div className="bg-purple-600/80 backdrop-blur-sm px-3 py-1 rounded-full border border-purple-400/30">
-            <span className="text-white text-sm font-medium">
-              ₹{RATE_PER_MIN}/min
-            </span>
-          </div>
+          <p>Duration: {formatDuration(duration)}</p>
         </div>
-      </div>
 
-      {/* Remote Video (Full Screen) */}
-      <div
-        ref={remoteContainerRef}
-        className="absolute inset-0 bg-black"
-      >
-        {remoteUsers.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-32 h-32 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-lg shadow-purple-500/50">
-                <svg className="w-16 h-16 text-yellow-200" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                </svg>
+        <div className="grid grid-cols-2 gap-4 w-full h-3/4 p-4">
+          <div className="relative border-2 border-indigo-500 rounded overflow-hidden bg-black flex items-center justify-center">
+            <div ref={localVideoEl} style={{ width: "100%", height: "100%" }} />
+            <samp className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 rounded z-10">
+              You
+            </samp>
+          </div>
+
+          <div
+            ref={remoteContainerRef}
+            className="relative border-2 border-green-500 rounded overflow-hidden bg-black"
+          >
+            {/* remote videos appended here by SDK */}
+            {remoteUsers.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                <img
+                  src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                  alt="User"
+                  className="w-32 h-32 rounded-full"
+                />
               </div>
-              <p className="text-yellow-200 text-lg font-medium">Connecting...</p>
-              <p className="text-purple-300 text-sm mt-2">Waiting for response</p>
-            </div>
+            )}
+            <samp className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 rounded z-10">
+              Remote
+            </samp>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Local Video (Picture-in-Picture) */}
-      <div className="absolute top-20 right-4 w-32 h-40 md:w-40 md:h-52 rounded-xl overflow-hidden border-2 border-yellow-500 shadow-lg shadow-yellow-500/50 z-10">
-        <div ref={localVideoEl} className="w-full h-full bg-gray-800" />
-        <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-yellow-200 font-medium">
-          You
+        <div className="mt-4 flex gap-4">
+          {!callId && user?.role === "client" && (
+            <button
+              onClick={initiateCall}
+              className="bg-green-600 px-6 py-3 rounded-full font-bold hover:bg-green-700"
+            >
+              Call
+            </button>
+          )}
+
+          {callActive ? (
+            <button
+              onClick={leaveCall}
+              className="bg-red-600 px-6 py-3 rounded-full font-bold hover:bg-red-700"
+            >
+              End Call
+            </button>
+          ) : (
+            callId && (
+              <button
+                onClick={async () => {
+                  try {
+                    const token = await fetchRtcToken(callId, user.id);
+                    setRtcToken(token);
+                    setCallActive(true);
+                  } catch (e) {
+                    addToast("Failed to join", "error");
+                  }
+                }}
+                className="bg-blue-600 px-6 py-3 rounded-full font-bold hover:bg-blue-700"
+              >
+                Join Call
+              </button>
+            )
+          )}
         </div>
       </div>
-
-      {/* Control Buttons */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-4 z-20">
-        {!callId && user?.role === "client" && (
-          <button
-            onClick={initiateCall}
-            className="px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-full font-bold text-white shadow-lg shadow-green-500/50 transition-all transform hover:scale-105"
-          >
-            Start Call
-          </button>
-        )}
-
-        {callActive ? (
-          <>
-            {/* Mute Button */}
-            <button
-              className="p-4 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 rounded-full transition-all shadow-lg"
-              title="Mute"
-            >
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M7 4a3 3 0 106 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
-              </svg>
-            </button>
-
-            {/* Video Toggle */}
-            <button
-              className="p-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-full transition-all shadow-lg"
-              title="Toggle Video"
-            >
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-              </svg>
-            </button>
-
-            {/* End Call */}
-            <button
-              onClick={() => {
-                if (window.confirm('Are you sure you want to end this call?')) {
-                  leaveCall();
-                }
-              }}
-              className="p-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-full transition-all shadow-lg shadow-red-500/50 transform hover:scale-105"
-              title="End Call"
-            >
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-              </svg>
-            </button>
-          </>
-        ) : (
-          callId && (
-            <button
-              onClick={async () => {
-                try {
-                  const token = await fetchRtcToken(callId, user.id);
-                  setRtcToken(token);
-                  setCallActive(true);
-                } catch (e) {
-                  addToast("Failed to join", "error");
-                }
-              }}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-full font-bold text-white shadow-lg shadow-blue-500/50 transition-all transform hover:scale-105"
-            >
-              Join Call
-            </button>
-          )
-        )}
-      </div>
-
-      {/* Balance Warning */}
-      {user?.role === 'client' && balance < RATE_PER_MIN && RATE_PER_MIN > 0 && (
-        <div className="absolute top-20 left-4 bg-red-600/90 backdrop-blur-sm px-4 py-3 rounded-lg border border-red-400/30 z-20">
-          <p className="text-white text-sm font-semibold">⚠️ Low Balance</p>
-          <p className="text-white text-xs mt-1">Add money to continue</p>
-        </div>
-      )}
     </div>
   );
 }
-
