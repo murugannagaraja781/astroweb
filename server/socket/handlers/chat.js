@@ -195,14 +195,24 @@ module.exports = (io, socket) => {
 
     socket.on('chat:message', async (data) => {
         try {
-            const { sessionId, senderId, text = '', type = 'text' } = data;
+            const { sessionId, senderId, text = '', type = 'text', tempId } = data;
             const s = await ChatSession.findOne({ sessionId });
             if (!s || s.status !== 'active') return;
             const roomId = sessionId;
             const receiverId = senderId === s.clientId.toString() ? s.astrologerId : s.clientId;
             const message = new ChatMessage({ sender: senderId, receiver: receiverId, roomId, sessionId, message: text, type, timestamp: new Date() });
             await message.save();
-            io.to(roomId).emit('chat:message', { _id: message._id, sessionId, roomId, senderId, receiverId: receiverId.toString(), text, type, timestamp: message.timestamp });
+            io.to(roomId).emit('chat:message', {
+                _id: message._id,
+                sessionId,
+                roomId,
+                senderId,
+                receiverId: receiverId.toString(),
+                text,
+                type,
+                timestamp: message.timestamp,
+                tempId // Echo back the tempId for client-side deduplication
+            });
         } catch (err) {
             socket.emit('chat:error', { error: 'message_failed' });
         }
