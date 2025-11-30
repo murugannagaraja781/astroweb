@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, X } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft } from "lucide-react";
 
 
 const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app", {
@@ -76,29 +76,12 @@ const Chat = () => {
 
     socket.on("chat:message", (newMessage) => {
       setConversation((prev) => {
-        // Check for duplicates using multiple criteria
-        const isDuplicate = prev.some(msg => {
-          // Check by message ID if available
-          if (msg._id && newMessage._id && msg._id === newMessage._id) {
-            return true;
-          }
-          // Check by content and timestamp (within 2 seconds)
-          if (msg.text === newMessage.text &&
-              msg.senderId === newMessage.senderId) {
-            const timeDiff = Math.abs(
-              new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()
-            );
-            return timeDiff < 2000; // 2 seconds tolerance
-          }
-          return false;
-        });
-
-        if (isDuplicate) {
-          console.log('[Chat] Duplicate message prevented:', newMessage.text);
-          return prev;
-        }
-
-        return [...prev, newMessage];
+        const isDuplicate = prev.some(
+          msg => msg.text === newMessage.text &&
+                 msg.senderId === newMessage.senderId &&
+                 new Date(msg.timestamp).getTime() === new Date(newMessage.timestamp).getTime()
+        );
+        return isDuplicate ? prev : [...prev, newMessage];
       });
     });
 
@@ -143,24 +126,12 @@ const Chat = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // --- End Chat ---
-  const handleEndChat = () => {
-    if (window.confirm('Are you sure you want to end this chat session?')) {
-      socket.emit('chat:end', { sessionId: id });
-      window.history.back();
-    }
-  };
-
   // --- Send Message ---
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!message.trim() || message === lastMessageRef.current) return;
 
-    // Generate unique message ID
-    const messageId = `${user.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
     const newMsg = {
-      _id: messageId,
       senderId: user.id,
       text: message,
       timestamp: new Date(),
@@ -173,10 +144,8 @@ const Chat = () => {
       sessionId: id,
       senderId: user.id,
       text: message,
-      messageId: messageId,
     });
 
-    // Add locally (will be deduplicated if received via socket)
     setConversation((prev) => [...prev, newMsg]);
     setMessage("");
   };
@@ -197,38 +166,40 @@ const Chat = () => {
         audioChunksRef.current.push(e.data);
 
       mediaRecorderRef.current.onstop = async () => {
-        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const blob = new Blob(audioChunksRef.current, { type: "audio/mp3" });
+        const url = URL.createObjectURL(blob);
 
-        // Convert blob to base64
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64Audio = reader.result;
-          const messageId = `audio-${user.id}-${Date.now()}`;
-
-          const audioMsg = {
-            _id: messageId,
-            senderId: user.id,
-            type: "audio",
-            audioUrl: base64Audio,
-            timestamp: new Date(),
-            status: "sent",
-          };
-
-          // Send via socket with audio data
-          socket.emit("chat:message", {
-            sessionId: id,
-            senderId: user.id,
-            text: "",
-            type: "audio",
-            audioData: base64Audio,
-            messageId: messageId,
-          });
-
-          // Add to conversation locally
-          setConversation((prev) => [...prev, audioMsg]);
+        const audioMsg = {
+          senderId: user.id,
+          audioUrl: url,
+          timestamp: new Date(),
+          status: "sent",
         };
 
-        reader.readAsDataURL(blob);
+        socket.emit("chat:message", {
+          sessionId: id,
+          senderId: user.id,
+          text: "",
+          type: "audio",
+        });
+
+        setConversation((prev) => [...prev, audioMsg]);
+
+        const formData = new FormData();
+        formData.append("audio", blob);
+        formData.append("chatId", id);
+        formData.append("sender", user.id);
+
+        try {
+          await axios.post(
+            `${import.meta.env.VITE_API_URL}/api/chat/send-audio`,
+            formData,
+            { headers: { "Content-Type": "multipart/form-data" } }
+          );
+          audioMsg.status = "delivered";
+        } catch (e) {
+          audioMsg.status = "failed";
+        }
       };
 
       mediaRecorderRef.current.start();
@@ -311,20 +282,9 @@ const Chat = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-yellow-300">
-            <Star size={16} className="fill-yellow-400" />
-            <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
-          </div>
-          {/* End Chat Button */}
-          <button
-            onClick={handleEndChat}
-            className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 transition-colors text-sm font-medium"
-            title="End chat session"
-          >
-            <X size={16} />
-            <span className="hidden md:inline">End</span>
-          </button>
+        <div className="flex items-center gap-2 text-sm text-yellow-300">
+          <Star size={16} className="fill-yellow-400" />
+          <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
         </div>
       </div>
 
