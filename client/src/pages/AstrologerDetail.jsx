@@ -176,22 +176,37 @@ const AstrologerDetail = () => {
 
       setWaiting(true);
       setWaitingType("chat");
-      socket.emit("user_online", { userId: user.id });
-      socket.emit("chat:request", {
-        clientId: user.id,
-        astrologerId: id,
-        ratePerMinute: astrologer.profile?.ratePerMinute || 1,
-      });
-      socket.once("chat:joined", ({ sessionId }) => {
-        console.log("[DEBUG] Client received chat:joined:", sessionId);
-        setWaiting(false);
-        // Chat session is already created by the socket event 'chat:request'
+
+      try {
+        // 1. Create session via API first (Reliable)
+        const token = localStorage.getItem("token");
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/chat/request`,
+          { astrologerId: id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const { sessionId, ratePerMinute } = res.data;
+        console.log("[DEBUG] Session created via API:", sessionId);
+
+        // 2. Emit socket event with the created sessionId
+        socket.emit("user_online", { userId: user.id });
+        socket.emit("chat:request", {
+          clientId: user.id,
+          astrologerId: id,
+          ratePerMinute: ratePerMinute || 1,
+          sessionId: sessionId // Pass the ID we just created
+        });
+
+        // 3. Navigate immediately (or wait for join)
+        // We can navigate immediately because API creation succeeded
         navigate(`/chat/${sessionId}`);
-      });
-      socket.once("chat:error", () => {
+
+      } catch (err) {
+        console.error("Error requesting chat:", err);
         setWaiting(false);
-        alert("Failed to request chat");
-      });
+        alert("Failed to request chat. Please try again.");
+      }
     }
   };
 

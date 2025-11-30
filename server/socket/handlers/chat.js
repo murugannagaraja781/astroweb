@@ -115,31 +115,37 @@ module.exports = (io, socket) => {
 
     socket.on('chat:request', async (data) => {
         try {
-            const { clientId, astrologerId, ratePerMinute } = data;
-            console.log(`[DEBUG] chat:request received for astrologerId: ${astrologerId}`);
+            const { clientId, astrologerId, ratePerMinute, sessionId } = data;
+            console.log(`[DEBUG] chat:request received for astrologerId: ${astrologerId}, sessionId: ${sessionId}`);
 
             const crypto = require('crypto');
-            const sid = crypto.randomUUID();
+            const sid = sessionId || crypto.randomUUID();
             const profileRate = ratePerMinute || 1;
 
-            // Create in ChatSession (for real-time socket tracking)
-            await ChatSession.create({
-                sessionId: sid,
-                clientId,
-                astrologerId,
-                status: 'requested',
-                ratePerMinute: profileRate
-            });
+            // Create or Update in ChatSession (upsert)
+            await ChatSession.findOneAndUpdate(
+                { sessionId: sid },
+                {
+                    clientId,
+                    astrologerId,
+                    status: 'requested',
+                    ratePerMinute: profileRate
+                },
+                { upsert: true, new: true }
+            );
 
-            // ALSO create in ChatCallDetails (for API tracking)
-            await ChatCallDetails.create({
-                userId: clientId,
-                astrologerId,
-                sessionId: sid,
-                initiatedAt: new Date(),
-                status: 'requested',
-                ratePerMinute: profileRate
-            });
+            // ALSO create/update in ChatCallDetails
+            await ChatCallDetails.findOneAndUpdate(
+                { sessionId: sid },
+                {
+                    userId: clientId,
+                    astrologerId,
+                    initiatedAt: new Date(),
+                    status: 'requested',
+                    ratePerMinute: profileRate
+                },
+                { upsert: true, new: true }
+            );
 
             // Notify astrologer (optional, but good for UI updates if they are on dashboard)
             const astroSock = onlineUsers.get(String(astrologerId));
