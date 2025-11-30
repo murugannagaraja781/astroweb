@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
+import ClienttoAstrologyvideocall from './ClientcalltoAstrologerVideoCall'
 import {
   Video,
   MessageCircle,
@@ -204,7 +205,7 @@ const AstrologerDetail = () => {
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-white text-center">
             <div className="text-6xl mb-4">📹</div>
             <h3 className="text-2xl font-bold mb-4">Video Call Feature</h3>
-            <p className="text-purple-200 mb-6">Video call functionality would be implemented here</p>
+            <p className="text-purple-200 mb-6"><ClienttoAstrologyvideocall/></p>
             <button
               onClick={() => setShowVideoCall(false)}
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
