@@ -173,7 +173,7 @@ See `API_DOCUMENTATION.md` for complete details.
 
 **Client (.env)**
 ```
-VITE_API_URL=https://astroweb-y0i6.onrender.com
+VITE_API_URL=https://astroweb-production.up.railway.app
 VITE_MSG91_AUTHKEY=your_key
 VITE_MSG91_WIDGET_ID=your_widget_id
 ```

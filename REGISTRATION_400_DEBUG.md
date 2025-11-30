@@ -1,7 +1,7 @@
 # Registration 400 Error - Debugging Guide
 
 ## Problem
-`POST https://astroweb-y0i6.onrender.com/api/auth/register` returns **400 Bad Request**
+`POST https://astroweb-production.up.railway.app/api/auth/register` returns **400 Bad Request**
 
 ## Common Causes
 
@@ -89,7 +89,7 @@ The backend now returns specific errors:
 
 ### Using cURL:
 ```bash
-curl -X POST https://astroweb-y0i6.onrender.com/api/auth/register \
+curl -X POST https://astroweb-production.up.railway.app/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test User",
@@ -101,7 +101,7 @@ curl -X POST https://astroweb-y0i6.onrender.com/api/auth/register \
 
 ### Using Postman:
 1. Method: POST
-2. URL: `https://astroweb-y0i6.onrender.com/api/auth/register`
+2. URL: `https://astroweb-production.up.railway.app/api/auth/register`
 3. Headers: `Content-Type: application/json`
 4. Body (raw JSON):
 ```json
@@ -115,7 +115,7 @@ curl -X POST https://astroweb-y0i6.onrender.com/api/auth/register \
 
 ### Using Browser Console:
 ```javascript
-fetch('https://astroweb-y0i6.onrender.com/api/auth/register', {
+fetch('https://astroweb-production.up.railway.app/api/auth/register', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({

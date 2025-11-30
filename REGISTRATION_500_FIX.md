@@ -1,7 +1,7 @@
 # Registration 500 Error - Fix Guide
 
 ## Problem
-`POST https://astroweb-y0i6.onrender.com/api/auth/register` returns **500 Internal Server Error**
+`POST https://astroweb-production.up.railway.app/api/auth/register` returns **500 Internal Server Error**
 
 This means the request passed validation but something failed on the server.
 
@@ -139,7 +139,7 @@ After adding environment variables:
 After fixing, test with:
 
 ```bash
-curl -X POST https://astroweb-y0i6.onrender.com/api/auth/register \
+curl -X POST https://astroweb-production.up.railway.app/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test User",

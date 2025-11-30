@@ -18,7 +18,7 @@
 
 **Symptoms:**
 ```
-POST https://astroweb-y0i6.onrender.com/api/call/initiate
+POST https://astroweb-production.up.railway.app/api/call/initiate
 Status: 404 Not Found
 ```
 
@@ -30,7 +30,7 @@ Status: 404 Not Found
 **Solutions:**
 1. Verify backend is deployed and running:
    ```bash
-   curl https://astroweb-y0i6.onrender.com/api/call/history
+   curl https://astroweb-production.up.railway.app/api/call/history
    ```
 2. Check if callRoutes are mounted in `server/index.js`:
    ```javascript
@@ -38,7 +38,7 @@ Status: 404 Not Found
    ```
 3. Verify `.env` file has correct `VITE_API_URL`:
    ```
-   VITE_API_URL=https://astroweb-y0i6.onrender.com
+   VITE_API_URL=https://astroweb-production.up.railway.app
    ```
 4. Restart the client dev server after changing `.env`
 
@@ -185,7 +185,7 @@ Error: Insufficient balance. Minimum ₹1 required to start call/chat.
 
 ### Check API Endpoint
 ```bash
-curl -X POST https://astroweb-y0i6.onrender.com/api/call/initiate \
+curl -X POST https://astroweb-production.up.railway.app/api/call/initiate \
   -H "Content-Type: application/json" \
   -H "x-auth-token: YOUR_JWT_TOKEN" \
   -d '{"receiverId":"ASTROLOGER_ID","type":"video"}'

@@ -5,10 +5,8 @@ import axios from "axios";
 import AuthContext from "../context/AuthContext";
 import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft } from "lucide-react";
 
-const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-y0i6.onrender.com", {
-   query: {
-    username: userNameFromLogin  // இந்த user name தான் socketக்கு tag ஆகும்
-  },
+
+const socket = io(import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app", {
   autoConnect: false
 });
 

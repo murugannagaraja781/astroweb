@@ -6,7 +6,7 @@ Complete reference for all API endpoints used in the AstroWeb platform.
 
 ## Base URL
 - **Development**: `http://localhost:5000`
-- **Production**: `https://astroweb-y0i6.onrender.com`
+- **Production**: `https://astroweb-production.up.railway.app`
 
 ---
 

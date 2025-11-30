@@ -67,7 +67,7 @@ const APP_ID = '196be66ba9ab4172921c1e7f7e948879';
 ```javascript
 import { io } from 'socket.io-client';
 
-const socket = io('https://astroweb-y0i6.onrender.com');
+const socket = io('https://astroweb-production.up.railway.app');
 
 // Send message
 socket.emit('sendMessage', {
@@ -204,7 +204,7 @@ useJoin({
 ### Socket.IO Setup
 ```javascript
 // Client
-const socket = io('https://astroweb-y0i6.onrender.com');
+const socket = io('https://astroweb-production.up.railway.app');
 
 // Server
 const io = new Server(server, {

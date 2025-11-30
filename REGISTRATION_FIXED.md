@@ -119,7 +119,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 
 ### Production Test:
 ```bash
-curl -X POST https://astroweb-y0i6.onrender.com/api/auth/register \
+curl -X POST https://astroweb-production.up.railway.app/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test User",
@@ -148,7 +148,7 @@ curl -X POST https://astroweb-y0i6.onrender.com/api/auth/register \
 
 After registration, check wallet:
 ```bash
-curl -X GET https://astroweb-y0i6.onrender.com/api/wallet/balance \
+curl -X GET https://astroweb-production.up.railway.app/api/wallet/balance \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 

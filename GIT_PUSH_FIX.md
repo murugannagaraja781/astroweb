@@ -50,7 +50,7 @@ Render will automatically:
 
 After 2-5 minutes, test:
 ```bash
-curl -X POST https://astroweb-y0i6.onrender.com/api/call/initiate \
+curl -X POST https://astroweb-production.up.railway.app/api/call/initiate \
   -H "Content-Type: application/json" \
   -H "x-auth-token: YOUR_ADMIN_JWT" \
   -d '{"receiverId":"ASTROLOGER_ID","type":"video"}'

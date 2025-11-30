@@ -137,7 +137,7 @@ app.use(cors({
 In client files using socket.io, update:
 ```javascript
 // Old
-const socket = io('https://astroweb-y0i6.onrender.com');
+const socket = io('https://astroweb-production.up.railway.app');
 
 // New
 const socket = io(import.meta.env.VITE_API_URL);
