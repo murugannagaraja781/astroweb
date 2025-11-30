@@ -76,10 +76,12 @@ const Chat = () => {
 
     socket.on("chat:message", (newMessage) => {
       setConversation((prev) => {
+        // Check if message already exists (deduplication)
         const isDuplicate = prev.some(
-          msg => msg.text === newMessage.text &&
-                 msg.senderId === newMessage.senderId &&
-                 new Date(msg.timestamp).getTime() === new Date(newMessage.timestamp).getTime()
+          msg => (msg._id && msg._id === newMessage._id) ||
+                 (msg.text === newMessage.text &&
+                  msg.senderId === newMessage.senderId &&
+                  Math.abs(new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()) < 1000)
         );
         return isDuplicate ? prev : [...prev, newMessage];
       });
@@ -146,7 +148,8 @@ const Chat = () => {
       text: message,
     });
 
-    setConversation((prev) => [...prev, newMsg]);
+    // Optimistic update removed to prevent duplicates - waiting for server echo
+    // setConversation((prev) => [...prev, newMsg]);
     setMessage("");
   };
 
