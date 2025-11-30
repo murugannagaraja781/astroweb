@@ -146,7 +146,7 @@ const Chat = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
       <style jsx>{`
         input, textarea, select {
           color: #f9f4f4 !important;
@@ -229,11 +229,9 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Messages Container - Centered with extra bottom padding */}
-      <div className="flex-1 overflow-y-auto relative z-0">
-        <div className="max-w-4xl mx-auto h-full flex flex-col">
-          {/* Messages List with extra bottom padding */}
-          <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container">
+      {/* Messages Container - Scrollable area */}
+      <div className="flex-1 overflow-y-auto relative z-0 px-4">
+        <div className="max-w-4xl mx-auto py-6 space-y-4 message-container">
             {conversation.length === 0 ? (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full mb-4">
