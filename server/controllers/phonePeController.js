@@ -46,9 +46,9 @@ exports.initiatePhonePePayment = async (req, res) => {
             merchantTransactionId: merchantTransactionId,
             merchantUserId: merchantUserId,
             amount: amount * 100, // Convert to paise
-            redirectUrl: `${process.env.CLIENT_URL || 'https://astroweb-y0i6.onrender.com'}/payment/callback`,
+            redirectUrl: `${process.env.CLIENT_URL || 'https://astroweb-beryl.vercel.app'}/payment/callback`,
             redirectMode: 'POST',
-            callbackUrl: `${process.env.VITE_API_URL || 'https://astroweb-y0i6.onrender.com'}/api/payment/phonepe/callback`,
+            callbackUrl: `${process.env.VITE_API_URL || 'https://astroweb-production.up.railway.app'}/api/payment/phonepe/callback`,
             mobileNumber: mobileNumber || '9999999999',
             paymentInstrument: {
                 type: 'PAY_PAGE'
