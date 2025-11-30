@@ -457,58 +457,77 @@ const Chat = () => {
             </div>
           )}
 
-          <form
-            onSubmit={sendMessage}
-            className="flex items-center gap-3"
-          >
-            <button
-              type="button"
-              className="p-3 rounded-full bg-gray-800 text-yellow-500 hover:bg-gray-700 transition-colors"
-            >
-              <Sparkles size={20} />
-            </button>
+         {/* --- INPUT SECTION (CLEAN + CONTROLLED BASED ON STATUS) --- */}
+<form
+  onSubmit={sendMessage}
+  className="flex items-center gap-3"
+>
+  {/* Extra button (Sparkles) */}
+  <button
+    type="button"
+    className="p-3 rounded-full bg-gray-800 text-yellow-500 hover:bg-gray-700 transition-colors"
+    disabled={sessionInfo?.status !== 'active'}
+  >
+    <Sparkles size={20} />
+  </button>
 
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => {
-                  setMessage(e.target.value);
-                  handleTyping();
-                }}
-                // disabled={sessionInfo?.status !== 'active'}
-                placeholder={sessionInfo?.status === 'active' ? "Type a message..." : "Chat not started"}
-                className="w-full bg-gray-900/50 border border-gray-700 text-white rounded-full py-3 pl-5 pr-12 focus:outline-none focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <button
-                type="button"
-                onClick={isRecording ? stopRecording : startRecording}
-                // disabled={sessionInfo?.status !== 'active'}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all ${
-                  isRecording
-                    ? "bg-red-600 shadow-lg shadow-red-500/50"
-                    : "hover:bg-gray-700 text-gray-400 hover:text-white"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {isRecording ? (
-                  <>
-                    <div className="absolute inset-0 rounded-full bg-red-500 animate-ping" />
-                    <MicOff size={18} className="text-white relative z-10" />
-                  </>
-                ) : (
-                  <Mic size={18} />
-                )}
-              </button>
-            </div>
+  <div className="flex-1 relative">
+    <input
+      type="text"
+      value={message}
+      onChange={(e) => {
+        setMessage(e.target.value);
+        handleTyping();
+      }}
+      disabled={sessionInfo?.status !== 'active'}
+      placeholder={
+        sessionInfo?.status === 'active'
+          ? "Type a message..."
+          : sessionInfo?.status === 'accepted'
+          ? "Waiting for astrologer to start..."
+          : "Chat not active"
+      }
+      className="w-full bg-gray-900/50 border border-gray-700 text-white rounded-full
+                 py-3 pl-5 pr-12 focus:outline-none
+                 focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600
+                 placeholder-gray-500 disabled:opacity-40 disabled:cursor-not-allowed"
+    />
 
-            <button
-              type="submit"
-              disabled={!message.trim() || sessionInfo?.status !== 'active'}
-              className="p-3 rounded-full bg-gradient-to-r from-yellow-600 to-yellow-800 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 transition-all"
-            >
-              <Send size={20} />
-            </button>
-          </form>
+    {/* Mic Button */}
+    <button
+      type="button"
+      onClick={isRecording ? stopRecording : startRecording}
+      disabled={sessionInfo?.status !== 'active'}
+      className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all
+        ${isRecording
+          ? "bg-red-600 shadow-lg shadow-red-500/50"
+          : "hover:bg-gray-700 text-gray-400 hover:text-white"
+        }
+        disabled:opacity-40 disabled:cursor-not-allowed`}
+    >
+      {isRecording ? (
+        <>
+          <div className="absolute inset-0 rounded-full bg-red-500 animate-ping" />
+          <MicOff size={18} className="text-white relative z-10" />
+        </>
+      ) : (
+        <Mic size={18} />
+      )}
+    </button>
+  </div>
+
+  {/* Send Button */}
+  <button
+    type="submit"
+    disabled={!message.trim() || sessionInfo?.status !== 'active'}
+    className="p-3 rounded-full bg-gradient-to-r from-yellow-600 to-yellow-800
+               text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed
+               transform active:scale-95 transition-all"
+  >
+    <Send size={20} />
+  </button>
+</form>
+
       </div>
     </div>
   </div>
