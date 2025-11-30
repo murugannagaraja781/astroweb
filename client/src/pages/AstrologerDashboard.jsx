@@ -1,34 +1,14 @@
- import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
-import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
-import {
-  Home,
-  MessageCircle,
-  Phone,
-  DollarSign,
-  User,
-  Settings,
-  Star,
-  Zap,
-  Users,
-  Calendar,
-  BarChart3,
-  Bell,
-  Moon,
-  Sparkles,
-  Globe,
-  Crown
-} from "lucide-react";
 
 const AstrologerDashboard = () => {
-  const [activeTab, setActiveTab] = useState("inbox");
+  const [activeTab, setActiveTab] = useState("overview");
   const [profile, setProfile] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [pendingSessions, setPendingSessions] = useState([]);
   const [socket, setSocket] = useState(null);
-  const [notifications, setNotifications] = useState(3);
   const navigate = useNavigate();
 
   // Initialize socket connection
@@ -122,6 +102,8 @@ const AstrologerDashboard = () => {
     }
   };
 
+
+
   const acceptCall = () => {
     if (!incomingCall || !socket) return;
 
@@ -174,61 +156,45 @@ const AstrologerDashboard = () => {
         { sessionId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      // Remove from list
       setPendingSessions((prev) => prev.filter((s) => s.sessionId !== sessionId));
     } catch (err) {
       console.error("Error rejecting chat:", err);
     }
   };
 
-  // Grid menu items
-  const menuItems = [
-    { id: "overview", icon: Home, label: "Overview", color: "from-blue-500 to-cyan-500", badge: null },
-    { id: "inbox", icon: MessageCircle, label: "Inbox", color: "from-purple-500 to-pink-500", badge: pendingSessions.length },
-    { id: "calls", icon: Phone, label: "Calls", color: "from-green-500 to-emerald-500", badge: null },
-    { id: "earnings", icon: DollarSign, label: "Earnings", color: "from-yellow-500 to-orange-500", badge: null },
-    { id: "clients", icon: Users, label: "Clients", color: "from-indigo-500 to-blue-500", badge: null },
-    { id: "schedule", icon: Calendar, label: "Schedule", color: "from-red-500 to-pink-500", badge: null },
-    { id: "analytics", icon: BarChart3, label: "Analytics", color: "from-teal-500 to-green-500", badge: null },
-    { id: "profile", icon: User, label: "Profile", color: "from-gray-600 to-gray-800", badge: null },
-  ];
-
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto mb-4"></div>
-          <p className="text-purple-200 text-lg">Connecting to cosmic energies...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Incoming Call Modal */}
       {incomingCall && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full animate-scale-in">
-            <div className="w-24 h-24 mx-auto mb-6 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <div className="text-4xl">
-                {incomingCall.type === "chat" ? "💬" : "📞"}
-              </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-md w-full">
+            <div className="w-20 h-20 mx-auto mb-4 bg-indigo-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">📞</span>
             </div>
-            <h2 className="text-2xl font-bold mb-2">
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">
               Incoming {incomingCall.type === "chat" ? "Chat" : "Video Call"}
             </h2>
-            <p className="text-purple-100 mb-6">from {incomingCall.name}</p>
+            <p className="text-gray-600 mb-6">from {incomingCall.name}</p>
 
             <div className="flex gap-4 justify-center">
               <button
                 onClick={rejectCall}
-                className="bg-red-500 text-white px-8 py-4 rounded-2xl font-bold hover:bg-red-600 transform hover:scale-105 transition-all shadow-lg"
+                className="bg-red-500 text-white px-6 py-3 rounded-full font-bold hover:bg-red-600"
               >
                 Reject
               </button>
               <button
                 onClick={acceptCall}
-                className="bg-green-500 text-white px-8 py-4 rounded-2xl font-bold hover:bg-green-600 transform hover:scale-105 transition-all shadow-lg animate-pulse"
+                className="bg-green-500 text-white px-6 py-3 rounded-full font-bold hover:bg-green-600 animate-pulse"
               >
                 Accept
               </button>
@@ -237,41 +203,38 @@ const AstrologerDashboard = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white p-6">
-        <div className="container mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Cosmic Dashboard</h1>
-              <p className="text-purple-200">Welcome back, Master {profile.name}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Bell className="w-6 h-6" />
-                {notifications > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {notifications}
-                  </span>
-                )}
-              </div>
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                <User className="w-5 h-5" />
-              </div>
-            </div>
+      <div className="container mx-auto px-4 max-w-7xl py-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">
+              Astrologer Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Manage your profile and accept client calls
+            </p>
           </div>
 
-          {/* Status Card */}
-          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-4 h-4 rounded-full ${profile.isOnline ? "bg-green-400 animate-pulse" : "bg-red-400"}`}></div>
-                <span className="font-semibold">
-                  {profile.isOnline ? "Online & Available" : "Offline & Meditating"}
+          <div className="bg-white rounded-xl p-4">
+            <div className="flex items-center gap-4">
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  profile.isOnline ? "bg-green-500" : "bg-red-500"
+                }`}
+              ></div>
+              <span className="text-gray-600">
+                Status:{" "}
+                <span
+                  className={
+                    profile.isOnline ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  {profile.isOnline ? "Online" : "Offline"}
                 </span>
-              </div>
+              </span>
               <button
                 onClick={toggleStatus}
-                className={`px-6 py-2 rounded-xl font-bold text-white transition-all transform hover:scale-105 ${
+                className={`px-4 py-2 rounded-lg font-semibold text-white ${
                   profile.isOnline
                     ? "bg-red-500 hover:bg-red-600"
                     : "bg-green-500 hover:bg-green-600"
@@ -282,155 +245,66 @@ const AstrologerDashboard = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Quick Stats */}
-      <div className="container mx-auto px-4 -mt-6 mb-6">
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
-            <div className="text-2xl font-bold text-purple-600">12</div>
-            <div className="text-xs text-gray-600">Today's Calls</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
-            <div className="text-2xl font-bold text-green-600">₹2,847</div>
-            <div className="text-xs text-gray-600">Earnings</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
-            <div className="text-2xl font-bold text-blue-600">4.8</div>
-            <div className="text-xs text-gray-600">Rating</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 pb-20">
-        {/* Grid Menu */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`bg-white rounded-2xl p-4 shadow-lg text-center transition-all transform hover:scale-105 ${
-                  activeTab === item.id ? "ring-2 ring-purple-500" : ""
-                }`}
-              >
-                <div className={`w-12 h-12 mx-auto mb-2 bg-gradient-to-r ${item.color} rounded-2xl flex items-center justify-center`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-xs font-semibold text-gray-700">{item.label}</div>
-                {item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Tabs */}
+        <div className="flex gap-4 mb-8 overflow-x-auto">
+          {["overview", "inbox", "calls", "earnings", "profile"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 rounded-xl font-semibold capitalize whitespace-nowrap ${
+                activeTab === tab
+                  ? "bg-indigo-600 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {tab}
+              {tab === "inbox" && pendingSessions.length > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                  {pendingSessions.length}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}
-        <div className="bg-white rounded-3xl shadow-xl p-6 min-h-[400px]">
-          {activeTab === "overview" && (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
-                  <Home className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Cosmic Overview</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Zap className="w-6 h-6 text-purple-600" />
-                    <h4 className="font-bold text-gray-800">Quick Actions</h4>
-                  </div>
-                  <div className="space-y-3">
-                    <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all">
-                      Start Broadcasting
-                    </button>
-                    <button className="w-full bg-white border-2 border-purple-600 text-purple-600 py-3 rounded-xl font-bold hover:bg-purple-50 transition-all">
-                      Update Schedule
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
-                  <div className="flex items-center gap-3 mb-4">
-                    <BarChart3 className="w-6 h-6 text-blue-600" />
-                    <h4 className="font-bold text-gray-800">Performance</h4>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Response Rate</span>
-                      <span className="font-bold text-green-600">94%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Client Satisfaction</span>
-                      <span className="font-bold text-yellow-600">4.8/5</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Avg. Session</span>
-                      <span className="font-bold text-blue-600">12min</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
+        <div>
           {activeTab === "inbox" && (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
-                  <MessageCircle className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Pending Requests</h3>
-                {pendingSessions.length > 0 && (
-                  <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full">
-                    {pendingSessions.length} New
-                  </span>
-                )}
-              </div>
-
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Pending Chat Requests
+              </h3>
               {pendingSessions.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">✨</div>
-                  <p className="text-gray-500 text-lg">No pending requests</p>
-                  <p className="text-gray-400">Clients will appear here when they request consultations</p>
-                </div>
+                <p className="text-gray-500 text-center py-8">
+                  No pending requests
+                </p>
               ) : (
                 <div className="space-y-4">
                   {pendingSessions.map((session) => (
                     <div
                       key={session.sessionId}
-                      className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-6"
+                      className="flex justify-between items-center p-4 border rounded-lg"
                     >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-gray-800">
-                            {session.userId?.name || session.client?.name || "Mysterious Client"}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Waiting for your cosmic guidance...
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => rejectChat(session.sessionId)}
-                            className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition-all transform hover:scale-105"
-                          >
-                            Reject
-                          </button>
-                          <button
-                            onClick={() => acceptChat(session.sessionId)}
-                            className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-all transform hover:scale-105"
-                          >
-                            Accept Chat
-                          </button>
-                        </div>
+                      <div>
+                        <p className="font-semibold">{session.userId?.name || session.client?.name || "Client"}</p>
+                        <p className="text-sm text-gray-600">
+                          Session: {session.sessionId}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => rejectChat(session.sessionId)}
+                          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => acceptChat(session.sessionId)}
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          Accept Chat
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -439,92 +313,35 @@ const AstrologerDashboard = () => {
             </div>
           )}
 
-          {activeTab === "calls" && (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl">
-                  <Phone className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Video Call Studio</h3>
-              </div>
-              <ClientVideoCall />
+          {activeTab === "overview" && (
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Welcome, {profile.name}
+              </h3>
+              <p className="text-gray-600">
+                You are currently {profile.isOnline ? "online" : "offline"} and
+                ready to accept calls.
+              </p>
             </div>
           )}
 
           {activeTab === "profile" && (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gradient-to-r from-gray-600 to-gray-800 rounded-xl">
-                  <User className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Your Cosmic Profile</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
-                  <h4 className="font-bold text-gray-800 mb-4">Personal Info</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm text-gray-600">Name</label>
-                      <p className="font-semibold">{profile.name}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Specialty</label>
-                      <p className="font-semibold">Vedic Astrology</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Experience</label>
-                      <p className="font-semibold">{profile.experience || "8"} years</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
-                  <h4 className="font-bold text-gray-800 mb-4">Business Info</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm text-gray-600">Rate</label>
-                      <p className="font-semibold text-green-600">₹{profile.ratePerMinute || 50}/min</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Total Clients</label>
-                      <p className="font-semibold">1,247</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Success Rate</label>
-                      <p className="font-semibold text-yellow-600">96%</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Your Profile
+              </h3>
+              <p>
+                <strong>Name:</strong> {profile.name}
+              </p>
+              <p>
+                <strong>Rate:</strong> ₹{profile.ratePerMinute || 0}/min
+              </p>
+              <p>
+                <strong>Experience:</strong> {profile.experience || "Not set"}{" "}
+                years
+              </p>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Bottom Navigation Bar (Mobile) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 md:hidden">
-        <div className="grid grid-cols-5 gap-2">
-          {menuItems.slice(0, 5).map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex flex-col items-center p-2 rounded-xl transition-all ${
-                  activeTab === item.id ? "bg-purple-100 text-purple-600" : "text-gray-600"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs mt-1">{item.label}</span>
-                {item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
     </div>

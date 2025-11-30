@@ -6,7 +6,6 @@ const http = require("http");
 const { Server } = require("socket.io");
 const BillingTracker = require("./services/billingTracker");
 
-
 dotenv.config();
 
 const app = express();
