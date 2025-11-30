@@ -304,11 +304,6 @@ const Chat = () => {
                 ? sessionInfo?.astrologer?.name || 'Astrologer'
                 : sessionInfo?.client?.name || 'Client'}
             </h1>
-            {/* Video Call UI - only for client */}
-                        <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-
-
-
             <p className="text-sm text-yellow-300">
               {sessionDuration > 0 ? formatDuration(sessionDuration) : 'Starting...'}
             </p>
