@@ -300,14 +300,14 @@ const AstrologerDetail = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                <button
-                  onClick={() => handleAction("call")}
+                {/* <button
+                  // onClick={() => handleAction("call")}
                   className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  <Video size={20} />
-                  Video Call
+                > */}
+                  {/* <Video size={20} /> */}
+
                   <VideoCall/>
-                </button>
+                {/* </button> */}
                 <button
                   onClick={() => handleAction("chat")}
                   className="flex items-center gap-2 bg-white text-orange-600 border-2 border-orange-500 px-6 py-3 rounded-xl font-semibold hover:bg-orange-50 transition-all transform hover:scale-105"
