@@ -195,15 +195,42 @@ module.exports = (io, socket) => {
 
     socket.on('chat:message', async (data) => {
         try {
-            const { sessionId, senderId, text = '', type = 'text' } = data;
+            const { sessionId, senderId, text = '', type = 'text', audioData, messageId } = data;
             const s = await ChatSession.findOne({ sessionId });
             if (!s || s.status !== 'active') return;
+
             const roomId = sessionId;
             const receiverId = senderId === s.clientId.toString() ? s.astrologerId : s.clientId;
-            const message = new ChatMessage({ sender: senderId, receiver: receiverId, roomId, sessionId, message: text, type, timestamp: new Date() });
+
+            // Create message with ID
+            const message = new ChatMessage({
+                _id: messageId || undefined,
+                sender: senderId,
+                receiver: receiverId,
+                roomId,
+                sessionId,
+                message: text,
+                type,
+                mediaUrl: type === 'audio' ? audioData : null,
+                timestamp: new Date()
+            });
+
             await message.save();
-            io.to(roomId).emit('chat:message', { _id: message._id, sessionId, roomId, senderId, receiverId: receiverId.toString(), text, type, timestamp: message.timestamp });
+
+            // Broadcast to room with all data including audio
+            io.to(roomId).emit('chat:message', {
+                _id: message._id,
+                sessionId,
+                roomId,
+                senderId,
+                receiverId: receiverId.toString(),
+                text,
+                type,
+                audioUrl: type === 'audio' ? audioData : null,
+                timestamp: message.timestamp
+            });
         } catch (err) {
+            console.error('Error in chat:message:', err);
             socket.emit('chat:error', { error: 'message_failed' });
         }
     });
