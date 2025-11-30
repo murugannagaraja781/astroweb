@@ -126,8 +126,8 @@ export default function ClientVideoCall({ roomId }) {
       {incomingCall && (
         <div style={{ background: "#222", padding: 20, borderRadius: 10 }}>
           <h4>📞 Astrologer is calling you…</h4>
-          <button onClick={acceptCall}>Accept</button>
-          <button onClick={rejectCall}>Reject</button>
+          <button style={{backgroundColor:'green'}}onClick={acceptCall}>Accept</button>
+          <button style={{backgroundColor:'red'}} onClick={rejectCall}>Reject</button>
         </div>
       )}
 
