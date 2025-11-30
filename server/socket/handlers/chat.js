@@ -220,6 +220,7 @@ module.exports = (io, socket) => {
 
     socket.on('chat:typing', (data) => {
         const { sessionId, userId } = data;
+        // Broadcast to everyone in the room (they can filter their own typing on client side)
         socket.to(sessionId).emit('chat:typing', { sessionId, userId });
     });
 

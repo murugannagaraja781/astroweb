@@ -101,9 +101,12 @@ const Chat = () => {
 
 
 
-    socket.on("chat:typing", () => {
-      setIsTyping(true);
-      setTimeout(() => setIsTyping(false), 1500);
+    socket.on("chat:typing", (data) => {
+      // Only show typing if it's from the OTHER user
+      if (data.userId && data.userId !== user.id) {
+        setIsTyping(true);
+        setTimeout(() => setIsTyping(false), 1500);
+      }
     });
 
     // Listen for session info from socket
@@ -429,7 +432,9 @@ const Chat = () => {
                     <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-150"></div>
                     <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-300"></div>
                   </div>
-                  <p className="text-xs text-yellow-400 mt-1">Astrologer is typing...</p>
+                  <p className="text-xs text-yellow-400 mt-1">
+                    {user?.role === 'astrologer' ? 'Client' : 'Astrologer'} is typing...
+                  </p>
                 </div>
               </div>
             )}
