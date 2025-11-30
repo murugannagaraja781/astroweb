@@ -23,7 +23,17 @@ const AstrologerDetail = () => {
   const [balance, setBalance] = useState(0);
   const [waiting, setWaiting] = useState(false);
   const [waitingType, setWaitingType] = useState(""); // "call" or "chat"
-  const socket = io(import.meta.env.VITE_API_URL);
+  const [socket, setSocket] = useState(null);
+
+  // Initialize socket connection
+  useEffect(() => {
+    const newSocket = io(import.meta.env.VITE_API_URL);
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     fetchAstrologer();
@@ -91,6 +101,11 @@ const AstrologerDetail = () => {
     }
 
     if (action === "call") {
+      if (!socket) {
+        alert("Connection not ready. Please try again.");
+        return;
+      }
+
       setWaiting(true);
       setWaitingType("call");
 
@@ -146,6 +161,11 @@ const AstrologerDetail = () => {
         alert("Failed to initiate call. Please try again.");
       }
     } else if (action === "chat") {
+      if (!socket) {
+        alert("Connection not ready. Please try again.");
+        return;
+      }
+
       setWaiting(true);
       setWaitingType("chat");
       socket.emit("user_online", { userId: user.id });

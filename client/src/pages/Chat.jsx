@@ -171,11 +171,24 @@ const Chat = () => {
           font-size: large;
         }
         .message-container {
-          padding-bottom: 140px; /* Extra space for mobile footer */
+          padding-bottom: 180px; /* Increased space for mobile footer */
         }
         @media (min-width: 768px) {
           .message-container {
-            padding-bottom: 120px;
+            padding-bottom: 140px;
+          }
+        }
+        /* Prevent keyboard from pushing footer up on mobile */
+        .chat-footer {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+        }
+        /* Safe area for iOS devices */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+          .chat-footer {
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
           }
         }
       `}</style>
@@ -297,7 +310,7 @@ const Chat = () => {
       </div>
 
       {/* Input Area - Fixed at bottom with safe area for mobile */}
-      <div className="relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-safe-or-6">
+      <div className="chat-footer relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-safe-or-6">
         <div className="max-w-4xl mx-auto px-4">
           {/* Recording Indicator - Only shows when recording */}
           {isRecording && (
