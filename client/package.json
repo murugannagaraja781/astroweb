@@ -26,10 +26,12 @@
     "i18next-http-backend": "^3.0.2",
     "lucide-react": "^0.554.0",
     "postcss": "^8.5.6",
+    "process": "^0.11.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-i18next": "^16.3.4",
     "react-router-dom": "^7.9.6",
+    "simple-peer": "^9.11.1",
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.17"
   },

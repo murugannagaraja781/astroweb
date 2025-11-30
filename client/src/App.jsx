@@ -26,6 +26,8 @@ const Chat = lazy(() => import('./pages/Chat'));
 const AstrologyDashboard = lazy(() => import('./pages/AstrologyDashboard'));
 const PhonePeTest = lazy(() => import('./pages/PhonePeTest'));
 
+import IncomingCallListener from './components/IncomingCallListener';
+
 // Loading component
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -85,6 +87,7 @@ const AppLayout = ({ children }) => {
   if (isHomePage) {
     return (
       <div className="min-h-screen bg-white font-sans text-gray-900">
+        <IncomingCallListener />
         {/* Desktop Header for desktop view */}
         <div className="hidden md:block">
           <DesktopHeader />
@@ -99,11 +102,21 @@ const AppLayout = ({ children }) => {
   }
 
   if (isAdminPage) {
-    return <>{children}</>;
+    return (
+      <>
+        <IncomingCallListener />
+        {children}
+      </>
+    );
   }
 
   if (isAstrologerDetailPage) {
-    return <>{children}</>;
+    return (
+      <>
+        <IncomingCallListener />
+        {children}
+      </>
+    );
   }
 
   if (isAuthPage) {
@@ -111,11 +124,17 @@ const AppLayout = ({ children }) => {
   }
 
   if (isChatPage) {
-    return <>{children}</>;
+    return (
+      <>
+        <IncomingCallListener />
+        {children}
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
+      <IncomingCallListener />
       <DesktopHeader />
       <MobileHeader />
       {/* Desktop Sidebar removed globally for desktop */}
