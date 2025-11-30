@@ -13,7 +13,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { io } from "socket.io-client";
-import VideoCall from './VideoCall'
+import VideoCall from './ClientVideoCall'
 const AstrologerDetail = () => {
   const { id } = useParams();
   const { user } = useContext(AuthContext);

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
-import AstrologerVideoCall from "./VideoCall";
+import AstrologerVideoCall from "./AstrologerVideoCall";
 const AstrologerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [profile, setProfile] = useState(null);
