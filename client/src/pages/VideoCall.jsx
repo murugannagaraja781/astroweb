@@ -6,12 +6,6 @@ import AuthContext from "../context/AuthContext";
 import { ArrowLeft, Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 
-// Polyfill for simple-peer in Vite environment
-import * as process from "process";
-window.global = window;
-window.process = process;
-window.Buffer = [];
-
 const SOCKET_URL = import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app";
 
 export default function VideoCall() {

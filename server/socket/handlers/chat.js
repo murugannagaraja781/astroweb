@@ -174,9 +174,9 @@ module.exports = (io, socket) => {
 
             socket.emit('chat:requested', { sessionId: sid });
 
-            // AUTO ACCEPT: Immediately start the session
-            console.log(`[DEBUG] Auto-accepting chat session ${sid}`);
-            await startChatSession(io, sid);
+            // REMOVED AUTO ACCEPT: Wait for astrologer to accept and start
+            console.log(`[DEBUG] Chat session ${sid} requested. Waiting for acceptance.`);
+            // await startChatSession(io, sid);
 
         } catch (err) {
             console.error('Error in chat:request:', err);
@@ -187,9 +187,33 @@ module.exports = (io, socket) => {
     socket.on('chat:accept', async (payload) => {
         try {
             const { sessionId } = payload;
-            await startChatSession(io, sessionId);
+            // Just mark as accepted, don't start timer yet
+            const s = await ChatSession.findOne({ sessionId });
+            if (s) {
+                s.status = 'accepted';
+                await s.save();
+
+                // Notify both parties that it's accepted and ready to start
+                io.to(sessionId).emit('chat:accepted', { sessionId });
+
+                // Also join them to the room if not already
+                const clientSock = onlineUsers.get(s.clientId.toString());
+                const astroSock = onlineUsers.get(s.astrologerId.toString());
+                if (clientSock) io.sockets.sockets.get(clientSock)?.join(sessionId);
+                if (astroSock) io.sockets.sockets.get(astroSock)?.join(sessionId);
+            }
         } catch (err) {
             socket.emit('chat:error', { error: 'accept_failed' });
+        }
+    });
+
+    socket.on('chat:start', async (payload) => {
+        try {
+            const { sessionId } = payload;
+            console.log(`[DEBUG] Starting chat session ${sessionId}`);
+            await startChatSession(io, sessionId);
+        } catch (err) {
+            socket.emit('chat:error', { error: 'start_failed' });
         }
     });
 
