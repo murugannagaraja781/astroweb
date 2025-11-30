@@ -14,6 +14,7 @@ const {
   storeChatCall,
   getChatCall,
   acceptChatSession,
+  rejectChatSession,
 } = require("../controllers/chatController");
 
 const auth = require("../middleware/auth");
@@ -40,5 +41,6 @@ router.post("/save", auth, saveMessage);
 router.post("/call", auth, storeChatCall);
 router.get("/call", auth, getChatCall);
 router.post("/accept", auth, acceptChatSession);
+router.post("/reject", auth, rejectChatSession);
 
 module.exports = router;

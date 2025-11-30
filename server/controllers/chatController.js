@@ -482,3 +482,39 @@ exports.acceptChatSession = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+/**
+ * Reject and delete a chat session
+ */
+exports.rejectChatSession = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const userId = req.user.id;
+
+    if (!sessionId) {
+      return res.status(400).json({ msg: "Session ID is required" });
+    }
+
+    // Find the session
+    const session = await ChatSession.findOne({ sessionId });
+    if (!session) {
+      return res.status(404).json({ msg: "Session not found" });
+    }
+
+    // Verify authorization (only astrologer or client involved can reject/cancel)
+    if (
+      session.astrologerId.toString() !== userId &&
+      session.clientId.toString() !== userId
+    ) {
+      return res.status(403).json({ msg: "Unauthorized" });
+    }
+
+    // Delete the session
+    await ChatSession.deleteOne({ sessionId });
+
+    res.json({ success: true, msg: "Chat session rejected and removed" });
+  } catch (err) {
+    console.error("Error rejecting chat session:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};

@@ -138,6 +138,21 @@ const AstrologerDashboard = () => {
     navigate(`/chat/${sessionId}`);
   };
 
+  const rejectChat = async (sessionId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/chat/reject`,
+        { sessionId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // Remove from list
+      setPendingSessions((prev) => prev.filter((s) => s.sessionId !== sessionId));
+    } catch (err) {
+      console.error("Error rejecting chat:", err);
+    }
+  };
+
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -262,17 +277,25 @@ const AstrologerDashboard = () => {
                       className="flex justify-between items-center p-4 border rounded-lg"
                     >
                       <div>
-                        <p className="font-semibold">{session.userId.name}</p>
+                        <p className="font-semibold">{session.userId?.name || session.client?.name || "Client"}</p>
                         <p className="text-sm text-gray-600">
                           Session: {session.sessionId}
                         </p>
                       </div>
-                      <button
-                        onClick={() => acceptChat(session.sessionId)}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-                      >
-                        Accept Chat
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => rejectChat(session.sessionId)}
+                          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => acceptChat(session.sessionId)}
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          Accept Chat
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

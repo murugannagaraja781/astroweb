@@ -26,16 +26,47 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Load chat data
+  const [sessionStatus, setSessionStatus] = useState("loading");
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const timerRef = useRef(null);
+
+  // Load chat data & session details
   const fetchChat = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+      // Fetch history
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/chat/history/session/${id}`,
-        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
+        { headers }
       );
       setConversation(res.data.messages || []);
-      setOtherUser(null);
+      setOtherUser(null); // Will be set from session details if needed
+
+      // Fetch session details for status & balance
+      try {
+        const sessionRes = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/chat/call?sessionId=${id}`,
+          { headers }
+        );
+        if (sessionRes.data) {
+          setSessionStatus(sessionRes.data.status);
+          // If user is client, show their balance. If astrologer, show earnings/timer?
+          // For now, let's just show timer for both.
+          if (sessionRes.data.status === 'active') {
+             // Calculate elapsed if active
+             const start = new Date(sessionRes.data.startedAt).getTime();
+             const now = Date.now();
+             setElapsedTime(Math.floor((now - start) / 1000));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching session details:", err);
+        setSessionStatus("unknown");
+      }
+
     } catch (error) {
       console.error("Error fetching chat:", error);
     }
@@ -65,13 +96,45 @@ const Chat = () => {
       setTimeout(() => setIsTyping(false), 1500);
     });
 
+    socket.on("wallet:update", (data) => {
+      if (data.sessionId === id) {
+        setWalletBalance(data.balance);
+        setElapsedTime(data.elapsed);
+      }
+    });
+
+    socket.on("chat:joined", () => {
+        setSessionStatus("active");
+    });
+
     return () => {
       socket.off("chat:message");
       socket.off("chat:typing");
+      socket.off("wallet:update");
+      socket.off("chat:joined");
     };
   }, [id, fetchChat]);
 
+  // Timer effect
+  useEffect(() => {
+    if (sessionStatus === 'active') {
+      timerRef.current = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [sessionStatus]);
+
   useEffect(scrollToBottom, [conversation]);
+
+  // Format time
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // --- Send Message ---
   const sendMessage = async (e) => {
@@ -164,136 +227,120 @@ const Chat = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#e5ddd5] relative overflow-hidden">
       <style jsx>{`
-        input, textarea, select {
-          color: #f9f4f4 !important;
-          font-size: large;
+        .whatsapp-bg {
+          background-image: url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png");
+          background-repeat: repeat;
+          opacity: 0.4;
         }
-        .message-container {
-          padding-bottom: 180px; /* Increased space for mobile footer */
+        .message-shadow {
+          box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
         }
-        @media (min-width: 768px) {
-          .message-container {
-            padding-bottom: 140px;
-          }
-        }
-        /* Prevent keyboard from pushing footer up on mobile */
         .chat-footer {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-        }
-        /* Safe area for iOS devices */
-        @supports (padding-bottom: env(safe-area-inset-bottom)) {
-          .chat-footer {
-            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
-          }
+          padding-bottom: env(safe-area-inset-bottom);
         }
       `}</style>
 
-      {/* Gold Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-10 w-2 h-2 bg-yellow-400 rounded-full opacity-60 animate-pulse"></div>
-        <div className="absolute top-20 right-20 w-1 h-1 bg-yellow-300 rounded-full opacity-40"></div>
-        <div className="absolute bottom-32 left-1/4 w-1 h-1 bg-yellow-500 rounded-full opacity-50 animate-pulse delay-700"></div>
-        <div className="absolute top-1/2 right-16 w-1 h-1 bg-yellow-400 rounded-full opacity-30"></div>
-        <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-yellow-600 rounded-full opacity-40 animate-pulse delay-300"></div>
-      </div>
+      {/* WhatsApp Background Pattern */}
+      <div className="absolute inset-0 whatsapp-bg pointer-events-none"></div>
 
       {/* Header */}
-      <div className="relative flex items-center justify-between p-4 bg-black/80 backdrop-blur-lg border-b border-yellow-600/30 z-10">
+      <div className="relative flex items-center justify-between px-4 py-3 bg-[#008069] text-white shadow-md z-10">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full">
-            <Crown size={20} className="text-yellow-200" />
+          <div className="p-1 bg-white/20 rounded-full">
+            <Crown size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-              Royal Astrology
+            <h1 className="text-lg font-semibold leading-tight">
+              {otherUser?.name || "Astrologer"}
             </h1>
-            <p className="text-sm text-yellow-300">
-              Chat with {otherUser?.name || "Astrologer"}
-            </p>
+            <div className="flex items-center gap-2 text-xs text-white/80">
+              <span>{sessionStatus === 'active' ? 'Online' : 'Waiting...'}</span>
+              {sessionStatus === 'active' && (
+                <>
+                  <span>•</span>
+                  <span>{formatTime(elapsedTime)}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-yellow-300">
-          <Star size={16} className="fill-yellow-400" />
-          <span>Online</span>
+        <div className="flex items-center gap-4">
+          <button className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <Sparkles size={20} />
+          </button>
         </div>
       </div>
 
-      {/* Messages Container - Centered with extra bottom padding */}
+      {/* Messages Container */}
       <div className="flex-1 overflow-y-auto relative z-0">
         <div className="max-w-4xl mx-auto h-full flex flex-col">
-          {/* Messages List with extra bottom padding */}
-          <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container">
+          <div className="flex-1 overflow-y-auto px-4 pt-4 pb-20 space-y-2 message-container">
             {conversation.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full mb-4">
-                  <Gem className="text-yellow-200" size={24} />
+              <div className="text-center py-8">
+                <div className="inline-block bg-[#fff5c4] rounded-lg p-3 shadow-sm text-xs text-gray-600">
+                  🔒 Messages are end-to-end encrypted. No one outside of this chat, not even WhatsApp, can read or listen to them.
                 </div>
-                <h3 className="text-lg font-semibold text-yellow-200 mb-2">
-                  Welcome to Royal Astrology
-                </h3>
-                <p className="text-yellow-300 text-sm max-w-md mx-auto">
-                  Begin your royal consultation with our expert astrologer.
-                  Share your birth details and questions for divine guidance.
-                </p>
               </div>
             ) : (
               conversation.map((msg, index) => {
                 const isMe = msg.sender === user.id;
-                const isAstrologerMsg = user.role === 'client' && !isMe;
 
                 return (
                   <div
                     key={index}
                     className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
                   >
-                    {/* Sender Name Label for Astrologer */}
-                    {isAstrologerMsg && (
-                      <span className="text-[10px] text-yellow-500 mb-1 ml-2 font-medium flex items-center gap-1">
-                        <Crown size={10} /> Astrologer
-                      </span>
-                    )}
-
                     <div
-                      className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl shadow-lg relative ${
+                      className={`max-w-[85%] md:max-w-[65%] px-3 py-1.5 rounded-lg message-shadow relative text-sm ${
                         isMe
-                          ? "bg-gradient-to-br from-yellow-600 to-yellow-800 text-yellow-50 border border-yellow-500/30 rounded-tr-none"
-                          : "bg-zinc-800 text-yellow-50 border border-yellow-600/50 rounded-tl-none"
+                          ? "bg-[#d9fdd3] text-gray-900 rounded-tr-none"
+                          : "bg-white text-gray-900 rounded-tl-none"
                       }`}
                     >
-                      {/* Message Bubble Decoration */}
-                      {isMe && (
-                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full opacity-80 shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
+                      {/* Tail for bubbles */}
+                      {isMe ? (
+                        <div className="absolute top-0 -right-2 w-0 h-0 border-[8px] border-transparent border-t-[#d9fdd3] border-r-0"></div>
+                      ) : (
+                        <div className="absolute top-0 -left-2 w-0 h-0 border-[8px] border-transparent border-t-white border-l-0"></div>
                       )}
 
                       {msg.text && (
-                        <p className="text-sm leading-relaxed text-yellow-50 font-medium">{msg.text}</p>
+                        <p className="leading-relaxed whitespace-pre-wrap break-words pr-16 pb-1">{msg.text}</p>
                       )}
 
                       {msg.audioUrl && (
-                        <div className="mt-2">
+                        <div className="mt-1 mb-1">
                           <audio
                             controls
-                            className="w-48 h-8 rounded-lg bg-black/40 border border-yellow-600/30"
+                            className="w-56 h-8"
                           >
                             <source src={msg.audioUrl} type="audio/mp3" />
                           </audio>
                         </div>
                       )}
 
-                      {/* Timestamp */}
-                      <div className={`text-[10px] mt-2 flex items-center gap-1 ${
-                        isMe ? 'text-yellow-200 justify-end' : 'text-gray-400 justify-start'
-                      }`}>
-                        {new Date(msg.timestamp).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                        {isMe && <span>✓</span>}
+                      {/* Timestamp & Status */}
+                      <div className="absolute bottom-1 right-2 flex items-center gap-1">
+                        <span className="text-[10px] text-gray-500">
+                          {new Date(msg.timestamp).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </span>
+                        {isMe && (
+                          <span className="text-[#53bdeb]">
+                            {/* Double Tick Icon */}
+                            <svg viewBox="0 0 16 11" height="10" width="14" preserveAspectRatio="xMidYMid meet" className="" version="1.1" x="0px" y="0px" enableBackground="new 0 0 16 11">
+                              <path fill="currentColor" d="M11.057,9.766l-1.106-1.134c-0.153-0.156-0.399-0.159-0.56-0.005c-0.164,0.156-0.167,0.409-0.005,0.57 l1.383,1.417c0.153,0.156,0.399,0.159,0.56,0.005l4.542-4.542c0.164-0.156,0.167-0.409,0.005-0.57c-0.153-0.156-0.399-0.159-0.56-0.005 L11.057,9.766z"></path>
+                              <path fill="currentColor" d="M6.057,9.766l-1.106-1.134c-0.153-0.156-0.399-0.159-0.56-0.005c-0.164,0.156-0.167,0.409-0.005,0.57 l1.383,1.417c0.153,0.156,0.399,0.159,0.56,0.005l4.542-4.542c0.164-0.156,0.167-0.409,0.005-0.57c-0.153-0.156-0.399-0.159-0.56-0.005 L6.057,9.766z"></path>
+                              <path fill="currentColor" d="M10.284,4.225L5.742,8.879L4.359,7.462c-0.153-0.156-0.399-0.159-0.56-0.005c-0.164,0.156-0.167,0.409-0.005,0.57 l1.667,1.708c0.153,0.156,0.399,0.159,0.56,0.005l4.833-4.95c0.164-0.156,0.167-0.409,0.005-0.57 C10.696,4.064,10.45,4.061,10.284,4.225z"></path>
+                              <path fill="currentColor" d="M1.534,4.225L0.151,5.642c-0.153,0.156-0.399-0.159-0.56-0.005c-0.164,0.156-0.167,0.409-0.005,0.57 l1.667,1.708c0.153,0.156,0.399,0.159,0.56,0.005l4.833-4.95c0.164-0.156,0.167-0.409,0.005-0.57c-0.153-0.156-0.399-0.159-0.56-0.005 L1.534,4.225z"></path>
+                            </svg>
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -301,101 +348,62 @@ const Chat = () => {
               })
             )}
 
-            {/* Typing Indicator */}
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="max-w-[70%] p-4 rounded-2xl bg-black/60 backdrop-blur-sm border border-yellow-600/30">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-150"></div>
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-300"></div>
-                  </div>
-                  <p className="text-xs text-yellow-400 mt-1">Astrologer is typing...</p>
-                </div>
-              </div>
-            )}
-
             <div ref={messagesEndRef} className="h-4" />
           </div>
         </div>
       </div>
 
-      {/* Input Area - Fixed at bottom with safe area for mobile */}
-      <div className="chat-footer relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-safe-or-6">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Recording Indicator - Only shows when recording */}
-          {isRecording && (
-            <div className="text-center mb-3">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full">
-                <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
-                <span className="text-red-300 text-sm">Recording... Click to stop</span>
-              </div>
-            </div>
+      {/* Input Area */}
+      <div className="chat-footer absolute bottom-0 left-0 right-0 bg-[#f0f2f5] px-2 py-2 z-20">
+        <div className="max-w-4xl mx-auto flex items-end gap-2">
+           {/* Record Button */}
+           {!isRecording ? (
+            <button
+              type="button"
+              onClick={startRecording}
+              disabled={sessionStatus !== 'active'}
+              className={`p-3 transition-colors mb-1 ${sessionStatus === 'active' ? 'text-gray-500 hover:text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+            >
+              <Mic size={24} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={stopRecording}
+              className="p-3 text-red-500 animate-pulse mb-1"
+            >
+              <MicOff size={24} />
+            </button>
           )}
 
           <form
             onSubmit={sendMessage}
-            className="relative group"
+            className="flex-1 flex items-end gap-2 bg-white rounded-2xl px-4 py-2 shadow-sm border border-gray-100"
           >
-            <div className="relative">
-              {/* Gold glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
-
-              <div className="relative bg-black/70 backdrop-blur-xl border border-yellow-600/40 rounded-2xl shadow-2xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3">
-                {/* Record Button */}
-                {!isRecording ? (
-                  <button
-                    type="button"
-                    onClick={startRecording}
-                    className="p-2 text-yellow-400 hover:text-yellow-200 hover:bg-yellow-600/20 rounded-full transition-all duration-200 flex-shrink-0"
-                    title="Record Audio"
-                  >
-                    <Mic size={20} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={stopRecording}
-                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all duration-200 animate-pulse flex-shrink-0"
-                    title="Stop Recording"
-                  >
-                    <MicOff size={20} />
-                  </button>
-                )}
-
-                {/* Message Input with custom color */}
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onInput={handleTyping}
-                  placeholder="Send your message..."
-                  className="flex-1 bg-transparent placeholder-yellow-400/70 focus:outline-none text-lg min-w-0"
-                  style={{ color: '#f9f4f4' }}
-                />
-
-                {/* Send Button */}
-                <button
-                  type="submit"
-                  disabled={!message.trim()}
-                  className={`p-2 rounded-full transition-all duration-200 flex-shrink-0 ${
-                    message.trim()
-                      ? "bg-gradient-to-r from-yellow-600 to-yellow-800 text-yellow-50 shadow-lg hover:shadow-yellow-500/25 hover:scale-110 border border-yellow-500/30"
-                      : "text-yellow-600 opacity-50"
-                  }`}
-                >
-                  <Send size={18} className="md:w-5 md:h-5" />
-                </button>
-              </div>
-            </div>
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onInput={handleTyping}
+              disabled={sessionStatus !== 'active'}
+              placeholder={sessionStatus === 'active' ? "Type a message" : "Waiting for astrologer to accept..."}
+              className="flex-1 bg-transparent focus:outline-none text-gray-800 text-base py-2 max-h-32 overflow-y-auto disabled:text-gray-400"
+              style={{ color: '#111b21' }}
+            />
           </form>
 
-          {/* Mobile safe area indicator */}
-          <div className="text-center mt-2">
-            <p className="text-yellow-600/60 text-xs">
-              🔮 Secure cosmic connection
-            </p>
-          </div>
+          {/* Send Button */}
+          <button
+            onClick={sendMessage}
+            disabled={!message.trim() || sessionStatus !== 'active'}
+            className={`p-3 rounded-full mb-1 transition-all duration-200 ${
+              message.trim() && sessionStatus === 'active'
+                ? "bg-[#008069] text-white shadow-md hover:bg-[#006d59]"
+                : "bg-transparent text-gray-400"
+            }`}
+          >
+            <Send size={24} />
+          </button>
         </div>
       </div>
     </div>

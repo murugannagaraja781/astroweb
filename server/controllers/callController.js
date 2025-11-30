@@ -59,13 +59,13 @@ exports.initiateCall = async (req, res) => {
     }
 
     // Check if user has at least ₹1 balance (₹1 per minute rate)
-    if (wallet.balance < 1) {
-      console.warn(`Insufficient balance for user ${callerId}: ₹${wallet.balance}`);
-      return res.status(400).json({
-        msg: 'Insufficient balance. Minimum ₹1 required to start call/chat.',
-        balance: wallet.balance
-      });
-    }
+    // if (wallet.balance < 1) {
+    //   console.warn(`Insufficient balance for user ${callerId}: ₹${wallet.balance}`);
+    //   return res.status(400).json({
+    //     msg: 'Insufficient balance. Minimum ₹1 required to start call/chat.',
+    //     balance: wallet.balance
+    //   });
+    // }
 
     const newCall = new CallLog({
       callerId: callerId,
