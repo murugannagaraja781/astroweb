@@ -1,10 +1,7 @@
-import { useState, useEffect, useContext } from "react";
+ import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import ClienttoAstrologyvideocall from './AstrologertoClientVideoCall'
-
-// import ClienttoAstrologyvideocall from './ClientcalltoAstrologerVideoCall'
 import {
   Video,
   MessageCircle,
@@ -14,13 +11,6 @@ import {
   Languages,
   Sparkles,
   ArrowLeft,
-  Clock,
-  Users,
-  Zap,
-  Heart,
-  Shield,
-  Camera,
-  Phone,
 } from "lucide-react";
 import { io } from "socket.io-client";
 
@@ -32,9 +22,8 @@ const AstrologerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
   const [waiting, setWaiting] = useState(false);
-  const [waitingType, setWaitingType] = useState("");
+  const [waitingType, setWaitingType] = useState(""); // "call" or "chat"
   const [socket, setSocket] = useState(null);
-  const [showVideoCall, setShowVideoCall] = useState(false);
 
   // Initialize socket connection
   useEffect(() => {
@@ -91,300 +80,276 @@ const AstrologerDetail = () => {
       .toUpperCase();
   };
 
-  const handleVideoCall = () => {
+  const handleAction = async (action) => {
+    // Check if user is logged in
     if (!user) {
       alert("Please login to continue");
       navigate("/login");
       return;
     }
 
+    // Check if user has sufficient balance (minimum ₹1)
+    // Skip balance check for admin and astrologer users
     if (user.role === "client" && balance < 1) {
-      alert("Insufficient balance! Please add money to your wallet.");
-      navigate("/dashboard");
-      return;
-    }
-
-    if (!astrologer.isOnline) {
-      alert("This astrologer is currently offline. Please try again later.");
-      return;
-    }
-
-    setShowVideoCall(true);
-  };
-
-  const handleChat = async () => {
-    if (!user) {
-      alert("Please login to continue");
-      navigate("/login");
-      return;
-    }
-
-    if (user.role === "client" && balance < 1) {
-      alert("Insufficient balance! Please add money to your wallet.");
-      navigate("/dashboard");
-      return;
-    }
-
-    if (!astrologer.isOnline) {
-      alert("This astrologer is currently offline. Please try again later.");
-      return;
-    }
-
-    if (!socket) {
-      alert("Connection not ready. Please try again.");
-      return;
-    }
-
-    setWaiting(true);
-    setWaitingType("chat");
-
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/chat/request`,
-        { astrologerId: id },
-        { headers: { Authorization: `Bearer ${token}` } }
+      alert(
+        "Insufficient balance! Please add money to your wallet. Minimum ₹1 required."
       );
+      navigate("/dashboard");
+      return;
+    }
 
-      const { sessionId, ratePerMinute } = res.data;
+    // Check if astrologer is online
+    if (!astrologer.isOnline) {
+      alert("This astrologer is currently offline. Please try again later.");
+      return;
+    }
 
-      socket.emit("user_online", { userId: user.id });
-      socket.emit("chat:request", {
-        clientId: user.id,
-        astrologerId: id,
-        ratePerMinute: ratePerMinute || 1,
-        sessionId: sessionId
-      });
+    if (action === "call") {
+      if (!socket) {
+        alert("Connection not ready. Please try again.");
+        return;
+      }
 
-      navigate(`/chat/${sessionId}`);
-    } catch (err) {
-      console.error("Error requesting chat:", err);
-      setWaiting(false);
-      alert("Failed to request chat. Please try again.");
+      setWaiting(true);
+      setWaitingType("call");
+
+      try {
+        // Initiate call via API to get callId
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/call/initiate`,
+          {
+            receiverId: id,
+          }
+        );
+        const callId = res.data.callId;
+
+        // Join user's own room for receiving responses
+        socket.emit("join", user.id);
+
+        // Emit video call request to astrologer
+        socket.emit("callUser", {
+          userToCall: id,
+          from: user.id,
+          name: user.name,
+          type: "video",
+          callId: callId,
+        });
+
+        // Wait for call acceptance
+        socket.once("callAccepted", ({ callId: acceptedCallId }) => {
+          console.log("[DEBUG] Video call accepted:", acceptedCallId);
+          setWaiting(false);
+
+          // Store call details in backend
+          axios
+            .post(`${import.meta.env.VITE_API_URL}/api/chatcalldetails`, {
+              userId: user.id,
+              astrologerId: id,
+              sessionId: acceptedCallId,
+              initiatedAt: new Date().toISOString(),
+            })
+            .catch((err) => console.error("Error storing call details:", err));
+
+          // Navigate to video call page with callId
+          navigate(`/call/${id}?callId=${acceptedCallId}`);
+        });
+
+        // Handle call rejection
+        socket.once("callRejected", () => {
+          setWaiting(false);
+          alert("The astrologer is currently busy. Please try again later.");
+        });
+      } catch (err) {
+        console.error("Error initiating call:", err);
+        setWaiting(false);
+
+        // Show detailed error for debugging
+        const errorMsg = err.response?.data?.message || err.message || "Unknown error";
+        const apiUrl = import.meta.env.VITE_API_URL;
+        alert(`Failed to initiate call.\n\nError: ${errorMsg}\n\nAPI URL: ${apiUrl}\n\nPlease check:\n1. Server is running\n2. API URL is correct\n3. Network connection`);
+      }
+    } else if (action === "chat") {
+      if (!socket) {
+        alert("Connection not ready. Please try again.");
+        return;
+      }
+
+      setWaiting(true);
+      setWaitingType("chat");
+
+      try {
+        // 1. Create session via API first (Reliable)
+        const token = localStorage.getItem("token");
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/chat/request`,
+          { astrologerId: id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const { sessionId, ratePerMinute } = res.data;
+        console.log("[DEBUG] Session created via API:", sessionId);
+
+        // 2. Emit socket event with the created sessionId
+        socket.emit("user_online", { userId: user.id });
+        socket.emit("chat:request", {
+          clientId: user.id,
+          astrologerId: id,
+          ratePerMinute: ratePerMinute || 1,
+          sessionId: sessionId // Pass the ID we just created
+        });
+
+        // 3. Navigate immediately (or wait for join)
+        // We can navigate immediately because API creation succeeded
+        navigate(`/chat/${sessionId}`);
+
+      } catch (err) {
+        console.error("Error requesting chat:", err);
+        setWaiting(false);
+        alert("Failed to request chat. Please try again.");
+      }
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto mb-4"></div>
-          <p className="text-purple-200 text-lg">Connecting to cosmic energies...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-orange-200 border-t-orange-600"></div>
       </div>
     );
   }
 
   if (!astrologer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">🔮</div>
-          <p className="text-xl text-purple-200 mb-4">Astrologer not found</p>
+          <p className="text-xl text-gray-600">Astrologer not found</p>
           <button
             onClick={() => navigate("/")}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105"
+            className="mt-4 text-orange-600 hover:text-orange-700 font-semibold"
           >
-            Return to Universe
+            Go back home
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (showVideoCall) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="container mx-auto p-4">
-          <button
-            onClick={() => setShowVideoCall(false)}
-            className="flex items-center gap-2 text-white hover:text-purple-200 mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Profile
-          </button>
-          {/* Replace with your actual AstrologerVideoCall component */}
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-white text-center">
-            <div className="text-6xl mb-4">📹</div>
-            <h3 className="text-2xl font-bold mb-4">Video Call Feature</h3>
-            <p className="text-purple-200 mb-6"><ClienttoAstrologyvideocall/></p>
-            <button
-              onClick={() => setShowVideoCall(false)}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
-            >
-              Return to Profile
-            </button>
-          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
-      {/* Cosmic Header */}
-      <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white py-12 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-10 left-10 w-4 h-4 bg-white rounded-full opacity-20 animate-pulse"></div>
-          <div className="absolute top-20 right-20 w-3 h-3 bg-yellow-200 rounded-full opacity-30 animate-pulse"></div>
-          <div className="absolute bottom-16 left-1/4 w-2 h-2 bg-blue-200 rounded-full opacity-40 animate-pulse"></div>
-        </div>
-
-        <div className="container mx-auto relative z-10">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-purple-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-orange-500 to-purple-600 text-white py-8 px-4">
+        <div className="container mx-auto">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-white hover:text-purple-200 mb-6 transition-colors group"
+            className="flex items-center gap-2 text-white hover:text-orange-100 mb-4 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span>Back to Cosmic Realm</span>
+            <ArrowLeft className="w-5 h-5" />
+            Back to Home
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 -mt-16 relative z-20">
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/20 backdrop-blur-sm">
+      <div className="container mx-auto px-4 -mt-16">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
           {/* Profile Header */}
-          <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 p-8 text-white">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              {/* Avatar */}
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-2xl border-4 border-white/20">
-                  <span className="text-white text-4xl font-bold">
-                    {getInitials(astrologer.name)}
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-8">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-2xl">
+                <span className="text-white text-5xl font-bold">
+                  {getInitials(astrologer.name)}
+                </span>
+              </div>
+              {astrologer.isOnline && (
+                <span className="absolute bottom-2 right-2 w-8 h-8 bg-green-500 border-4 border-white rounded-full animate-pulse"></span>
+              )}
+            </div>
+
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                {astrologer.name}
+              </h1>
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                {astrologer.isOnline ? (
+                  <span className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-semibold flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Available Now
                   </span>
-                </div>
-                {astrologer.isOnline && (
-                  <div className="absolute bottom-2 right-2 w-8 h-8 bg-green-500 border-4 border-white rounded-full animate-pulse flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
+                ) : (
+                  <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold">
+                    Offline
+                  </span>
                 )}
               </div>
-
-              {/* Profile Info */}
-              <div className="flex-1 text-center md:text-left">
-                <h1 className="text-4xl font-bold mb-2">{astrologer.name}</h1>
-                <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
-                  {astrologer.isOnline ? (
-                    <span className="px-4 py-2 bg-green-500/20 backdrop-blur-sm text-green-100 rounded-full text-sm font-semibold flex items-center gap-2 border border-green-400/30">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      ✨ Available for Guidance
-                    </span>
-                  ) : (
-                    <span className="px-4 py-2 bg-gray-500/20 text-gray-300 rounded-full text-sm font-semibold">
-                      🌙 Currently Meditating
-                    </span>
-                  )}
-                </div>
-
-                {/* Rate */}
-                <div className="flex items-center justify-center md:justify-start gap-2 text-2xl font-bold text-yellow-300 mb-6">
-                  <Star className="w-6 h-6 fill-yellow-300" />
-                  ₹{astrologer.profile?.ratePerMinute || 0}/min
-                  <span className="text-sm text-purple-200 ml-2">Cosmic Consultation</span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                  <button
-                    onClick={handleVideoCall}
-                    className="flex items-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
-                  >
-                    <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    Video Call
-                  </button>
-
-                  <button
-                    onClick={handleChat}
-                    className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
-                  >
-                    <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    Text Chat
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-            {astrologer.profile?.experience && (
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 text-purple-600 mb-2">
-                  <Clock className="w-5 h-5" />
-                  <span className="text-2xl font-bold">{astrologer.profile.experience}+</span>
-                </div>
-                <p className="text-sm text-gray-600">Years Experience</p>
-              </div>
-            )}
-
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-pink-600 mb-2">
-                <Users className="w-5 h-5" />
-                <span className="text-2xl font-bold">98%</span>
-              </div>
-              <p className="text-sm text-gray-600">Satisfied Clients</p>
-            </div>
-
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-blue-600 mb-2">
-                <Zap className="w-5 h-5" />
-                <span className="text-2xl font-bold">24/7</span>
-              </div>
-              <p className="text-sm text-gray-600">Availability</p>
-            </div>
-
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
-                <Shield className="w-5 h-5" />
-                <span className="text-2xl font-bold">100%</span>
-              </div>
-              <p className="text-sm text-gray-600">Authentic</p>
-            </div>
-          </div>
-
-          {/* Content Area */}
-          <div className="p-8">
-            {/* Specialties */}
-            {astrologer.profile?.specialties && astrologer.profile.specialties.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
-                    <Sparkles className="w-6 h-6 text-white" />
+              {waiting && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="bg-white rounded-xl shadow-xl p-6 w-80 text-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-600 mx-auto mb-4"></div>
+                    <p className="text-gray-700 font-medium">
+                      {waitingType === "call"
+                        ? "Calling astrologer..."
+                        : "Waiting for astrologer to accept…"}
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800">Cosmic Specialties</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {astrologer.profile.specialties.map((specialty, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 text-center group hover:from-purple-100 hover:to-pink-100 transition-all"
-                    >
-                      <span className="text-purple-700 font-semibold group-hover:text-purple-800">
-                        {specialty}
-                      </span>
-                    </div>
-                  ))}
+              )}
+
+              <div className="flex items-center justify-center md:justify-start gap-2 text-2xl font-bold text-orange-600 mb-6">
+                <Star className="w-6 h-6 fill-orange-600" />₹
+                {astrologer.profile?.ratePerMinute || 0}/min
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                <button
+                  onClick={() => handleAction("call")}
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Video size={20} />
+                  Video Call
+                </button>
+                <button
+                  onClick={() => handleAction("chat")}
+                  className="flex items-center gap-2 bg-white text-orange-600 border-2 border-orange-500 px-6 py-3 rounded-xl font-semibold hover:bg-orange-50 transition-all transform hover:scale-105"
+                >
+                  <MessageCircle size={20} />
+                  Chat
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Details Grid */}
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            {/* Experience */}
+            {astrologer.profile?.experience && (
+              <div className="bg-orange-50 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Award className="w-6 h-6 text-orange-600" />
+                  <h3 className="text-lg font-bold text-gray-800">
+                    Experience
+                  </h3>
                 </div>
+                <p className="text-gray-700 text-lg">
+                  {astrologer.profile.experience} years
+                </p>
               </div>
             )}
 
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Languages */}
-              {astrologer.profile?.languages && astrologer.profile.languages.length > 0 && (
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
-                      <Languages className="w-5 h-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800">Cosmic Languages</h3>
+            {/* Languages */}
+            {astrologer.profile?.languages &&
+              astrologer.profile.languages.length > 0 && (
+                <div className="bg-purple-50 rounded-2xl p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Languages className="w-6 h-6 text-purple-600" />
+                    <h3 className="text-lg font-bold text-gray-800">
+                      Languages
+                    </h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {astrologer.profile.languages.map((lang, idx) => (
                       <span
                         key={idx}
-                        className="px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-xl text-sm font-medium shadow-sm"
+                        className="px-3 py-1 bg-purple-200 text-purple-800 rounded-full text-sm font-medium"
                       >
                         {lang}
                       </span>
@@ -392,87 +357,40 @@ const AstrologerDetail = () => {
                   </div>
                 </div>
               )}
+          </div>
 
-              {/* Experience */}
-              {astrologer.profile?.experience && (
-                <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border border-orange-200">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl">
-                      <Award className="w-5 h-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800">Wisdom Journey</h3>
-                  </div>
-                  <p className="text-gray-700 text-lg font-semibold">
-                    {astrologer.profile.experience} years of cosmic guidance
-                  </p>
-                  <div className="mt-3 w-full bg-orange-200 rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full"
-                      style={{ width: `${Math.min(astrologer.profile.experience * 10, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Bio */}
-            {astrologer.profile?.bio && (
-              <div className="mt-8 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
+          {/* Specialties */}
+          {astrologer.profile?.specialties &&
+            astrologer.profile.specialties.length > 0 && (
+              <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl">
-                    <Heart className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800">Cosmic Message</h3>
+                  <Sparkles className="w-6 h-6 text-orange-600" />
+                  <h3 className="text-2xl font-bold text-gray-800">
+                    Specialties
+                  </h3>
                 </div>
-                <p className="text-gray-700 leading-relaxed text-lg">
-                  {astrologer.profile.bio}
-                </p>
+                <div className="flex flex-wrap gap-3">
+                  {astrologer.profile.specialties.map((specialty, idx) => (
+                    <span
+                      key={idx}
+                      className="px-4 py-2 bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 rounded-xl text-sm font-semibold"
+                    >
+                      {specialty}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
-        </div>
-      </div>
 
-      {/* Waiting Modal */}
-      {waiting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm mx-4 text-center transform animate-scale-in">
-            <div className="w-20 h-20 mx-auto mb-6 relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-ping opacity-20"></div>
-              <div className="absolute inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
-                {waitingType === "call" ? (
-                  <Phone className="w-8 h-8 text-white animate-pulse" />
-                ) : (
-                  <MessageCircle className="w-8 h-8 text-white animate-pulse" />
-                )}
-              </div>
+          {/* Bio */}
+          {astrologer.profile?.bio && (
+            <div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">About</h3>
+              <p className="text-gray-700 leading-relaxed text-lg">
+                {astrologer.profile.bio}
+              </p>
             </div>
-
-            <h4 className="text-2xl font-bold text-gray-800 mb-2">
-              Connecting to Cosmos...
-            </h4>
-            <p className="text-gray-600 mb-6">
-              {waitingType === "call"
-                ? "Establishing cosmic video connection..."
-                : "Waiting for astrologer to accept your chat request..."}
-            </p>
-
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => setWaiting(false)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Elements */}
-      <div className="fixed bottom-4 right-4 flex flex-col gap-3 z-30">
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-3 rounded-xl shadow-2xl text-sm font-semibold animate-bounce">
-          ✨ Your Balance: ₹{balance}
+          )}
         </div>
       </div>
     </div>
