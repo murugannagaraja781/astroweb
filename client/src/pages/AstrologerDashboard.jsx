@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
-
+import AstrologerVideoCall from "./AstrologerVideoCall";
 const AstrologerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [profile, setProfile] = useState(null);
@@ -281,6 +281,7 @@ const AstrologerDashboard = () => {
                 </p>
               ) : (
                 <div className="space-y-4">
+                  <AstrologerVideoCall/>
                   {pendingSessions.map((session) => (
                     <div
                       key={session.sessionId}
@@ -308,6 +309,7 @@ const AstrologerDashboard = () => {
                       </div>
                     </div>
                   ))}
+
                 </div>
               )}
             </div>
