@@ -2,7 +2,7 @@
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
-import ClientVideoCall from './ClientVideoCall'
+
 import AuthContext from "../context/AuthContext";
 import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft } from "lucide-react";
 
@@ -307,9 +307,7 @@ const Chat = () => {
             {/* Video Call UI - only for client */}
                         <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
 
-{user?.role === "client" && (
-  <ClientVideoCall roomId={id} />
-)}</h1>
+
 
             <p className="text-sm text-yellow-300">
               {sessionDuration > 0 ? formatDuration(sessionDuration) : 'Starting...'}
