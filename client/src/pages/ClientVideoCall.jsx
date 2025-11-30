@@ -121,7 +121,7 @@ export default function ClientVideoCall({ roomId }) {
 
   return (
     <div>
-      <h3>Client Video Call</h3>
+      <h3 style={{color:'red'}}>Client Video Call</h3>
 
       {incomingCall && (
         <div style={{ background: "#222", padding: 20, borderRadius: 10 }}>

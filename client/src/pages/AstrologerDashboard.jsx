@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
-import AstrologerVideoCall from "./AstrologerVideoCall";
+import ClientVideoCall from "./ClientVideoCall";
 const AstrologerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [profile, setProfile] = useState(null);
@@ -316,7 +316,7 @@ const AstrologerDashboard = () => {
           )}
            {activeTab === "calls" && (
             <div className="bg-white rounded-xl shadow-sm p-6">
-            <AstrologerVideoCall/>
+            <ClientVideoCall/>
 
             </div>
           )}

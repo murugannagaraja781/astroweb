@@ -13,7 +13,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { io } from "socket.io-client";
-import ClientVideoCall from './ClientVideoCall'
+import AstrologerVideoCall from './AstrologerVideoCall'
 const AstrologerDetail = () => {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
@@ -306,7 +306,7 @@ const AstrologerDetail = () => {
                 > */}
                   {/* <Video size={20} /> */}
 
-                  <ClientVideoCall astrologerId={id}/>
+                  <AstrologerVideoCall astrologerId={id}/>
                 {/* </button> */}
                 <button
                   onClick={() => handleAction("chat")}
