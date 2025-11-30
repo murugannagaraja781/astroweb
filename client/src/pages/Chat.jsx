@@ -74,20 +74,39 @@ const Chat = () => {
     fetchChat();
     fetchSessionInfo();
 
-    socket.on("chat:message", (newMessage) => {
-      setConversation((prev) => {
-        const isDuplicate = prev.some(
-          msg => msg.text === newMessage.text &&
-                 msg.senderId === newMessage.senderId &&
-                 new Date(msg.timestamp).getTime() === new Date(newMessage.timestamp).getTime()
+  socket.on("chat:message", (newMessage) => {
+  setConversation((prev) => {
+    // 1. TEMP ID MATCH → Replace pending message
+    if (newMessage.tempId) {
+      const exists = prev.some((msg) => msg.tempId === newMessage.tempId);
+      if (exists) {
+        return prev.map((msg) =>
+          msg.tempId === newMessage.tempId
+            ? { ...msg, ...newMessage, pending: false }
+            : msg
         );
-        return isDuplicate ? prev : [...prev, newMessage];
-      });
-    });
+      }
+    }
 
-    socket.on("chat:typing", () => {
-      setIsTyping(true);
-      setTimeout(() => setIsTyping(false), 1500);
+    // 2. REAL DB ID MATCH → do NOT add again
+    if (newMessage._id) {
+      const exists = prev.some((msg) => msg._id === newMessage._id);
+      if (exists) return prev;
+    }
+
+    // 3. Otherwise add new message normally
+    return [...prev, newMessage];
+  });
+});
+
+
+
+    socket.on("chat:typing", (data) => {
+      // Only show typing if it's from the OTHER user
+      if (data.userId && data.userId !== user.id) {
+        setIsTyping(true);
+        setTimeout(() => setIsTyping(false), 1500);
+      }
     });
 
     // Listen for session info from socket
@@ -127,28 +146,35 @@ const Chat = () => {
   };
 
   // --- Send Message ---
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!message.trim() || message === lastMessageRef.current) return;
+ const sendMessage = async (e) => {
+  e.preventDefault();
+  if (!message.trim()) return;
 
-    const newMsg = {
-      senderId: user.id,
-      text: message,
-      timestamp: new Date(),
-      status: "sent",
-    };
+  // Create TEMP ID for client-side dedupe
+  const tempId = "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2);
 
-    lastMessageRef.current = message;
-
-    socket.emit("chat:message", {
-      sessionId: id,
-      senderId: user.id,
-      text: message,
-    });
-
-    setConversation((prev) => [...prev, newMsg]);
-    setMessage("");
+  const newMsg = {
+    tempId,
+    senderId: user.id,
+    text: message,
+    timestamp: new Date(),
+    pending: true,
   };
+
+  // Add to UI immediately
+  setConversation((prev) => [...prev, newMsg]);
+
+  // Send to server
+  socket.emit("chat:message", {
+    sessionId: id,
+    senderId: user.id,
+    text: message,
+    tempId, // VERY IMPORTANT
+  });
+
+  setMessage("");
+};
+
 
   // --- Typing Event ---
   const handleTyping = () => {
@@ -282,9 +308,24 @@ const Chat = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-yellow-300">
-          <Star size={16} className="fill-yellow-400" />
-          <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-yellow-300">
+            <Star size={16} className="fill-yellow-400" />
+            <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
+          </div>
+
+          {/* End Chat Button */}
+          <button
+            onClick={() => {
+              if (window.confirm('Are you sure you want to end this chat session?')) {
+                socket.emit('chat:end', { sessionId: id });
+                window.history.back();
+              }
+            }}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-semibold transition-colors shadow-lg"
+          >
+            End Chat
+          </button>
         </div>
       </div>
 
@@ -406,7 +447,9 @@ const Chat = () => {
                     <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-150"></div>
                     <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-300"></div>
                   </div>
-                  <p className="text-xs text-yellow-400 mt-1">Astrologer is typing...</p>
+                  <p className="text-xs text-yellow-400 mt-1">
+                    {user?.role === 'astrologer' ? 'Client' : 'Astrologer'} is typing...
+                  </p>
                 </div>
               </div>
             )}
