@@ -359,7 +359,7 @@ const Chat = () => {
                         className={`p-4 rounded-2xl shadow-lg relative ${
                           isMe
                             ? "bg-gradient-to-br from-yellow-600 to-yellow-800 text-yellow-50 border border-yellow-500/30 rounded-tr-none"
-                            : "bg-zinc-800 text-yellow-50 border border-yellow-600/50 rounded-tl-none"
+                            : "bg-gradient-to-br from-purple-600 to-purple-800 text-white border border-purple-500/30 rounded-tl-none"
                         }`}
                       >
                         {/* Message Bubble Decoration */}
@@ -368,7 +368,7 @@ const Chat = () => {
                         )}
 
                         {msg.text && (
-                          <p className="text-sm leading-relaxed text-yellow-50 font-medium">{msg.text}</p>
+                          <p className="text-sm leading-relaxed text-white font-medium">{msg.text}</p>
                         )}
 
                         {msg.audioUrl && (
@@ -384,7 +384,7 @@ const Chat = () => {
 
                         {/* Timestamp */}
                         <div className={`text-[10px] mt-2 flex items-center gap-1 ${
-                          isMe ? 'text-yellow-200 justify-end' : 'text-gray-400 justify-start'
+                          isMe ? 'text-yellow-100 justify-end' : 'text-purple-100 justify-start'
                         }`}>
                           {new Date(msg.timestamp).toLocaleTimeString([], {
                             hour: '2-digit',
