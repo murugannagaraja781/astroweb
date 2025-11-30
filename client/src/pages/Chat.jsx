@@ -74,29 +74,31 @@ const Chat = () => {
     fetchChat();
     fetchSessionInfo();
 
-    socket.on("chat:message", (newMessage) => {
+  socket.on("chat:message", (newMessage) => {
   setConversation((prev) => {
-    // 1. Dedupe using tempId
+    // 1. TEMP ID MATCH → Replace pending message
     if (newMessage.tempId) {
       const exists = prev.some((msg) => msg.tempId === newMessage.tempId);
       if (exists) {
-        // Replace the pending message with server message
         return prev.map((msg) =>
-          msg.tempId === newMessage.tempId ? { ...msg, ...newMessage, pending: false } : msg
+          msg.tempId === newMessage.tempId
+            ? { ...msg, ...newMessage, pending: false }
+            : msg
         );
       }
     }
 
-    // 2. Dedupe using _id
+    // 2. REAL DB ID MATCH → do NOT add again
     if (newMessage._id) {
       const exists = prev.some((msg) => msg._id === newMessage._id);
       if (exists) return prev;
     }
 
-    // 3. Otherwise add normally
+    // 3. Otherwise add new message normally
     return [...prev, newMessage];
   });
 });
+
 
 
     socket.on("chat:typing", () => {
@@ -145,7 +147,8 @@ const Chat = () => {
   e.preventDefault();
   if (!message.trim()) return;
 
-  const tempId = Date.now() + "-" + Math.random().toString(36).slice(2);
+  // Create TEMP ID for client-side dedupe
+  const tempId = "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2);
 
   const newMsg = {
     tempId,
@@ -158,11 +161,12 @@ const Chat = () => {
   // Add to UI immediately
   setConversation((prev) => [...prev, newMsg]);
 
+  // Send to server
   socket.emit("chat:message", {
     sessionId: id,
     senderId: user.id,
     text: message,
-    tempId,
+    tempId, // VERY IMPORTANT
   });
 
   setMessage("");
