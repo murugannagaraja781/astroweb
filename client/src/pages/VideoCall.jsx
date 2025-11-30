@@ -1,216 +1,519 @@
-import React, { useEffect, useRef, useState, useContext } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useContext,
+} from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
-import Peer from "simple-peer";
+import AgoraRTC from "agora-rtc-sdk-ng";
+import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import { ArrowLeft, Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
+import CallHistoryList from "../components/CallHistoryList";
+import OnlineAstrologers from "../components/OnlineAstrologers";
+import OffersList from "../components/OffersList";
+import { ArrowLeft } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app";
+const SOCKET_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || process.env.VITE_API_URL || '';
+const APP_ID = (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_AGORA_APP_ID || import.meta.env.VITE_APP_ID)) || process.env.VITE_AGORA_APP_ID || process.env.VITE_APP_ID || '';
+
+const AGORA_DEBUG = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_AGORA_DEBUG) || process.env.VITE_AGORA_DEBUG;
+if (AGORA_DEBUG) {
+  try { AgoraRTC.setLogLevel(4); } catch (e) {}
+}
+
+// Small helper to format duration mm:ss
+const formatDuration = (sec) =>
+  `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
 
 export default function VideoCall() {
   const { id: otherUserId } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const location = useLocation(); // Add useLocation
   const { addToast } = useToast();
 
-  const [stream, setStream] = useState(null);
-  const [me, setMe] = useState("");
-  const [call, setCall] = useState(location.state?.incomingCall || {}); // Initialize from state
-  const [callAccepted, setCallAccepted] = useState(false);
-  const [callEnded, setCallEnded] = useState(false);
-  const [name, setName] = useState("");
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(true);
+  // Socket state
+  const [socket, setSocket] = useState(null);
 
-  const myVideo = useRef();
-  const userVideo = useRef();
-  const connectionRef = useRef();
-  const socket = useRef();
+  // Agora client - memoized so it doesn't recreate on every render
+  const client = useMemo(
+    () => AgoraRTC.createClient({ mode: "rtc", codec: "vp8" }),
+    []
+  );
 
-  useEffect(() => {
-    socket.current = io(SOCKET_URL);
+  // local/remote tracks and state
+  const localVideoTrackRef = useRef(null);
+  const localAudioTrackRef = useRef(null);
+  const localVideoEl = useRef(null);
+  const remoteContainerRef = useRef(null);
 
-    socket.current.on("me", (id) => setMe(id));
+  const [callId, setCallId] = useState(null);
+  const [rtcToken, setRtcToken] = useState(null);
+  const [callActive, setCallActive] = useState(false);
+  const [remoteUsers, setRemoteUsers] = useState([]);
 
-    socket.current.on("callUser", ({ from, name: callerName, signal }) => {
-      setCall({ isReceivingCall: true, from, name: callerName, signal });
-    });
+  const [duration, setDuration] = useState(0);
+  const timerRef = useRef(null);
 
-    socket.current.on("callEnded", () => {
-      setCallEnded(true);
-      if (connectionRef.current) connectionRef.current.destroy();
-      navigate(-1); // Go back
-    });
+  // Wallet and pricing state
+  const [balance, setBalance] = useState(0);
+  const RATE_PER_MIN = 1; // ₹1 per minute
 
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then((currentStream) => {
-        setStream(currentStream);
-        if (myVideo.current) {
-          myVideo.current.srcObject = currentStream;
-        }
-      })
-      .catch(err => {
-        console.error("Error accessing media devices:", err);
-        addToast("Failed to access camera/microphone", "error");
-      });
+  // Call history for otherUserId === '0'
+  const [callHistory, setCallHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
-    // Join room with user ID to receive calls
-    if (user?.id) {
-      socket.current.emit("join-room", user.id);
+  // --- Helpers: fetch wallet balance, fetch token ---
+  const fetchBalance = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await axios.get(`${SOCKET_URL}/api/wallet/balance`);
+      setBalance(res.data.balance || 0);
+    } catch (err) {
+      console.error("Failed to fetch balance", err);
+      addToast("Failed to fetch wallet balance", "error");
     }
+  }, [user, addToast]);
+
+  const fetchRtcToken = useCallback(async (channel, uid) => {
+    try {
+      const res = await axios.get(`${SOCKET_URL}/api/agora/token`, {
+        params: { channel, uid },
+      });
+      return res.data.token;
+    } catch (err) {
+      console.error("Failed to fetch RTC token", err);
+      throw err;
+    }
+  }, []);
+
+  const location = useLocation();
+
+  // --- Socket setup ---
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const newSocket = io(SOCKET_URL, {
+      auth: { token }
+    });
+
+    setSocket(newSocket);
 
     return () => {
-      socket.current.disconnect();
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      newSocket.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user || !socket) return;
+
+    // Events
+    socket.on("connect", () => console.log("socket connected", socket.id));
+
+    socket.on("callAccepted", async ({ callId: acceptedCallId }) => {
+      console.log("call accepted", acceptedCallId);
+      addToast("Call accepted", "success");
+
+      // If we are the client initiator we probably already have callId but ensure
+      const cid = acceptedCallId || callId;
+      if (!cid) return;
+      setCallId(cid);
+
+      try {
+        const token = await fetchRtcToken(cid, user.id);
+        setRtcToken(token);
+        setCallActive(true); // only set active after token set
+      } catch (err) {
+        addToast("Failed to get call token", "error");
+      }
+    });
+
+    socket.on("callRejected", () => {
+      addToast("Call rejected by remote user", "error");
+      setCallActive(false);
+      setCallId(null);
+    });
+
+    socket.on("endCall", () => {
+      addToast("Call ended by remote user", "info");
+      leaveCall();
+    });
+
+    // Billing updates
+    socket.on("billingUpdate", ({ duration: dur, cost, balance: bal, earnings }) => {
+       if (dur) setDuration(dur);
+       if (bal !== undefined) setBalance(bal);
+       // For astrologer, we could show earnings if we wanted, but balance is for client
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.off("callAccepted");
+      socket.off("callRejected");
+      socket.off("endCall");
+      socket.off("billingUpdate");
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, callId, fetchRtcToken, socket]);
+
+  // --- Fetch call history when otherUserId === '0' ---
+  useEffect(() => {
+    if (otherUserId !== "0" || !user) return;
+    const fetchHistory = async () => {
+      try {
+        const res = await axios.get(`${SOCKET_URL}/api/call/history`);
+        setCallHistory(res.data || []);
+      } catch (err) {
+        console.error("Error fetching call history:", err);
+      } finally {
+        setLoadingHistory(false);
       }
     };
-  }, [user?.id]);
+    fetchHistory();
+  }, [otherUserId, user]);
 
-  const answerCall = () => {
-    setCallAccepted(true);
-    const peer = new Peer({ initiator: false, trickle: false, stream });
+  // --- Fetch wallet balance on mount (non-admins) ---
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== "admin") fetchBalance();
+  }, [user, fetchBalance]);
 
-    peer.on("signal", (data) => {
-      socket.current.emit("answerCall", { signal: data, to: call.from });
-    });
+  // --- Join process using manual Agora SDK flow ---
+  useEffect(() => {
+    let joined = false;
 
-    peer.on("stream", (currentStream) => {
-      if (userVideo.current) {
-        userVideo.current.srcObject = currentStream;
+    const handleUserPublished = async (remoteUser, mediaType) => {
+      try {
+        await client.subscribe(remoteUser, mediaType);
+        if (mediaType === "video") {
+          // create or reuse DOM element for remote user
+          const el = document.createElement("div");
+          el.id = `remote-${remoteUser.uid}`;
+          el.className = "remote-video p-1";
+          el.style.width = "100%";
+          el.style.height = "100%";
+          remoteContainerRef.current?.appendChild(el);
+          remoteUser.videoTrack?.play(el);
+        }
+        if (mediaType === "audio") {
+          remoteUser.audioTrack?.play();
+        }
+        setRemoteUsers((prev) => {
+          if (prev.find((u) => u.uid === remoteUser.uid)) return prev;
+          return [...prev, remoteUser];
+        });
+      } catch (err) {
+        console.error("Failed to handle user-published", err);
       }
-    });
+    };
 
-    peer.signal(call.signal);
-    connectionRef.current = peer;
-  };
+    const handleUserUnpublished = (remoteUser) => {
+      // Remove DOM
+      const el = document.getElementById(`remote-${remoteUser.uid}`);
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+      setRemoteUsers((prev) => prev.filter((u) => u.uid !== remoteUser.uid));
+    };
 
-  const callUser = (id) => {
-    const peer = new Peer({ initiator: true, trickle: false, stream });
+    const startJoin = async () => {
+      if (!callActive || !callId || !rtcToken || !APP_ID || !user) return;
+      joined = true;
 
-    peer.on("signal", (data) => {
-      socket.current.emit("callUser", {
-        userToCall: id,
-        signalData: data,
+      try {
+        await client.join(APP_ID, callId, rtcToken, user.id);
+
+        // create local tracks
+        const [audioTrack, videoTrack] = await Promise.all([
+          AgoraRTC.createMicrophoneAudioTrack(),
+          AgoraRTC.createCameraVideoTrack(),
+        ]);
+
+        localAudioTrackRef.current = audioTrack;
+        localVideoTrackRef.current = videoTrack;
+
+        // play local preview
+        if (localVideoEl.current) {
+          videoTrack.play(localVideoEl.current);
+        }
+
+        // publish
+        await client.publish([audioTrack, videoTrack]);
+
+        // set listeners for remote users
+        client.on("user-published", handleUserPublished);
+        client.on("user-unpublished", handleUserUnpublished);
+
+        // start timer - handled by billing update now, but keep as fallback/local
+        if (!timerRef.current) {
+             timerRef.current = setInterval(() => {
+               setDuration((d) => d + 1);
+             }, 1000);
+        }
+      } catch (err) {
+        console.error("Agora join/publish failed", err);
+        addToast("Video call setup failed", "error");
+        // cleanup on failure
+        await leaveCall();
+      }
+    };
+
+    startJoin();
+
+    return () => {
+      client.off("user-published", handleUserPublished);
+      client.off("user-unpublished", handleUserUnpublished);
+      if (joined) {
+        // cleanup handled by leaveCall if it runs; but ensure no interval leak
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [callActive, callId, rtcToken, APP_ID, user, client]);
+
+  // --- Initiate a call (client -> astrologer) ---
+  const initiateCall = useCallback(async () => {
+    if (!user || !otherUserId || !socket) return;
+    try {
+      const res = await axios.post(`${SOCKET_URL}/api/call/initiate`, {
+        receiverId: otherUserId,
+      });
+      const newCallId = res.data.callId;
+      setCallId(newCallId);
+
+      // fetch token immediately so we can join once remote accepts
+      // some servers might give token as part of initiation; adjust if your API returns token
+      const token = await fetchRtcToken(newCallId, user.id);
+      setRtcToken(token);
+
+      // Emit to remote user that we are calling and include callId
+      socket.emit("callUser", {
+        userToCall: otherUserId,
         from: user.id,
         name: user.name,
+        callId: newCallId,
+        type: "video",
       });
-    });
 
-    peer.on("stream", (currentStream) => {
-      if (userVideo.current) {
-        userVideo.current.srcObject = currentStream;
-      }
-    });
-
-    socket.current.on("callAccepted", (signal) => {
-      setCallAccepted(true);
-      peer.signal(signal);
-    });
-
-    connectionRef.current = peer;
-  };
-
-  const leaveCall = () => {
-    setCallEnded(true);
-    if (connectionRef.current) connectionRef.current.destroy();
-    socket.current.emit("endCall", { to: otherUserId });
-    navigate(-1);
-  };
-
-  const toggleMic = () => {
-    if (stream) {
-      stream.getAudioTracks()[0].enabled = !isMicOn;
-      setIsMicOn(!isMicOn);
+      addToast("Ringing...", "info");
+    } catch (err) {
+      console.error("Initiate call failed", err);
+      addToast("Failed to start call", "error");
     }
-  };
+  }, [otherUserId, user, fetchRtcToken, addToast, socket]);
 
-  const toggleVideo = () => {
-    if (stream) {
-      stream.getVideoTracks()[0].enabled = !isVideoOn;
-      setIsVideoOn(!isVideoOn);
-    }
-  };
-
-  // Auto-call if we are the initiator (client calling astrologer)
+  // --- For astrologer: accept incoming call (incomingCallId from query or state) ---
   useEffect(() => {
-    if (user?.role === 'client' && otherUserId && stream) {
-      // Small delay to ensure socket is ready
-      const timer = setTimeout(() => {
-        callUser(otherUserId);
-      }, 1000);
-      return () => clearTimeout(timer);
+    const query = new URLSearchParams(window.location.search);
+    const incomingCallId = query.get("callId") || location.state?.callId;
+
+    if (user && user.role === "astrologer" && incomingCallId) {
+      (async () => {
+        setCallId(incomingCallId);
+        try {
+          const token = await fetchRtcToken(incomingCallId, user.id);
+          setRtcToken(token);
+          setCallActive(true);
+        } catch (err) {
+          addToast("Failed to join incoming call", "error");
+        }
+      })();
     }
-  }, [user, otherUserId, stream]);
+  }, [user, fetchRtcToken, addToast, location.state]);
 
-  return (
-    <div className="relative h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-20 flex justify-between items-center">
-        <button onClick={() => navigate(-1)} className="p-2 bg-white/10 rounded-full hover:bg-white/20 text-white">
-          <ArrowLeft />
-        </button>
-        <div className="text-white text-center">
-          <h2 className="text-lg font-bold">{callAccepted && !callEnded ? "Connected" : "Calling..."}</h2>
-          <p className="text-sm opacity-70">{otherUserId}</p>
+  // --- Leave call ---
+  const leaveCall = useCallback(async () => {
+    try {
+      // stop and close local tracks
+      if (localVideoTrackRef.current) {
+        try {
+          localVideoTrackRef.current.stop();
+          localVideoTrackRef.current.close();
+        } catch (e) {
+          console.warn("local video cleanup", e);
+        }
+        localVideoTrackRef.current = null;
+      }
+      if (localAudioTrackRef.current) {
+        try {
+          localAudioTrackRef.current.stop();
+          localAudioTrackRef.current.close();
+        } catch (e) {
+          console.warn("local audio cleanup", e);
+        }
+        localAudioTrackRef.current = null;
+      }
+
+      // unpublish and leave
+      try {
+        await client.unpublish();
+      } catch (e) {
+        // ignore if not published
+      }
+
+      try {
+        await client.leave();
+      } catch (e) {
+        console.warn("client leave failed", e);
+      }
+
+      clearInterval(timerRef.current);
+      setDuration(0);
+      setCallActive(false);
+
+      // notify backend
+      if (callId && socket) {
+        try {
+          await axios.post(`${SOCKET_URL}/api/call/end`, { callId, duration });
+          socket.emit("endCall", { to: otherUserId });
+        } catch (err) {
+          console.error("Error ending call on server", err);
+        }
+      }
+
+      // navigate back
+      navigate(
+        user?.role === "astrologer" ? "/astrologer-dashboard" : "/dashboard"
+      );
+    } catch (err) {
+      console.error("Error leaving call", err);
+    }
+  }, [client, callId, otherUserId, navigate, user?.role, socket]);
+
+  // --- Render views ---
+  if (otherUserId === "0") {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-24">
+        <div className="bg-white p-4 shadow-sm border-b border-gray-100 sticky top-0 z-10">
+          <h1 className="text-xl font-bold text-gray-800">
+            Video Call Astrologers
+          </h1>
         </div>
-        <div className="w-10"></div> {/* Spacer */}
-      </div>
 
-      {/* Main Video Area (Remote) */}
-      <div className="absolute inset-0 flex items-center justify-center bg-black">
-        {callAccepted && !callEnded ? (
-          <video playsInline ref={userVideo} autoPlay className="w-full h-full object-cover" />
-        ) : (
-          <div className="text-center text-white">
-            <div className="w-24 h-24 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <Video size={40} />
-            </div>
-            <p className="text-xl font-semibold">
-              {call.isReceivingCall && !callAccepted ? `${call.name} is calling...` : "Waiting for connection..."}
-            </p>
-            {call.isReceivingCall && !callAccepted && (
-              <button
-                onClick={answerCall}
-                className="mt-6 px-8 py-3 bg-green-500 hover:bg-green-600 rounded-full font-bold text-white shadow-lg animate-bounce"
-              >
-                Answer Call
-              </button>
-            )}
+        <div className="p-4 max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              Online Now
+            </h2>
+            <OnlineAstrologers />
           </div>
-        )}
+
+          <OffersList />
+
+          {user ? (
+            <div className="mt-8">
+              <h2 className="text-lg font-bold text-gray-800 mb-4">
+                Call History
+              </h2>
+              {loadingHistory ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <CallHistoryList calls={callHistory} userRole={user?.role} />
+              )}
+            </div>
+          ) : (
+            <div className="mt-8 p-6 bg-blue-50 rounded-xl text-center border border-blue-100">
+              <p className="text-gray-600 mb-4">
+                Login to view your call history and consult with top
+                astrologers.
+              </p>
+              <button
+                onClick={() => navigate("/login")}
+                className="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Login Now
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+    );
+  }
 
-      {/* My Video (PIP) */}
-      <div className="absolute top-20 right-4 w-32 h-48 bg-gray-800 rounded-xl overflow-hidden border-2 border-white/20 shadow-xl z-30">
-        <video playsInline muted ref={myVideo} autoPlay className="w-full h-full object-cover" />
-        <div className="absolute bottom-2 left-2 text-xs text-white bg-black/50 px-2 py-0.5 rounded">You</div>
-      </div>
+  // If we have a user and an otherUserId (normal call page)
+  return (
+    <div
+      className={user?.role === "astrologer" ? "theme-orange" : "theme-dark"}
+    >
+      <div className="h-screen flex flex-col items-center justify-center text-white bg-slate-900">
+        <div className="absolute top-4 left-4 z-10">
+          <button
+            onClick={() => navigate(`/call/0`)}
+            className="bg-white/10 p-2 rounded-full hover:bg-white/20 mb-2"
+          >
+            <ArrowLeft />
+          </button>
+          <p>Duration: {formatDuration(duration)}</p>
+        </div>
 
-      {/* Controls */}
-      <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6 z-30">
-        <button
-          onClick={toggleMic}
-          className={`p-4 rounded-full shadow-lg transition-all ${isMicOn ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-red-500 text-white'}`}
-        >
-          {isMicOn ? <Mic /> : <MicOff />}
-        </button>
+        <div className="grid grid-cols-2 gap-4 w-full h-3/4 p-4">
+          <div className="relative border-2 border-indigo-500 rounded overflow-hidden bg-black flex items-center justify-center">
+            <div ref={localVideoEl} style={{ width: "100%", height: "100%" }} />
+            <samp className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 rounded z-10">
+              You
+            </samp>
+          </div>
 
-        <button
-          onClick={leaveCall}
-          className="p-4 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transform hover:scale-110 transition-all"
-        >
-          <PhoneOff size={32} />
-        </button>
+          <div
+            ref={remoteContainerRef}
+            className="relative border-2 border-green-500 rounded overflow-hidden bg-black"
+          >
+            {/* remote videos appended here by SDK */}
+            {remoteUsers.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                <img
+                  src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                  alt="User"
+                  className="w-32 h-32 rounded-full"
+                />
+              </div>
+            )}
+            <samp className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 rounded z-10">
+              Remote
+            </samp>
+          </div>
+        </div>
 
-        <button
-          onClick={toggleVideo}
-          className={`p-4 rounded-full shadow-lg transition-all ${isVideoOn ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-red-500 text-white'}`}
-        >
-          {isVideoOn ? <Video /> : <VideoOff />}
-        </button>
+        <div className="mt-4 flex gap-4">
+          {!callId && user?.role === "client" && (
+            <button
+              onClick={initiateCall}
+              className="bg-green-600 px-6 py-3 rounded-full font-bold hover:bg-green-700"
+            >
+              Call
+            </button>
+          )}
+
+          {callActive ? (
+            <button
+              onClick={leaveCall}
+              className="bg-red-600 px-6 py-3 rounded-full font-bold hover:bg-red-700"
+            >
+              End Call
+            </button>
+          ) : (
+            callId && (
+              <button
+                onClick={async () => {
+                  try {
+                    const token = await fetchRtcToken(callId, user.id);
+                    setRtcToken(token);
+                    setCallActive(true);
+                  } catch (e) {
+                    addToast("Failed to join", "error");
+                  }
+                }}
+                className="bg-blue-600 px-6 py-3 rounded-full font-bold hover:bg-blue-700"
+              >
+                Join Call
+              </button>
+            )
+          )}
+        </div>
       </div>
     </div>
   );

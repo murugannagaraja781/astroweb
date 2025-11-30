@@ -50,10 +50,4 @@ export default defineConfig({
   preview: {
     port: 4173,
   },
-
-  // Polyfills for simple-peer
-  define: {
-    'global': 'window',
-    'process.env': {},
-  },
 })

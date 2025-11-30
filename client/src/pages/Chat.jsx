@@ -76,12 +76,10 @@ const Chat = () => {
 
     socket.on("chat:message", (newMessage) => {
       setConversation((prev) => {
-        // Check if message already exists (deduplication)
         const isDuplicate = prev.some(
-          msg => (msg._id && msg._id === newMessage._id) ||
-                 (msg.text === newMessage.text &&
-                  msg.senderId === newMessage.senderId &&
-                  Math.abs(new Date(msg.timestamp).getTime() - new Date(newMessage.timestamp).getTime()) < 1000)
+          msg => msg.text === newMessage.text &&
+                 msg.senderId === newMessage.senderId &&
+                 new Date(msg.timestamp).getTime() === new Date(newMessage.timestamp).getTime()
         );
         return isDuplicate ? prev : [...prev, newMessage];
       });
@@ -98,15 +96,10 @@ const Chat = () => {
       setSessionInfo(info);
     });
 
-    socket.on("chat:accepted", () => {
-      setSessionInfo(prev => ({ ...prev, status: 'accepted' }));
-    });
-
     return () => {
       socket.off("chat:message");
       socket.off("chat:typing");
       socket.off("chat:session_info");
-      socket.off("chat:accepted");
     };
   }, [id, fetchChat, fetchSessionInfo]);
 
@@ -153,8 +146,7 @@ const Chat = () => {
       text: message,
     });
 
-    // Optimistic update removed to prevent duplicates - waiting for server echo
-    // setConversation((prev) => [...prev, newMsg]);
+    setConversation((prev) => [...prev, newMsg]);
     setMessage("");
   };
 
@@ -427,26 +419,6 @@ const Chat = () => {
       {/* Input Area - Fixed at bottom with safe area for mobile */}
       <div className="chat-footer relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-safe-or-6">
         <div className="max-w-4xl mx-auto px-4">
-
-          {/* Start Session Button for Astrologer */}
-          {user?.role === 'astrologer' && sessionInfo?.status === 'accepted' && (
-            <div className="flex justify-center mb-4">
-              <button
-                onClick={() => socket.emit('chat:start', { sessionId: id })}
-                className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-full shadow-lg animate-pulse"
-              >
-                Start Session & Billing
-              </button>
-            </div>
-          )}
-
-          {/* Waiting Message for Client */}
-          {user?.role === 'client' && sessionInfo?.status === 'accepted' && (
-            <div className="text-center text-yellow-200 mb-4 font-medium">
-              Waiting for astrologer to start the session...
-            </div>
-          )}
-
           {/* Recording Indicator - Only shows when recording */}
           {isRecording && (
             <div className="text-center mb-3">
@@ -457,80 +429,72 @@ const Chat = () => {
             </div>
           )}
 
-         {/* --- INPUT SECTION (CLEAN + CONTROLLED BASED ON STATUS) --- */}
-<form
-  onSubmit={sendMessage}
-  className="flex items-center gap-3"
->
-  {/* Extra button (Sparkles) */}
-  <button
-    type="button"
-    className="p-3 rounded-full bg-gray-800 text-yellow-500 hover:bg-gray-700 transition-colors"
-    disabled={sessionInfo?.status !== 'active'}
-  >
-    <Sparkles size={20} />
-  </button>
+          <form
+            onSubmit={sendMessage}
+            className="relative group"
+          >
+            <div className="relative">
+              {/* Gold glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
 
-  <div className="flex-1 relative">
-    <input
-      type="text"
-      value={message}
-      onChange={(e) => {
-        setMessage(e.target.value);
-        handleTyping();
-      }}
-      disabled={sessionInfo?.status !== 'active'}
-      placeholder={
-        sessionInfo?.status === 'active'
-          ? "Type a message..."
-          : sessionInfo?.status === 'accepted'
-          ? "Waiting for astrologer to start..."
-          : "Chat not active"
-      }
-      className="w-full bg-gray-900/50 border border-gray-700 text-white rounded-full
-                 py-3 pl-5 pr-12 focus:outline-none
-                 focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600
-                 placeholder-gray-500 disabled:opacity-40 disabled:cursor-not-allowed"
-    />
+              <div className="relative bg-black/70 backdrop-blur-xl border border-yellow-600/40 rounded-2xl shadow-2xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3">
+                {/* Record Button */}
+                {!isRecording ? (
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    className="p-2 text-yellow-400 hover:text-yellow-200 hover:bg-yellow-600/20 rounded-full transition-all duration-200 flex-shrink-0"
+                    title="Record Audio"
+                  >
+                    <Mic size={20} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={stopRecording}
+                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all duration-200 animate-pulse flex-shrink-0"
+                    title="Stop Recording"
+                  >
+                    <MicOff size={20} />
+                  </button>
+                )}
 
-    {/* Mic Button */}
-    <button
-      type="button"
-      onClick={isRecording ? stopRecording : startRecording}
-      disabled={sessionInfo?.status !== 'active'}
-      className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all
-        ${isRecording
-          ? "bg-red-600 shadow-lg shadow-red-500/50"
-          : "hover:bg-gray-700 text-gray-400 hover:text-white"
-        }
-        disabled:opacity-40 disabled:cursor-not-allowed`}
-    >
-      {isRecording ? (
-        <>
-          <div className="absolute inset-0 rounded-full bg-red-500 animate-ping" />
-          <MicOff size={18} className="text-white relative z-10" />
-        </>
-      ) : (
-        <Mic size={18} />
-      )}
-    </button>
-  </div>
+                {/* Message Input with custom color */}
+                <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onInput={handleTyping}
+                  placeholder="Send your message..."
+                  className="flex-1 bg-transparent placeholder-yellow-400/70 focus:outline-none text-lg min-w-0"
+                  style={{ color: '#f9f4f4' }}
+                />
 
-  {/* Send Button */}
-  <button
-    type="submit"
-    disabled={!message.trim() || sessionInfo?.status !== 'active'}
-    className="p-3 rounded-full bg-gradient-to-r from-yellow-600 to-yellow-800
-               text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed
-               transform active:scale-95 transition-all"
-  >
-    <Send size={20} />
-  </button>
-</form>
+                {/* Send Button */}
+                <button
+                  type="submit"
+                  disabled={!message.trim()}
+                  className={`p-2 rounded-full transition-all duration-200 flex-shrink-0 ${
+                    message.trim()
+                      ? "bg-gradient-to-r from-yellow-600 to-yellow-800 text-yellow-50 shadow-lg hover:shadow-yellow-500/25 hover:scale-110 border border-yellow-500/30"
+                      : "text-yellow-600 opacity-50"
+                  }`}
+                >
+                  <Send size={18} className="md:w-5 md:h-5" />
+                </button>
+              </div>
+            </div>
+          </form>
 
+          {/* Mobile safe area indicator */}
+          <div className="text-center mt-2">
+            <p className="text-yellow-600/60 text-xs">
+              🔮 Secure cosmic connection
+            </p>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
   );
 };
 
