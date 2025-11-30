@@ -3,6 +3,22 @@ module.exports = function (io) {
     io.on("connection", (socket) => {
         console.log("Socket connected:", socket.id);
 
+
+
+        socket.on("video:call_request", ({ roomId, to }) => {
+            console.log("Call request → sending to", to);
+            io.to(to).emit("video:incoming_call", { from: socket.id });
+        });
+
+        socket.on("video:call_accept", ({ roomId, to }) => {
+            console.log("Call accepted → notifying", to);
+            io.to(to).emit("video:call_accepted");
+        });
+
+        socket.on("video:call_reject", ({ roomId, to }) => {
+            console.log("Call rejected → notifying", to);
+            io.to(to).emit("video:call_rejected");
+        });
         // Join room
         socket.on("join", (roomId) => {
             socket.join(roomId);

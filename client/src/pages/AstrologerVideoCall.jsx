@@ -15,9 +15,9 @@ export default function AstrologerVideoCall({ roomId }) {
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
 
-  const [joined, setJoined] = useState(false);
-  const [inCall, setInCall] = useState(false);
   const [clientSocket, setClientSocket] = useState(null);
+  const [inCall, setInCall] = useState(false);
+  const [waitingForAnswer, setWaitingForAnswer] = useState(false);
 
   useEffect(() => {
     connectSocket();
@@ -29,11 +29,19 @@ export default function AstrologerVideoCall({ roomId }) {
 
     socketRef.current.on("connect", () => {
       socketRef.current.emit("join", roomId);
-      setJoined(true);
     });
 
     socketRef.current.on("peer:joined", ({ socketId }) => {
       setClientSocket(socketId);
+    });
+
+    socketRef.current.on("video:call_accepted", () => {
+      startPeerOffer();
+    });
+
+    socketRef.current.on("video:call_rejected", () => {
+      alert("Client rejected the call");
+      setWaitingForAnswer(false);
     });
 
     socketRef.current.on("call:answer", handleAnswer);
@@ -52,13 +60,25 @@ export default function AstrologerVideoCall({ roomId }) {
     localRef.current.srcObject = stream;
   };
 
-  const createPeer = async (toSocketId) => {
-    if (pcRef.current) return pcRef.current;
+  const startCallRequest = () => {
+    if (!clientSocket) return alert("Client not in room");
+
+    socketRef.current.emit("video:call_request", {
+      roomId,
+      to: clientSocket,
+    });
+
+    setWaitingForAnswer(true);
+  };
+
+  const startPeerOffer = async () => {
+    await setupLocalStream();
 
     pcRef.current = new RTCPeerConnection(ICE_SERVERS);
 
-    const stream = localStreamRef.current;
-    stream.getTracks().forEach((track) => pcRef.current.addTrack(track, stream));
+    localStreamRef.current.getTracks().forEach((track) =>
+      pcRef.current.addTrack(track, localStreamRef.current)
+    );
 
     pcRef.current.ontrack = (e) => {
       remoteRef.current.srcObject = e.streams[0];
@@ -69,22 +89,13 @@ export default function AstrologerVideoCall({ roomId }) {
         socketRef.current.emit("call:candidate", {
           roomId,
           candidate: e.candidate,
-          to: toSocketId,
+          to: clientSocket,
         });
       }
     };
 
-    return pcRef.current;
-  };
-
-  const startCall = async () => {
-    if (!clientSocket) return alert("Waiting for client to join…");
-
-    await setupLocalStream();
-    const pc = await createPeer(clientSocket);
-
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
+    const offer = await pcRef.current.createOffer();
+    await pcRef.current.setLocalDescription(offer);
 
     socketRef.current.emit("call:offer", {
       roomId,
@@ -93,6 +104,7 @@ export default function AstrologerVideoCall({ roomId }) {
     });
 
     setInCall(true);
+    setWaitingForAnswer(false);
   };
 
   const handleAnswer = async ({ answer }) => {
@@ -108,13 +120,10 @@ export default function AstrologerVideoCall({ roomId }) {
   };
 
   const endCall = () => {
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
-    if (localStreamRef.current) {
+    if (pcRef.current) pcRef.current.close();
+    if (localStreamRef.current)
       localStreamRef.current.getTracks().forEach((t) => t.stop());
-    }
+
     setInCall(false);
   };
 
@@ -122,14 +131,16 @@ export default function AstrologerVideoCall({ roomId }) {
     <div>
       <h3>Astrologer Video Call</h3>
 
-      <video autoPlay playsInline muted ref={localRef} style={{ width: "45%" }} />
-      <video autoPlay playsInline ref={remoteRef} style={{ width: "45%" }} />
+      <video ref={localRef} autoPlay muted playsInline style={{ width: "45%" }} />
+      <video ref={remoteRef} autoPlay playsInline style={{ width: "45%" }} />
 
-      {!inCall ? (
-        <button onClick={startCall}>Start Call</button>
-      ) : (
-        <button onClick={endCall}>End Call</button>
+      {!inCall && !waitingForAnswer && (
+        <button onClick={startCallRequest}>📞 Start Call</button>
       )}
+
+      {waitingForAnswer && <p>⏳ Waiting for client to accept…</p>}
+
+      {inCall && <button onClick={endCall}>End Call</button>}
     </div>
   );
 }
