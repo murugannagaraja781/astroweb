@@ -3,6 +3,7 @@ const ChatSession = require("../models/ChatSession");
 const AstrologerProfile = require("../models/AstrologerProfile");
 const crypto = require("crypto");
 const User = require("../models/User");
+const mongoose = require("mongoose");
 
 /**
  * Get chat history between two users
@@ -315,9 +316,13 @@ exports.getSessionHistory = async (req, res) => {
 exports.getPendingSessions = async (req, res) => {
   try {
     console.log(`[DEBUG] getPendingSessions called for user: ${req.user.id}`);
+
+    // Ensure we query with ObjectId if possible
+    const astrologerId = new mongoose.Types.ObjectId(req.user.id);
+
     const sessions = await ChatSession.find({
       status: { $in: ["requested", "active"] },
-      astrologerId: req.user.id,
+      astrologerId: astrologerId,
     })
       .sort({ createdAt: -1 })
       .lean();
