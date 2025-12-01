@@ -1,4 +1,6 @@
+```javascript
 import { useState, useEffect, useContext } from "react";
+import Modal from "../components/Modal";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
@@ -35,6 +37,8 @@ const AstrologerDetail = () => {
   const [waitingType, setWaitingType] = useState("");
   const [socket, setSocket] = useState(null);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showPendingPopup, setShowPendingPopup] = useState(false);
+  const [lastSessionId, setLastSessionId] = useState(null);
 
   // Initialize socket connection
   useEffect(() => {
@@ -124,7 +128,7 @@ const AstrologerDetail = () => {
     setShowVideoCall(true);
   };
 
-  const handleChat = async () => {
+  const requestChat = async () => {
     if (!user) {
       alert("Please login to continue");
       navigate("/login");
@@ -188,7 +192,8 @@ const AstrologerDetail = () => {
         });
       }
 
-      navigate(`/chat/${sessionId}`);
+      setLastSessionId(sessionId);
+      setShowPendingPopup(true); // open popup after request
     } catch (err) {
       console.error("Error requesting chat:", err);
       setWaiting(false);
