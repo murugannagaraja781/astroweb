@@ -582,3 +582,12 @@ exports.getSessionInfo = async (req, res) => {
   }
 };
 
+exports.getAllSessionsDebug = async (req, res) => {
+  try {
+    const sessions = await ChatSession.find().sort({ createdAt: -1 });
+    res.json(sessions);
+  } catch (err) {
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+

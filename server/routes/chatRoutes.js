@@ -11,14 +11,12 @@ const {
   requestSession,
   getSessionHistory,
   getPendingSessions,
-  storeChatCall,
   getChatCall,
-  acceptChatSession,
-  rejectChatSession,
   acceptChatSession,
   rejectChatSession,
   getSessionInfo,
   getAllSessionsDebug,
+  storeChatCall,
 } = require("../controllers/chatController");
 
 const auth = require("../middleware/auth");
