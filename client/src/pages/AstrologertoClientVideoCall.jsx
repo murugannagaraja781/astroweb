@@ -18,6 +18,7 @@ export default function ClientVideoCall({ roomId }) {
   const [caller, setCaller] = useState(null);
   const [inCall, setInCall] = useState(false);
   const [callStatus, setCallStatus] = useState("disconnected");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     connectSocket();
@@ -75,60 +76,108 @@ export default function ClientVideoCall({ roomId }) {
       });
 
       localStreamRef.current = stream;
-      localRef.current.srcObject = stream;
+      if (localRef.current) {
+        localRef.current.srcObject = stream;
+      }
     } catch (error) {
       console.error("Error accessing media devices:", error);
+
+      let errorMessage = "Failed to access camera/microphone. ";
+      if (error.name === "NotAllowedError") {
+        errorMessage += "Please allow camera and microphone permissions.";
+      } else if (error.name === "NotFoundError") {
+        errorMessage += "No camera or microphone found.";
+      } else {
+        errorMessage += error.message;
+      }
+
+      setError(errorMessage);
       setCallStatus("error");
+      throw error;
     }
   };
 
   const handleOffer = async ({ from, offer }) => {
-    await setupLocalStream();
+    try {
+      await setupLocalStream();
 
-    pcRef.current = new RTCPeerConnection(ICE_SERVERS);
+      pcRef.current = new RTCPeerConnection(ICE_SERVERS);
 
-    localStreamRef.current.getTracks().forEach((track) =>
-      pcRef.current.addTrack(track, localStreamRef.current)
-    );
-
-    pcRef.current.ontrack = (e) => {
-      remoteRef.current.srcObject = e.streams[0];
-      setCallStatus("connected");
-    };
-
-    pcRef.current.onicecandidate = (e) => {
-      if (e.candidate) {
-        socketRef.current.emit("call:candidate", {
-          roomId,
-          candidate: e.candidate,
-          to: from,
-        });
+      if (!localStreamRef.current) {
+        setError("Failed to access local media stream");
+        return;
       }
-    };
 
-    pcRef.current.onconnectionstatechange = () => {
-      if (pcRef.current.connectionState === "connected") {
-        setCallStatus("connected");
-      }
-    };
+      localStreamRef.current.getTracks().forEach((track) =>
+        pcRef.current.addTrack(track, localStreamRef.current)
+      );
 
-    await pcRef.current.setRemoteDescription(offer);
+      pcRef.current.ontrack = (e) => {
+        if (remoteRef.current && e.streams[0]) {
+          remoteRef.current.srcObject = e.streams[0];
+          setCallStatus("connected");
+        }
+      };
 
-    const answer = await pcRef.current.createAnswer();
-    await pcRef.current.setLocalDescription(answer);
+      pcRef.current.onicecandidate = (e) => {
+        if (e.candidate && socketRef.current) {
+          socketRef.current.emit("call:candidate", {
+            roomId,
+            candidate: e.candidate,
+            to: from,
+          });
+        }
+      };
 
-    socketRef.current.emit("call:answer", {
-      roomId,
-      answer,
-      to: from,
-    });
+      pcRef.current.onconnectionstatechange = () => {
+        if (!pcRef.current) return;
 
-    setInCall(true);
+        switch (pcRef.current.connectionState) {
+          case "connected":
+            setCallStatus("connected");
+            setError(null);
+            break;
+          case "disconnected":
+            setError("Connection lost. Attempting to reconnect...");
+            break;
+          case "failed":
+            setError("Connection failed. Please check your internet and try again.");
+            break;
+        }
+      };
+
+      await pcRef.current.setRemoteDescription(offer);
+
+      const answer = await pcRef.current.createAnswer();
+      await pcRef.current.setLocalDescription(answer);
+
+      socketRef.current.emit("call:answer", {
+        roomId,
+        answer,
+        to: from,
+      });
+
+      setInCall(true);
+    } catch (err) {
+      console.error("Error in handleOffer:", err);
+      setError(`Failed to establish connection: ${err.message}`);
+      setCallStatus("error");
+    }
   };
 
   const handleCandidate = ({ candidate }) => {
-    if (pcRef.current) {
+    if (!candidate) return;
+
+    if (!pcRef.current) {
+      console.warn("Received ICE candidate but peer connection not ready");
+      return;
+    }
+
+    try {
       pcRef.current.addIceCandidate(candidate);
+    } catch (err) {
+      console.error("Error adding ICE candidate:", err);
+      setError(`Connection issue: ${err.message}`);
     }
   };
 
@@ -160,6 +209,21 @@ export default function ClientVideoCall({ roomId }) {
   return (
     <div style={styles.container}>
       <AnimationStyles />
+
+      {/* Error Popup */}
+      {error && (
+        <div style={styles.errorOverlay}>
+          <div style={styles.errorModal}>
+            <div style={styles.errorIcon}>⚠️</div>
+            <h3 style={styles.errorTitle}>Connection Error</h3>
+            <p style={styles.errorText}>{error}</p>
+            <button style={styles.errorButton} onClick={() => setError(null)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.logo}>
@@ -485,6 +549,54 @@ const styles = {
     color: "#94a3b8",
     fontSize: "0.9rem",
     fontStyle: "italic",
+  },
+  errorOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2000,
+  },
+  errorModal: {
+    background: "linear-gradient(135deg, #7c2d12 0%, #991b1b 100%)",
+    padding: "40px",
+    borderRadius: "25px",
+    textAlign: "center",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
+    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+    maxWidth: "400px",
+    width: "90%",
+  },
+  errorIcon: {
+    fontSize: "4rem",
+    marginBottom: "15px",
+  },
+  errorTitle: {
+    margin: "0 0 10px 0",
+    fontSize: "1.5rem",
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  errorText: {
+    margin: "0 0 30px 0",
+    color: "#fecaca",
+    lineHeight: "1.5",
+  },
+  errorButton: {
+    background: "linear-gradient(45deg, #ef4444, #dc2626)",
+    border: "none",
+    padding: "12px 30px",
+    borderRadius: "50px",
+    color: "white",
+    fontWeight: "bold",
+    cursor: "pointer",
+    fontSize: "1rem",
+    width: "100%",
   },
 };
 

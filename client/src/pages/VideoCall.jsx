@@ -32,6 +32,7 @@ export default function VideoCall({name}) {
   const [calling, setCalling] = useState(false);
   const [muted, setMuted] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     // Cleanup on unmount
@@ -71,9 +72,15 @@ export default function VideoCall({name}) {
 
     socket.on("call:offer", async ({ from, offer }) => {
       console.log("Received offer from:", from);
-      await ensureLocalStream();
-      await createPeerConnection(from);
       try {
+        await ensureLocalStream();
+        await createPeerConnection(from);
+
+        if (!pcRef.current) {
+          setError("Connection not established. Please try again.");
+          return;
+        }
+
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(offer));
         const answer = await pcRef.current.createAnswer();
         await pcRef.current.setLocalDescription(answer);
@@ -81,24 +88,39 @@ export default function VideoCall({name}) {
         setCalling(true);
       } catch (err) {
         console.error("Error handling offer:", err);
+        setError(`Failed to connect: ${err.message}`);
       }
     });
 
     socket.on("call:answer", async ({ from, answer }) => {
       console.log("Received answer from:", from);
+
+      if (!pcRef.current) {
+        setError("Connection not established. Please try calling again.");
+        return;
+      }
+
       try {
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
       } catch (err) {
         console.error("Error setting remote answer:", err);
+        setError(`Failed to connect: ${err.message}`);
       }
     });
 
     socket.on("call:candidate", async ({ from, candidate }) => {
       if (!candidate) return;
+
+      if (!pcRef.current) {
+        console.warn("Received ICE candidate but peer connection not ready");
+        return;
+      }
+
       try {
         await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (err) {
         console.error("Error adding ICE candidate:", err);
+        setError(`Connection issue: ${err.message}`);
       }
     });
 
@@ -126,6 +148,17 @@ export default function VideoCall({name}) {
       return stream;
     } catch (err) {
       console.error("Error getting media:", err);
+
+      let errorMessage = "Failed to access camera/microphone. ";
+      if (err.name === "NotAllowedError") {
+        errorMessage += "Please allow camera and microphone permissions.";
+      } else if (err.name === "NotFoundError") {
+        errorMessage += "No camera or microphone found.";
+      } else {
+        errorMessage += err.message;
+      }
+
+      setError(errorMessage);
       throw err;
     }
   };
@@ -164,8 +197,21 @@ export default function VideoCall({name}) {
 
     pc.onconnectionstatechange = () => {
       console.log("PC state:", pc.connectionState);
-      if (pc.connectionState === "disconnected" || pc.connectionState === "failed" || pc.connectionState === "closed") {
-        hangup();
+
+      switch (pc.connectionState) {
+        case "connected":
+          setError(null); // Clear any previous errors
+          break;
+        case "disconnected":
+          setError("Connection lost. Attempting to reconnect...");
+          break;
+        case "failed":
+          setError("Connection failed. Please check your internet and try again.");
+          hangup();
+          break;
+        case "closed":
+          hangup();
+          break;
       }
     };
 
@@ -233,6 +279,23 @@ export default function VideoCall({name}) {
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
+      {/* Error Popup */}
+      {error && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md mx-4">
+            <div className="text-red-500 text-6xl mb-4 text-center">⚠️</div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Connection Error</h3>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       <h2 className="text-xl font-bold mb-2">WebRTC Video Call (Socket.IO signaling)</h2>
 
       <div className="mb-3 flex gap-2">
