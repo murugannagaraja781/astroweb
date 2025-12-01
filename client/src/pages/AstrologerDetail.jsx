@@ -73,11 +73,17 @@ const AstrologerDetail = () => {
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/public/astrologers`
       );
-      const astro = res.data.find((a) => a._id === id);
-      setAstrologer(astro);
+      // Add null check for response data
+      if (res.data && Array.isArray(res.data)) {
+        const astro = res.data.find((a) => a._id === id);
+        setAstrologer(astro || null);
+      } else {
+        setAstrologer(null);
+      }
       setLoading(false);
     } catch (err) {
       console.error("Error fetching astrologer:", err);
+      setAstrologer(null);
       setLoading(false);
     }
   };
@@ -104,6 +110,12 @@ const AstrologerDetail = () => {
       return;
     }
 
+    // Add null check for astrologer
+    if (!astrologer) {
+      alert("Astrologer information not available. Please try again.");
+      return;
+    }
+
     if (!astrologer.isOnline) {
       alert("This astrologer is currently offline. Please try again later.");
       return;
@@ -125,6 +137,12 @@ const AstrologerDetail = () => {
       return;
     }
 
+    // Add null check for astrologer
+    if (!astrologer) {
+      alert("Astrologer information not available. Please try again.");
+      return;
+    }
+
     if (!astrologer.isOnline) {
       alert("This astrologer is currently offline. Please try again later.");
       return;
@@ -132,6 +150,12 @@ const AstrologerDetail = () => {
 
     if (!socket) {
       alert("Connection not ready. Please try again.");
+      return;
+    }
+
+    // Check if socket is actually connected
+    if (!socket.connected) {
+      alert("Connection not established. Please refresh and try again.");
       return;
     }
 
@@ -146,21 +170,29 @@ const AstrologerDetail = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      // Validate response data
+      if (!res.data || !res.data.sessionId) {
+        throw new Error("Invalid response from server");
+      }
+
       const { sessionId, ratePerMinute } = res.data;
 
-      socket.emit("user_online", { userId: user.id });
-      socket.emit("chat:request", {
-        clientId: user.id,
-        astrologerId: id,
-        ratePerMinute: ratePerMinute || 1,
-        sessionId: sessionId
-      });
+      // Verify user.id exists before emitting
+      if (user.id) {
+        socket.emit("user_online", { userId: user.id });
+        socket.emit("chat:request", {
+          clientId: user.id,
+          astrologerId: id,
+          ratePerMinute: ratePerMinute || 1,
+          sessionId: sessionId
+        });
+      }
 
       navigate(`/chat/${sessionId}`);
     } catch (err) {
       console.error("Error requesting chat:", err);
       setWaiting(false);
-      alert("Failed to request chat. Please try again.");
+      alert(err.message || "Failed to request chat. Please try again.");
     }
   };
 

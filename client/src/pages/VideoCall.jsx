@@ -12,7 +12,7 @@ import { io } from "socket.io-client";
  * - This example uses a single STUN server (Google). Add TURN for production.
  */
 
-const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVERVITE_SIGNALING_SERVER || "https://astroweb-production.up.railway.app";
+const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVER || "https://astroweb-production.up.railway.app";
 const ICE_SERVERS = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" }

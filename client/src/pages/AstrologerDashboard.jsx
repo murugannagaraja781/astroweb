@@ -59,6 +59,13 @@ const AstrologerDashboard = () => {
 
     socket.on("chat:request", (payload) => {
       console.log("Chat request received:", payload);
+
+      // Add defensive check for undefined payload
+      if (!payload || !payload.clientId || !payload.sessionId) {
+        console.error("Invalid chat request payload:", payload);
+        return;
+      }
+
       setIncomingCall({
         from: payload.clientId,
         name: "Client",
@@ -116,9 +123,16 @@ const AstrologerDashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setPendingSessions(res.data);
+      // Validate response data
+      if (res.data && Array.isArray(res.data)) {
+        setPendingSessions(res.data);
+      } else {
+        console.warn("Invalid response format for pending sessions");
+        setPendingSessions([]);
+      }
     } catch (err) {
       console.error("Error fetching sessions:", err);
+      setPendingSessions([]);
     }
   };
 
@@ -160,13 +174,27 @@ const AstrologerDashboard = () => {
   };
 
   const acceptChat = (sessionId) => {
-    if (socket) {
-      socket.emit("chat:accept", { sessionId });
+    if (!socket) {
+      alert("Connection not ready. Please refresh the page.");
+      return;
     }
+
+    if (!socket.connected) {
+      alert("Connection lost. Please refresh the page.");
+      return;
+    }
+
+    socket.emit("chat:accept", { sessionId });
     navigate(`/chat/${sessionId}`);
   };
 
   const rejectChat = async (sessionId) => {
+    if (!socket) {
+      console.warn("Socket not available for reject notification");
+    } else if (socket.connected) {
+      socket.emit("chat:reject", { sessionId });
+    }
+
     try {
       const token = localStorage.getItem("token");
       await axios.post(
@@ -177,6 +205,7 @@ const AstrologerDashboard = () => {
       setPendingSessions((prev) => prev.filter((s) => s.sessionId !== sessionId));
     } catch (err) {
       console.error("Error rejecting chat:", err);
+      alert("Failed to reject chat. Please try again.");
     }
   };
 

@@ -159,6 +159,7 @@ export default function ClientVideoCall({ roomId }) {
 
   return (
     <div style={styles.container}>
+      <AnimationStyles />
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.logo}>
@@ -487,29 +488,26 @@ const styles = {
   },
 };
 
-// Add CSS animations
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-  @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-  }
-`, styleSheet.cssRules.length);
+// CSS Animations as inline style tag
+const AnimationStyles = () => (
+  <style>{`
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
 
-styleSheet.insertRule(`
-  @keyframes ring {
-    0% { transform: rotate(0deg); }
-    25% { transform: rotate(10deg); }
-    50% { transform: rotate(-10deg); }
-    75% { transform: rotate(5deg); }
-    100% { transform: rotate(0deg); }
-  }
-`, styleSheet.cssRules.length);
+    @keyframes ring {
+      0% { transform: rotate(0deg); }
+      25% { transform: rotate(10deg); }
+      50% { transform: rotate(-10deg); }
+      75% { transform: rotate(5deg); }
+      100% { transform: rotate(0deg); }
+    }
 
-styleSheet.insertRule(`
-  button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.4);
-  }
-`, styleSheet.cssRules.length);
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(168, 85, 247, 0.4);
+    }
+  `}</style>
+);
