@@ -36,6 +36,7 @@ export default function AstrologerVideoCall({ roomId }) {
   const [waitingForAnswer, setWaitingForAnswer] = useState(false);
   const [callStatus, setCallStatus] = useState("waiting");
   const [connectionError, setConnectionError] = useState(null);
+  const [error, setError] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -93,9 +94,21 @@ export default function AstrologerVideoCall({ roomId }) {
 
       localStreamRef.current = stream;
       localRef.current.srcObject = stream;
+      localRef.current.srcObject = stream;
     } catch (error) {
       console.error("Error accessing media devices:", error);
-      setConnectionError("Could not access camera/microphone");
+
+      let errorMessage = "Failed to access camera/microphone. ";
+      if (error.name === "NotAllowedError") {
+        errorMessage += "Please allow camera and microphone permissions.";
+      } else if (error.name === "NotFoundError") {
+        errorMessage += "No camera or microphone found.";
+      } else {
+        errorMessage += error.message;
+      }
+
+      setConnectionError(errorMessage);
+      setError(errorMessage);
       setCallStatus("error");
     }
   };
@@ -140,8 +153,19 @@ export default function AstrologerVideoCall({ roomId }) {
     };
 
     pcRef.current.onconnectionstatechange = () => {
-      if (pcRef.current.connectionState === "connected") {
-        setCallStatus("connected");
+      if (!pcRef.current) return;
+
+      switch (pcRef.current.connectionState) {
+        case "connected":
+          setCallStatus("connected");
+          setError(null);
+          break;
+        case "disconnected":
+          setError("Connection lost. Attempting to reconnect...");
+          break;
+        case "failed":
+          setError("Connection failed. Please check your internet and try again.");
+          break;
       }
     };
 
@@ -159,14 +183,32 @@ export default function AstrologerVideoCall({ roomId }) {
   };
 
   const handleAnswer = async ({ answer }) => {
-    if (pcRef.current) {
+    if (!pcRef.current) {
+      setError("Connection not established. Please try calling again.");
+      return;
+    }
+
+    try {
       await pcRef.current.setRemoteDescription(answer);
+    } catch (err) {
+      console.error("Error setting remote answer:", err);
+      setError(`Failed to connect: ${err.message}`);
     }
   };
 
   const handleCandidate = ({ candidate }) => {
-    if (pcRef.current) {
+    if (!candidate) return;
+
+    if (!pcRef.current) {
+      console.warn("Received ICE candidate but peer connection not ready");
+      return;
+    }
+
+    try {
       pcRef.current.addIceCandidate(candidate);
+    } catch (err) {
+      console.error("Error adding ICE candidate:", err);
+      setError(`Connection issue: ${err.message}`);
     }
   };
 
@@ -295,6 +337,23 @@ export default function AstrologerVideoCall({ roomId }) {
             >
               <X className="w-3 h-3 text-white" />
             </button>
+          </div>
+        )}
+
+        {/* Global Error Popup */}
+        {error && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[2000]">
+            <div className="bg-gradient-to-br from-red-900 to-red-800 p-8 rounded-3xl border border-red-500/30 shadow-2xl max-w-md w-[90%] text-center">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-xl font-bold text-white mb-2">Connection Error</h3>
+              <p className="text-red-200 mb-6">{error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-xl font-bold hover:from-red-600 hover:to-red-700 transition-all"
+              >
+                Close
+              </button>
+            </div>
           </div>
         )}
 

@@ -22,6 +22,7 @@ const Chat = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [sessionInfo, setSessionInfo] = useState(null);
   const [sessionDuration, setSessionDuration] = useState(0);
+  const [error, setError] = useState(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const messagesEndRef = useRef(null);
@@ -74,6 +75,32 @@ const Chat = () => {
 
     fetchChat();
     fetchSessionInfo();
+
+    // Socket Error Handling
+    socket.on("connect_error", (err) => {
+      setError(`Connection error: ${err.message}. Please refresh the page.`);
+    });
+
+    socket.on("disconnect", (reason) => {
+      if (reason === "io server disconnect") {
+        setError("Disconnected by server. Please refresh and try again.");
+      } else {
+        setError("Connection lost. Reconnecting...");
+      }
+    });
+
+    socket.on("reconnect", () => {
+      setError(null);
+      if (id) {
+        socket.emit("join_chat", { sessionId: id });
+      }
+    });
+
+    return () => {
+      socket.off("connect_error");
+      socket.off("disconnect");
+      socket.off("reconnect");
+    };
 
   socket.on("chat:message", (newMessage) => {
   setConversation((prev) => {

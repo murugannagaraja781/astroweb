@@ -165,7 +165,7 @@ const AstrologerDetail = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/chat/request`,
+        `${import.meta.env.VITE_API_URL}/api/chatcalldetails`,
         { astrologerId: id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -195,6 +195,7 @@ const AstrologerDetail = () => {
       alert(err.message || "Failed to request chat. Please try again.");
     }
   };
+
 
   if (loading) {
     return (
