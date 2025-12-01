@@ -1,8 +1,10 @@
- import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import ClienttoAstrologyvideocall from './AstrologertoClientVideoCall';
+import ClienttoAstrologyvideocall from './AstrologertoClientVideoCall'
+
+// import ClienttoAstrologyvideocall from './ClientcalltoAstrologerVideoCall'
 import {
   Video,
   MessageCircle,
@@ -19,19 +21,6 @@ import {
   Shield,
   Camera,
   Phone,
-  Eye,
-  CrystalBall,
-  Moon,
-  Sun,
-  Planet,
-  Pyramid,
-  Lotus,
-  PalmReading,
-  TarotCards,
-  Horoscope,
-  Zodiac,
-  Crystal,
-  Meditation,
 } from "lucide-react";
 import { io } from "socket.io-client";
 
@@ -175,40 +164,12 @@ const AstrologerDetail = () => {
     }
   };
 
-  // Cosmic background elements
-  const CosmicBackground = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Stars */}
-      <div className="absolute top-10 left-10 w-2 h-2 bg-white rounded-full opacity-40 animate-pulse"></div>
-      <div className="absolute top-20 right-20 w-1 h-1 bg-yellow-200 rounded-full opacity-60 animate-pulse delay-75"></div>
-      <div className="absolute bottom-16 left-1/4 w-1.5 h-1.5 bg-blue-200 rounded-full opacity-50 animate-pulse delay-150"></div>
-      <div className="absolute top-1/2 right-1/3 w-1 h-1 bg-purple-200 rounded-full opacity-70 animate-pulse delay-200"></div>
-      <div className="absolute bottom-32 left-16 w-1 h-1 bg-pink-200 rounded-full opacity-60 animate-pulse delay-300"></div>
-
-      {/* Planets */}
-      <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full opacity-10"></div>
-      <div className="absolute -bottom-32 -left-20 w-60 h-60 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full opacity-10"></div>
-
-      {/* Cosmic dust */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent"></div>
-    </div>
-  );
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
-        <CosmicBackground />
-        <div className="text-center relative z-10">
-          <div className="relative mb-6">
-            <CrystalBall className="w-16 h-16 text-purple-300 mx-auto animate-pulse" />
-            <div className="absolute inset-0 bg-purple-300 rounded-full blur-xl opacity-20 animate-ping"></div>
-          </div>
-          <p className="text-purple-200 text-lg font-light">Connecting to cosmic energies...</p>
-          <div className="mt-4 flex justify-center space-x-2">
-            <div className="w-2 h-2 bg-purple-300 rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-purple-300 rounded-full animate-bounce delay-100"></div>
-            <div className="w-2 h-2 bg-purple-300 rounded-full animate-bounce delay-200"></div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto mb-4"></div>
+          <p className="text-purple-200 text-lg">Connecting to cosmic energies...</p>
         </div>
       </div>
     );
@@ -216,19 +177,15 @@ const AstrologerDetail = () => {
 
   if (!astrologer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
-        <CosmicBackground />
-        <div className="text-center relative z-10">
-          <div className="relative mb-6">
-            <Pyramid className="w-20 h-20 text-purple-300 mx-auto mb-4" />
-            <div className="absolute inset-0 bg-purple-300 rounded-full blur-xl opacity-20"></div>
-          </div>
-          <p className="text-xl text-purple-200 mb-4 font-light">Astrologer not found in cosmic realm</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔮</div>
+          <p className="text-xl text-purple-200 mb-4">Astrologer not found</p>
           <button
             onClick={() => navigate("/")}
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-2xl hover:shadow-purple-500/25"
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105"
           >
-            Return to Cosmic Universe
+            Return to Universe
           </button>
         </div>
       </div>
@@ -237,28 +194,26 @@ const AstrologerDetail = () => {
 
   if (showVideoCall) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative">
-        <CosmicBackground />
-        <div className="container mx-auto p-4 relative z-10">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <div className="container mx-auto p-4">
           <button
             onClick={() => setShowVideoCall(false)}
-            className="flex items-center gap-3 text-white hover:text-purple-200 mb-6 transition-colors group bg-white/10 backdrop-blur-lg rounded-2xl px-4 py-3 border border-white/20"
+            className="flex items-center gap-2 text-white hover:text-purple-200 mb-6 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            Back to Cosmic Profile
+            <ArrowLeft className="w-5 h-5" />
+            Back to Profile
           </button>
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-white border border-white/20 shadow-2xl">
-            <div className="text-center mb-6">
-              <div className="relative inline-block mb-4">
-                <Video className="w-16 h-16 text-purple-300 mx-auto" />
-                <div className="absolute inset-0 bg-purple-300 rounded-full blur-xl opacity-20"></div>
-              </div>
-              <h3 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent">
-                Cosmic Video Connection
-              </h3>
-              <p className="text-purple-200 font-light">Connecting you through spiritual dimensions</p>
-            </div>
-            <ClienttoAstrologyvideocall />
+          {/* Replace with your actual AstrologerVideoCall component */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-white text-center">
+            <div className="text-6xl mb-4">📹</div>
+            <h3 className="text-2xl font-bold mb-4">Video Call Feature</h3>
+            <p className="text-purple-200 mb-6"><ClienttoAstrologyvideocall/></p>
+            <button
+              onClick={() => setShowVideoCall(false)}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
+            >
+              Return to Profile
+            </button>
           </div>
         </div>
       </div>
@@ -266,95 +221,86 @@ const AstrologerDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
-      <CosmicBackground />
-
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
       {/* Cosmic Header */}
-      <div className="relative text-white py-8 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-600/30 via-pink-600/20 to-blue-600/10 backdrop-blur-sm"></div>
+      <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white py-12 px-4 overflow-hidden">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-10 left-10 w-4 h-4 bg-white rounded-full opacity-20 animate-pulse"></div>
+          <div className="absolute top-20 right-20 w-3 h-3 bg-yellow-200 rounded-full opacity-30 animate-pulse"></div>
+          <div className="absolute bottom-16 left-1/4 w-2 h-2 bg-blue-200 rounded-full opacity-40 animate-pulse"></div>
+        </div>
 
         <div className="container mx-auto relative z-10">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-3 text-white hover:text-purple-200 mb-6 transition-colors group bg-white/10 backdrop-blur-lg rounded-2xl px-4 py-3 border border-white/20"
+            className="flex items-center gap-2 text-white hover:text-purple-200 mb-6 transition-colors group"
           >
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium">Cosmic Realm</span>
+            <span>Back to Cosmic Realm</span>
           </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 -mt-8 relative z-20 pb-20">
-        <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden border border-white/20">
+      <div className="container mx-auto px-4 -mt-16 relative z-20">
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/20 backdrop-blur-sm">
           {/* Profile Header */}
-          <div className="relative p-6 md:p-8 text-white">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-600/80 via-pink-600/70 to-blue-600/60 backdrop-blur-sm"></div>
-
-            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8 relative z-10">
+          <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 p-8 text-white">
+            <div className="flex flex-col md:flex-row items-center gap-8">
               {/* Avatar */}
               <div className="relative">
-                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-2xl border-4 border-white/30 relative overflow-hidden">
-                  <span className="text-white text-2xl md:text-4xl font-bold relative z-10">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-2xl border-4 border-white/20">
+                  <span className="text-white text-4xl font-bold">
                     {getInitials(astrologer.name)}
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
                 </div>
                 {astrologer.isOnline && (
-                  <div className="absolute bottom-1 right-1 md:bottom-2 md:right-2 w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-green-400 to-emerald-600 border-4 border-white/30 rounded-full animate-pulse flex items-center justify-center shadow-lg">
-                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-white rounded-full"></div>
+                  <div className="absolute bottom-2 right-2 w-8 h-8 bg-green-500 border-4 border-white rounded-full animate-pulse flex items-center justify-center">
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
                 )}
-                {/* Cosmic Orbital Rings */}
-                <div className="absolute -inset-4 border-2 border-purple-300/30 rounded-full animate-spin-slow"></div>
-                <div className="absolute -inset-6 border-2 border-pink-300/20 rounded-full animate-spin-slow reverse"></div>
               </div>
 
               {/* Profile Info */}
               <div className="flex-1 text-center md:text-left">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-                  <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
-                    {astrologer.name}
-                  </h1>
-
-                  <div className="flex items-center justify-center md:justify-start gap-3">
-                    {astrologer.isOnline ? (
-                      <span className="px-4 py-2 bg-green-500/20 backdrop-blur-sm text-green-100 rounded-2xl text-sm font-semibold flex items-center gap-2 border border-green-400/30">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        ✨ Cosmic Guidance Available
-                      </span>
-                    ) : (
-                      <span className="px-4 py-2 bg-gray-500/20 text-gray-300 rounded-2xl text-sm font-semibold flex items-center gap-2 border border-gray-400/30">
-                        <Moon className="w-4 h-4" />
-                        🌙 Meditating in Cosmic Realm
-                      </span>
-                    )}
-                  </div>
+                <h1 className="text-4xl font-bold mb-2">{astrologer.name}</h1>
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                  {astrologer.isOnline ? (
+                    <span className="px-4 py-2 bg-green-500/20 backdrop-blur-sm text-green-100 rounded-full text-sm font-semibold flex items-center gap-2 border border-green-400/30">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      ✨ Available for Guidance
+                    </span>
+                  ) : (
+                    <span className="px-4 py-2 bg-gray-500/20 text-gray-300 rounded-full text-sm font-semibold">
+                      🌙 Currently Meditating
+                    </span>
+                  )}
                 </div>
 
                 {/* Rate */}
-                <div className="flex items-center justify-center md:justify-start gap-2 text-xl md:text-2xl font-bold text-yellow-300 mb-6">
-                  <Star className="w-5 h-5 md:w-6 md:h-6 fill-yellow-300" />
+                <div className="flex items-center justify-center md:justify-start gap-2 text-2xl font-bold text-yellow-300 mb-6">
+                  <Star className="w-6 h-6 fill-yellow-300" />
                   ₹{astrologer.profile?.ratePerMinute || 0}/min
-                  <span className="text-sm text-purple-200 ml-2 font-light">Cosmic Consultation</span>
+                  <span className="text-sm text-purple-200 ml-2">Cosmic Consultation</span>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                   <button
                     onClick={handleVideoCall}
-                    className="flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-2xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group flex-1 sm:flex-none"
+                    className="flex items-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
                   >
                     <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    <span>Cosmic Video Call</span>
+                    Video Call
                   </button>
 
                   <button
                     onClick={handleChat}
-                    className="flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group flex-1 sm:flex-none"
+                    className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
                   >
                     <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    <span>Spiritual Chat</span>
+                    Text Chat
                   </button>
                 </div>
               </div>
@@ -362,88 +308,83 @@ const AstrologerDetail = () => {
           </div>
 
           {/* Stats Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-white/5 backdrop-blur-sm border-b border-white/10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-b">
             {astrologer.profile?.experience && (
-              <div className="text-center group">
-                <div className="flex items-center justify-center gap-2 text-purple-300 mb-2">
-                  <Clock className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 text-purple-600 mb-2">
+                  <Clock className="w-5 h-5" />
                   <span className="text-2xl font-bold">{astrologer.profile.experience}+</span>
                 </div>
-                <p className="text-sm text-purple-200 font-light">Years of Wisdom</p>
+                <p className="text-sm text-gray-600">Years Experience</p>
               </div>
             )}
 
-            <div className="text-center group">
-              <div className="flex items-center justify-center gap-2 text-pink-300 mb-2">
-                <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 text-pink-600 mb-2">
+                <Users className="w-5 h-5" />
                 <span className="text-2xl font-bold">98%</span>
               </div>
-              <p className="text-sm text-purple-200 font-light">Souls Guided</p>
+              <p className="text-sm text-gray-600">Satisfied Clients</p>
             </div>
 
-            <div className="text-center group">
-              <div className="flex items-center justify-center gap-2 text-blue-300 mb-2">
-                <Zap className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 text-blue-600 mb-2">
+                <Zap className="w-5 h-5" />
                 <span className="text-2xl font-bold">24/7</span>
               </div>
-              <p className="text-sm text-purple-200 font-light">Cosmic Access</p>
+              <p className="text-sm text-gray-600">Availability</p>
             </div>
 
-            <div className="text-center group">
-              <div className="flex items-center justify-center gap-2 text-green-300 mb-2">
-                <Shield className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
+                <Shield className="w-5 h-5" />
                 <span className="text-2xl font-bold">100%</span>
               </div>
-              <p className="text-sm text-purple-200 font-light">Divine Authentic</p>
+              <p className="text-sm text-gray-600">Authentic</p>
             </div>
           </div>
 
           {/* Content Area */}
-          <div className="p-6 md:p-8">
+          <div className="p-8">
             {/* Specialties */}
             {astrologer.profile?.specialties && astrologer.profile.specialties.length > 0 && (
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg">
-                    <CrystalBall className="w-6 h-6 text-white" />
+                  <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
+                    <Sparkles className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white">Divine Specialties</h3>
+                  <h3 className="text-2xl font-bold text-gray-800">Cosmic Specialties</h3>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {astrologer.profile.specialties.map((specialty, idx) => (
                     <div
                       key={idx}
-                      className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center group hover:bg-white/15 transition-all duration-300 hover:transform hover:scale-105"
+                      className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 text-center group hover:from-purple-100 hover:to-pink-100 transition-all"
                     >
-                      <div className="flex items-center justify-center gap-2">
-                        {idx % 3 === 0 && <TarotCards className="w-4 h-4 text-purple-300" />}
-                        {idx % 3 === 1 && <PalmReading className="w-4 h-4 text-pink-300" />}
-                        {idx % 3 === 2 && <Horoscope className="w-4 h-4 text-blue-300" />}
-                        <span className="text-white font-medium group-hover:text-purple-200">
-                          {specialty}
-                        </span>
-                      </div>
+                      <span className="text-purple-700 font-semibold group-hover:text-purple-800">
+                        {specialty}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+            <div className="grid md:grid-cols-2 gap-8">
               {/* Languages */}
               {astrologer.profile?.languages && astrologer.profile.languages.length > 0 && (
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl shadow-lg">
-                      <Globe className="w-5 h-5 text-white" />
+                    <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
+                      <Languages className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-white">Cosmic Languages</h3>
+                    <h3 className="text-xl font-bold text-gray-800">Cosmic Languages</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {astrologer.profile.languages.map((lang, idx) => (
                       <span
                         key={idx}
-                        className="px-4 py-2 bg-white/20 border border-white/30 text-white rounded-xl text-sm font-medium backdrop-blur-sm hover:bg-white/30 transition-colors"
+                        className="px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-xl text-sm font-medium shadow-sm"
                       >
                         {lang}
                       </span>
@@ -454,19 +395,19 @@ const AstrologerDetail = () => {
 
               {/* Experience */}
               {astrologer.profile?.experience && (
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border border-orange-200">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl shadow-lg">
-                      <Pyramid className="w-5 h-5 text-white" />
+                    <div className="p-2 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl">
+                      <Award className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-white">Ancient Wisdom</h3>
+                    <h3 className="text-xl font-bold text-gray-800">Wisdom Journey</h3>
                   </div>
-                  <p className="text-white text-lg font-semibold mb-3">
+                  <p className="text-gray-700 text-lg font-semibold">
                     {astrologer.profile.experience} years of cosmic guidance
                   </p>
-                  <div className="w-full bg-white/20 rounded-full h-2">
+                  <div className="mt-3 w-full bg-orange-200 rounded-full h-2">
                     <div
-                      className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                      className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full"
                       style={{ width: `${Math.min(astrologer.profile.experience * 10, 100)}%` }}
                     ></div>
                   </div>
@@ -476,14 +417,14 @@ const AstrologerDetail = () => {
 
             {/* Bio */}
             {astrologer.profile?.bio && (
-              <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div className="mt-8 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl shadow-lg">
-                    <Lotus className="w-5 h-5 text-white" />
+                  <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl">
+                    <Heart className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white">Cosmic Message</h3>
+                  <h3 className="text-2xl font-bold text-gray-800">Cosmic Message</h3>
                 </div>
-                <p className="text-white leading-relaxed text-lg font-light">
+                <p className="text-gray-700 leading-relaxed text-lg">
                   {astrologer.profile.bio}
                 </p>
               </div>
@@ -495,31 +436,31 @@ const AstrologerDetail = () => {
       {/* Waiting Modal */}
       {waiting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-gradient-to-br from-purple-900 to-blue-900 rounded-3xl shadow-2xl p-8 max-w-sm mx-4 text-center transform animate-scale-in border border-white/20">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm mx-4 text-center transform animate-scale-in">
             <div className="w-20 h-20 mx-auto mb-6 relative">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-ping opacity-20"></div>
-              <div className="absolute inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl">
+              <div className="absolute inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
                 {waitingType === "call" ? (
-                  <Video className="w-8 h-8 text-white animate-pulse" />
+                  <Phone className="w-8 h-8 text-white animate-pulse" />
                 ) : (
                   <MessageCircle className="w-8 h-8 text-white animate-pulse" />
                 )}
               </div>
             </div>
 
-            <h4 className="text-2xl font-bold text-white mb-2">
+            <h4 className="text-2xl font-bold text-gray-800 mb-2">
               Connecting to Cosmos...
             </h4>
-            <p className="text-purple-200 mb-6 font-light">
+            <p className="text-gray-600 mb-6">
               {waitingType === "call"
-                ? "Establishing spiritual video connection..."
-                : "Waiting for astrologer to accept your cosmic request..."}
+                ? "Establishing cosmic video connection..."
+                : "Waiting for astrologer to accept your chat request..."}
             </p>
 
             <div className="flex justify-center space-x-4">
               <button
                 onClick={() => setWaiting(false)}
-                className="px-6 py-3 border border-purple-400 text-purple-200 rounded-2xl font-semibold hover:bg-purple-500/20 transition-all"
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all"
               >
                 Cancel
               </button>
@@ -528,13 +469,10 @@ const AstrologerDetail = () => {
         </div>
       )}
 
-      {/* Floating Balance */}
-      <div className="fixed bottom-6 right-6 z-30">
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-2xl shadow-2xl text-sm font-semibold backdrop-blur-sm border border-white/20 animate-float">
-          <div className="flex items-center gap-2">
-            <Crystal className="w-4 h-4" />
-            <span>Cosmic Balance: ₹{balance}</span>
-          </div>
+      {/* Floating Elements */}
+      <div className="fixed bottom-4 right-4 flex flex-col gap-3 z-30">
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-3 rounded-xl shadow-2xl text-sm font-semibold animate-bounce">
+          ✨ Your Balance: ₹{balance}
         </div>
       </div>
     </div>
