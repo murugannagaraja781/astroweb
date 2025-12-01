@@ -3,16 +3,25 @@ const router = express.Router();
 const ChatCallDetails = require("../models/ChatCallDetails");
 const auth = require("../middleware/auth");
 
-// GET all chat call details
+// GET chat details for the logged-in user (Astrologer or Client)
 router.get("/", auth, async (req, res) => {
   try {
-    const records = await ChatCallDetails.find()
+    // Filter by the logged-in user's ID (either as astrologer or client)
+    const query = {
+      $or: [
+        { astrologerId: req.user.id },
+        { userId: req.user.id }
+      ]
+    };
+
+    const records = await ChatCallDetails.find(query)
       .populate("userId", "name email")
       .populate("astrologerId", "name email")
       .sort({ createdAt: -1 });
 
     res.json(records);
   } catch (err) {
+    console.error("Error fetching chat call details:", err);
     res.status(500).json({ error: err.message });
   }
 });

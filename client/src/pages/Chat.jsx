@@ -102,6 +102,32 @@ const Chat = () => {
       socket.off("reconnect");
     };
 
+    // Socket Error Handling
+    socket.on("connect_error", (err) => {
+      setError(`Connection error: ${err.message}. Please refresh the page.`);
+    });
+
+    socket.on("disconnect", (reason) => {
+      if (reason === "io server disconnect") {
+        setError("Disconnected by server. Please refresh and try again.");
+      } else {
+        setError("Connection lost. Reconnecting...");
+      }
+    });
+
+    socket.on("reconnect", () => {
+      setError(null);
+      if (id) {
+        socket.emit("join_chat", { sessionId: id });
+      }
+    });
+
+    return () => {
+      socket.off("connect_error");
+      socket.off("disconnect");
+      socket.off("reconnect");
+    };
+
   socket.on("chat:message", (newMessage) => {
   setConversation((prev) => {
     // 1. TEMP ID MATCH → Replace pending message
@@ -272,6 +298,23 @@ const Chat = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
+      {/* Error Popup */}
+      {error && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md mx-4">
+            <div className="text-red-500 text-6xl mb-4 text-center">⚠️</div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Connection Error</h3>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         input, textarea, select {
           color: #f9f4f4 !important;

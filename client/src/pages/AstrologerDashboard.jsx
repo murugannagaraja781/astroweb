@@ -118,7 +118,7 @@ const AstrologerDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chatcalldetails`,
+        `${import.meta.env.VITE_API_URL}/api/chat/request`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -198,7 +198,7 @@ const AstrologerDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/chatcalldetails`,
+        `${import.meta.env.VITE_API_URL}/api/chat/request`,
         { sessionId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
