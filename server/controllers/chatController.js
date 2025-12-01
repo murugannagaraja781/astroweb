@@ -271,6 +271,8 @@ exports.requestSession = async (req, res) => {
   try {
     const clientId = req.user.id;
     const { astrologerId } = req.body;
+    console.log(`[DEBUG] requestSession: clientId=${clientId}, astrologerId=${astrologerId}`);
+
     if (!astrologerId) {
       return res.status(400).json({ msg: "Astrologer ID is required" });
     }
@@ -278,13 +280,16 @@ exports.requestSession = async (req, res) => {
     let rate = 1;
     const profile = await AstrologerProfile.findOne({ userId: astrologerId });
     if (profile && profile.ratePerMinute) rate = profile.ratePerMinute;
-    await ChatSession.create({
+
+    const newSession = await ChatSession.create({
       sessionId: sid,
       clientId,
       astrologerId,
       status: "requested",
       ratePerMinute: rate,
     });
+    console.log(`[DEBUG] Session created: ${JSON.stringify(newSession)}`);
+
     res.json({ sessionId: sid, ratePerMinute: rate });
   } catch (err) {
     res.status(500).json({ msg: "Server error" });
