@@ -1,518 +1,281 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useContext,
-} from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+// VideoCall.jsx
+import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import AgoraRTC from "agora-rtc-sdk-ng";
-import axios from "axios";
-import AuthContext from "../context/AuthContext";
-import CallHistoryList from "../components/CallHistoryList";
-import OnlineAstrologers from "../components/OnlineAstrologers";
-import OffersList from "../components/OffersList";
-import { ArrowLeft } from "lucide-react";
-import { useToast } from "../context/ToastContext";
 
-const SOCKET_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || process.env.VITE_API_URL || '';
-const APP_ID = (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_AGORA_APP_ID || import.meta.env.VITE_APP_ID)) || process.env.VITE_AGORA_APP_ID || process.env.VITE_APP_ID || '';
+/**
+ * Simple 1:1 WebRTC video call component using Socket.IO for signaling.
+ * - Join a room (roomId string)
+ * - If another peer is present, exchange offer/answer/ICE via server
+ *
+ * IMPORTANT:
+ * - Replace SIGNALING_SERVER with your server URL
+ * - This example uses a single STUN server (Google). Add TURN for production.
+ */
 
-const AGORA_DEBUG = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_AGORA_DEBUG) || process.env.VITE_AGORA_DEBUG;
-if (AGORA_DEBUG) {
-  try { AgoraRTC.setLogLevel(4); } catch (e) {}
-}
+const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVERVITE_SIGNALING_SERVER || "https://astroweb-production.up.railway.app";
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" }
+    // Add TURN servers here for production
+  ]
+};
 
-// Small helper to format duration mm:ss
-const formatDuration = (sec) =>
-  `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
+export default function VideoCall({name}) {
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const pcRef = useRef(null);
+  const socketRef = useRef(null);
+  const localStreamRef = useRef(null);
 
-export default function VideoCall() {
-  const { id: otherUserId } = useParams();
-  const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const { addToast } = useToast();
+  const [roomId, setRoomId] = useState(name);
+  const [joined, setJoined] = useState(false);
+  const [calling, setCalling] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [videoEnabled, setVideoEnabled] = useState(true);
 
-  // Socket state
-  const [socket, setSocket] = useState(null);
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      cleanupCall();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Agora client - memoized so it doesn't recreate on every render
-  const client = useMemo(
-    () => AgoraRTC.createClient({ mode: "rtc", codec: "vp8" }),
-    []
-  );
-
-  // local/remote tracks and state
-  const localVideoTrackRef = useRef(null);
-  const localAudioTrackRef = useRef(null);
-  const localVideoEl = useRef(null);
-  const remoteContainerRef = useRef(null);
-
-  const [callId, setCallId] = useState(null);
-  const [rtcToken, setRtcToken] = useState(null);
-  const [callActive, setCallActive] = useState(false);
-  const [remoteUsers, setRemoteUsers] = useState([]);
-
-  const [duration, setDuration] = useState(0);
-  const timerRef = useRef(null);
-
-  // Wallet and pricing state
-  const [balance, setBalance] = useState(0);
-  const RATE_PER_MIN = 1; // ₹1 per minute
-
-  // Call history for otherUserId === '0'
-  const [callHistory, setCallHistory] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
-
-  // --- Helpers: fetch wallet balance, fetch token ---
-  const fetchBalance = useCallback(async () => {
-    if (!user) return;
-    try {
-      const res = await axios.get(`${SOCKET_URL}/api/wallet/balance`);
-      setBalance(res.data.balance || 0);
-    } catch (err) {
-      console.error("Failed to fetch balance", err);
-      addToast("Failed to fetch wallet balance", "error");
+  const ensureSocket = () => {
+    if (!socketRef.current) {
+      socketRef.current = io(SIGNALING_SERVER, { autoConnect: true });
+      attachSocketHandlers();
     }
-  }, [user, addToast]);
+    return socketRef.current;
+  };
 
-  const fetchRtcToken = useCallback(async (channel, uid) => {
+  const attachSocketHandlers = () => {
+    const socket = socketRef.current;
+    socket.on("connect", () => {
+      console.log("Connected to signaling server", socket.id);
+    });
+
+    socket.on("joined", (data) => {
+      console.log("Joined room:", data);
+      setJoined(true);
+    });
+
+    socket.on("peer:joined", ({ socketId }) => {
+      console.log("Peer joined:", socketId);
+      // Could auto-initiate call here if desired
+    });
+
+    socket.on("call:offer", async ({ from, offer }) => {
+      console.log("Received offer from:", from);
+      await ensureLocalStream();
+      await createPeerConnection(from);
+      try {
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pcRef.current.createAnswer();
+        await pcRef.current.setLocalDescription(answer);
+        socket.emit("call:answer", { roomId, answer, to: from });
+        setCalling(true);
+      } catch (err) {
+        console.error("Error handling offer:", err);
+      }
+    });
+
+    socket.on("call:answer", async ({ from, answer }) => {
+      console.log("Received answer from:", from);
+      try {
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+      } catch (err) {
+        console.error("Error setting remote answer:", err);
+      }
+    });
+
+    socket.on("call:candidate", async ({ from, candidate }) => {
+      if (!candidate) return;
+      try {
+        await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error("Error adding ICE candidate:", err);
+      }
+    });
+
+    socket.on("peer:left", ({ socketId }) => {
+      console.log("Peer left:", socketId);
+      hangup();
+    });
+  };
+
+  const joinRoom = () => {
+    if (!roomId.trim()) return alert("Enter a room ID");
+    ensureSocket();
+    socketRef.current.emit("join", roomId);
+    setJoined(true);
+  };
+
+  const ensureLocalStream = async () => {
+    if (localStreamRef.current) return localStreamRef.current;
     try {
-      const res = await axios.get(`${SOCKET_URL}/api/agora/token`, {
-        params: { channel, uid },
-      });
-      return res.data.token;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStreamRef.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      return stream;
     } catch (err) {
-      console.error("Failed to fetch RTC token", err);
+      console.error("Error getting media:", err);
       throw err;
     }
-  }, []);
+  };
 
-  const location = useLocation();
+  const createPeerConnection = async (remoteSocketId) => {
+    if (pcRef.current) return pcRef.current;
 
-  // --- Socket setup ---
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const newSocket = io(SOCKET_URL, {
-      auth: { token }
-    });
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+    pcRef.current = pc;
 
-    setSocket(newSocket);
+    // Add local tracks
+    const localStream = localStreamRef.current;
+    if (localStream) {
+      localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+    }
 
-    return () => {
-      newSocket.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!user || !socket) return;
-
-    // Events
-    socket.on("connect", () => console.log("socket connected", socket.id));
-
-    socket.on("callAccepted", async ({ callId: acceptedCallId }) => {
-      console.log("call accepted", acceptedCallId);
-      addToast("Call accepted", "success");
-
-      // If we are the client initiator we probably already have callId but ensure
-      const cid = acceptedCallId || callId;
-      if (!cid) return;
-      setCallId(cid);
-
-      try {
-        const token = await fetchRtcToken(cid, user.id);
-        setRtcToken(token);
-        setCallActive(true); // only set active after token set
-      } catch (err) {
-        addToast("Failed to get call token", "error");
-      }
-    });
-
-    socket.on("callRejected", () => {
-      addToast("Call rejected by remote user", "error");
-      setCallActive(false);
-      setCallId(null);
-    });
-
-    socket.on("endCall", () => {
-      addToast("Call ended by remote user", "info");
-      leaveCall();
-    });
-
-    // Billing updates
-    socket.on("billingUpdate", ({ duration: dur, cost, balance: bal, earnings }) => {
-       if (dur) setDuration(dur);
-       if (bal !== undefined) setBalance(bal);
-       // For astrologer, we could show earnings if we wanted, but balance is for client
-    });
-
-    return () => {
-      socket.off("connect");
-      socket.off("callAccepted");
-      socket.off("callRejected");
-      socket.off("endCall");
-      socket.off("billingUpdate");
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, callId, fetchRtcToken, socket]);
-
-  // --- Fetch call history when otherUserId === '0' ---
-  useEffect(() => {
-    if (otherUserId !== "0" || !user) return;
-    const fetchHistory = async () => {
-      try {
-        const res = await axios.get(`${SOCKET_URL}/api/call/history`);
-        setCallHistory(res.data || []);
-      } catch (err) {
-        console.error("Error fetching call history:", err);
-      } finally {
-        setLoadingHistory(false);
+    // Remote tracks -> attach to remoteVideo
+    pc.ontrack = (evt) => {
+      // When multiple tracks come, use the first stream
+      const [stream] = evt.streams;
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = stream;
       }
     };
-    fetchHistory();
-  }, [otherUserId, user]);
 
-  // --- Fetch wallet balance on mount (non-admins) ---
-  useEffect(() => {
-    if (!user) return;
-    if (user.role !== "admin") fetchBalance();
-  }, [user, fetchBalance]);
-
-  // --- Join process using manual Agora SDK flow ---
-  useEffect(() => {
-    let joined = false;
-
-    const handleUserPublished = async (remoteUser, mediaType) => {
-      try {
-        await client.subscribe(remoteUser, mediaType);
-        if (mediaType === "video") {
-          // create or reuse DOM element for remote user
-          const el = document.createElement("div");
-          el.id = `remote-${remoteUser.uid}`;
-          el.className = "remote-video p-1";
-          el.style.width = "100%";
-          el.style.height = "100%";
-          remoteContainerRef.current?.appendChild(el);
-          remoteUser.videoTrack?.play(el);
-        }
-        if (mediaType === "audio") {
-          remoteUser.audioTrack?.play();
-        }
-        setRemoteUsers((prev) => {
-          if (prev.find((u) => u.uid === remoteUser.uid)) return prev;
-          return [...prev, remoteUser];
+    // ICE candidates -> send via socket
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socketRef.current.emit("call:candidate", {
+          roomId,
+          candidate: event.candidate,
+          to: remoteSocketId // target peer
         });
-      } catch (err) {
-        console.error("Failed to handle user-published", err);
       }
     };
 
-    const handleUserUnpublished = (remoteUser) => {
-      // Remove DOM
-      const el = document.getElementById(`remote-${remoteUser.uid}`);
-      if (el && el.parentNode) el.parentNode.removeChild(el);
-      setRemoteUsers((prev) => prev.filter((u) => u.uid !== remoteUser.uid));
-    };
-
-    const startJoin = async () => {
-      if (!callActive || !callId || !rtcToken || !APP_ID || !user) return;
-      joined = true;
-
-      try {
-        await client.join(APP_ID, callId, rtcToken, user.id);
-
-        // create local tracks
-        const [audioTrack, videoTrack] = await Promise.all([
-          AgoraRTC.createMicrophoneAudioTrack(),
-          AgoraRTC.createCameraVideoTrack(),
-        ]);
-
-        localAudioTrackRef.current = audioTrack;
-        localVideoTrackRef.current = videoTrack;
-
-        // play local preview
-        if (localVideoEl.current) {
-          videoTrack.play(localVideoEl.current);
-        }
-
-        // publish
-        await client.publish([audioTrack, videoTrack]);
-
-        // set listeners for remote users
-        client.on("user-published", handleUserPublished);
-        client.on("user-unpublished", handleUserUnpublished);
-
-        // start timer - handled by billing update now, but keep as fallback/local
-        if (!timerRef.current) {
-             timerRef.current = setInterval(() => {
-               setDuration((d) => d + 1);
-             }, 1000);
-        }
-      } catch (err) {
-        console.error("Agora join/publish failed", err);
-        addToast("Video call setup failed", "error");
-        // cleanup on failure
-        await leaveCall();
+    pc.onconnectionstatechange = () => {
+      console.log("PC state:", pc.connectionState);
+      if (pc.connectionState === "disconnected" || pc.connectionState === "failed" || pc.connectionState === "closed") {
+        hangup();
       }
     };
 
-    startJoin();
+    return pc;
+  };
 
-    return () => {
-      client.off("user-published", handleUserPublished);
-      client.off("user-unpublished", handleUserUnpublished);
-      if (joined) {
-        // cleanup handled by leaveCall if it runs; but ensure no interval leak
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callActive, callId, rtcToken, APP_ID, user, client]);
+  const startCall = async () => {
+    if (!roomId.trim()) return alert("Join a room first");
+    await ensureLocalStream();
+    ensureSocket();
 
-  // --- Initiate a call (client -> astrologer) ---
-  const initiateCall = useCallback(async () => {
-    if (!user || !otherUserId || !socket) return;
+    // Create offer and send to room (server will forward to others)
+    const pc = await createPeerConnection(); // no target yet
     try {
-      const res = await axios.post(`${SOCKET_URL}/api/call/initiate`, {
-        receiverId: otherUserId,
-      });
-      const newCallId = res.data.callId;
-      setCallId(newCallId);
-
-      // fetch token immediately so we can join once remote accepts
-      // some servers might give token as part of initiation; adjust if your API returns token
-      const token = await fetchRtcToken(newCallId, user.id);
-      setRtcToken(token);
-
-      // Emit to remote user that we are calling and include callId
-      socket.emit("callUser", {
-        userToCall: otherUserId,
-        from: user.id,
-        name: user.name,
-        callId: newCallId,
-        type: "video",
-      });
-
-      addToast("Ringing...", "info");
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socketRef.current.emit("call:offer", { roomId, offer });
+      setCalling(true);
     } catch (err) {
-      console.error("Initiate call failed", err);
-      addToast("Failed to start call", "error");
+      console.error("Error starting call:", err);
     }
-  }, [otherUserId, user, fetchRtcToken, addToast, socket]);
+  };
 
-  // --- For astrologer: accept incoming call (incomingCallId from query or state) ---
-  useEffect(() => {
-    const query = new URLSearchParams(window.location.search);
-    const incomingCallId = query.get("callId") || location.state?.callId;
-
-    if (user && user.role === "astrologer" && incomingCallId) {
-      (async () => {
-        setCallId(incomingCallId);
-        try {
-          const token = await fetchRtcToken(incomingCallId, user.id);
-          setRtcToken(token);
-          setCallActive(true);
-        } catch (err) {
-          addToast("Failed to join incoming call", "error");
-        }
-      })();
-    }
-  }, [user, fetchRtcToken, addToast, location.state]);
-
-  // --- Leave call ---
-  const leaveCall = useCallback(async () => {
-    try {
-      // stop and close local tracks
-      if (localVideoTrackRef.current) {
-        try {
-          localVideoTrackRef.current.stop();
-          localVideoTrackRef.current.close();
-        } catch (e) {
-          console.warn("local video cleanup", e);
-        }
-        localVideoTrackRef.current = null;
-      }
-      if (localAudioTrackRef.current) {
-        try {
-          localAudioTrackRef.current.stop();
-          localAudioTrackRef.current.close();
-        } catch (e) {
-          console.warn("local audio cleanup", e);
-        }
-        localAudioTrackRef.current = null;
-      }
-
-      // unpublish and leave
+  const hangup = () => {
+    // Close peer connection
+    if (pcRef.current) {
       try {
-        await client.unpublish();
-      } catch (e) {
-        // ignore if not published
-      }
-
-      try {
-        await client.leave();
-      } catch (e) {
-        console.warn("client leave failed", e);
-      }
-
-      clearInterval(timerRef.current);
-      setDuration(0);
-      setCallActive(false);
-
-      // notify backend
-      if (callId && socket) {
-        try {
-          await axios.post(`${SOCKET_URL}/api/call/end`, { callId, duration });
-          socket.emit("endCall", { to: otherUserId });
-        } catch (err) {
-          console.error("Error ending call on server", err);
-        }
-      }
-
-      // navigate back
-      navigate(
-        user?.role === "astrologer" ? "/astrologer-dashboard" : "/dashboard"
-      );
-    } catch (err) {
-      console.error("Error leaving call", err);
+        pcRef.current.close();
+      } catch (e) {}
+      pcRef.current = null;
     }
-  }, [client, callId, otherUserId, navigate, user?.role, socket]);
 
-  // --- Render views ---
-  if (otherUserId === "0") {
-    return (
-      <div className="min-h-screen bg-gray-50 pb-24">
-        <div className="bg-white p-4 shadow-sm border-b border-gray-100 sticky top-0 z-10">
-          <h1 className="text-xl font-bold text-gray-800">
-            Video Call Astrologers
-          </h1>
+    // Stop local tracks if you want to release camera/mic
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+      if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    }
+
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    setCalling(false);
+
+    // Optionally notify server
+    if (socketRef.current) socketRef.current.emit("leave", roomId);
+  };
+
+  const cleanupCall = () => {
+    hangup();
+    if (socketRef.current) {
+      socketRef.current.off();
+    }
+  };
+
+  const toggleMute = () => {
+    if (!localStreamRef.current) return;
+    localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = !t.enabled));
+    setMuted((m) => !m);
+  };
+
+  const toggleVideo = () => {
+    if (!localStreamRef.current) return;
+    localStreamRef.current.getVideoTracks().forEach((t) => (t.enabled = !t.enabled));
+    setVideoEnabled((v) => !v);
+  };
+
+  return (
+    <div className="p-4 max-w-3xl mx-auto">
+      <h2 className="text-xl font-bold mb-2">WebRTC Video Call (Socket.IO signaling)</h2>
+
+      <div className="mb-3 flex gap-2">
+        <input
+          type="text"
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value)}
+          placeholder="Room ID"
+          className="border px-3 py-2 rounded flex-1"
+        />
+        {!joined ? (
+          <button onClick={joinRoom} className="px-4 py-2 bg-blue-600 text-white rounded">Join</button>
+        ) : (
+          <button onClick={() => {
+            // allow re-join logic if needed
+            if (!socketRef.current) ensureSocket();
+            socketRef.current.emit("join", roomId);
+          }} className="px-4 py-2 bg-gray-600 text-white rounded">Re-Join</button>
+        )}
+        <button onClick={startCall} className="px-4 py-2 bg-green-600 text-white rounded">Call</button>
+        <button onClick={hangup} className="px-4 py-2 bg-red-600 text-white rounded">Hangup</button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-3">
+        <div className="bg-black/70 rounded overflow-hidden">
+          <p className="text-sm text-center py-1 bg-black/50 text-white">Local</p>
+          <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-64 object-cover bg-black" />
         </div>
-
-        <div className="p-4 max-w-4xl mx-auto">
-          <div className="mb-8">
-            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Online Now
-            </h2>
-            <OnlineAstrologers />
-          </div>
-
-          <OffersList />
-
-          {user ? (
-            <div className="mt-8">
-              <h2 className="text-lg font-bold text-gray-800 mb-4">
-                Call History
-              </h2>
-              {loadingHistory ? (
-                <div className="flex justify-center py-10">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : (
-                <CallHistoryList calls={callHistory} userRole={user?.role} />
-              )}
-            </div>
-          ) : (
-            <div className="mt-8 p-6 bg-blue-50 rounded-xl text-center border border-blue-100">
-              <p className="text-gray-600 mb-4">
-                Login to view your call history and consult with top
-                astrologers.
-              </p>
-              <button
-                onClick={() => navigate("/login")}
-                className="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Login Now
-              </button>
-            </div>
-          )}
+        <div className="bg-black/70 rounded overflow-hidden">
+          <p className="text-sm text-center py-1 bg-black/50 text-white">Remote</p>
+          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-64 object-cover bg-black" />
         </div>
       </div>
-    );
-  }
 
-  // If we have a user and an otherUserId (normal call page)
-  return (
-    <div
-      className={user?.role === "astrologer" ? "theme-orange" : "theme-dark"}
-    >
-      <div className="h-screen flex flex-col items-center justify-center text-white bg-slate-900">
-        <div className="absolute top-4 left-4 z-10">
-          <button
-            onClick={() => navigate(`/call/0`)}
-            className="bg-white/10 p-2 rounded-full hover:bg-white/20 mb-2"
-          >
-            <ArrowLeft />
-          </button>
-          <p>Duration: {formatDuration(duration)}</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 w-full h-3/4 p-4">
-          <div className="relative border-2 border-indigo-500 rounded overflow-hidden bg-black flex items-center justify-center">
-            <div ref={localVideoEl} style={{ width: "100%", height: "100%" }} />
-            <samp className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 rounded z-10">
-              You
-            </samp>
-          </div>
-
-          <div
-            ref={remoteContainerRef}
-            className="relative border-2 border-green-500 rounded overflow-hidden bg-black"
-          >
-            {/* remote videos appended here by SDK */}
-            {remoteUsers.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                  alt="User"
-                  className="w-32 h-32 rounded-full"
-                />
-              </div>
-            )}
-            <samp className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 rounded z-10">
-              Remote
-            </samp>
-          </div>
-        </div>
-
-        <div className="mt-4 flex gap-4">
-          {!callId && user?.role === "client" && (
-            <button
-              onClick={initiateCall}
-              className="bg-green-600 px-6 py-3 rounded-full font-bold hover:bg-green-700"
-            >
-              Call
-            </button>
-          )}
-
-          {callActive ? (
-            <button
-              onClick={leaveCall}
-              className="bg-red-600 px-6 py-3 rounded-full font-bold hover:bg-red-700"
-            >
-              End Call
-            </button>
-          ) : (
-            callId && (
-              <button
-                onClick={async () => {
-                  try {
-                    const token = await fetchRtcToken(callId, user.id);
-                    setRtcToken(token);
-                    setCallActive(true);
-                  } catch (e) {
-                    addToast("Failed to join", "error");
-                  }
-                }}
-                className="bg-blue-600 px-6 py-3 rounded-full font-bold hover:bg-blue-700"
-              >
-                Join Call
-              </button>
-            )
-          )}
+      <div className="flex gap-2">
+        <button onClick={toggleMute} className="px-3 py-2 border rounded">
+          {muted ? "Unmute" : "Mute"}
+        </button>
+        <button onClick={toggleVideo} className="px-3 py-2 border rounded">
+          {videoEnabled ? "Stop Video" : "Start Video"}
+        </button>
+        <div className="flex-1 text-right text-sm text-gray-600">
+          {calling ? "In call" : "Not in call"}
         </div>
       </div>
     </div>
