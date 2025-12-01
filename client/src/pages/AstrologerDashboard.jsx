@@ -1,4 +1,5 @@
  import { useState, useEffect } from "react";
+import Modal from "../components/Modal";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,8 @@ const AstrologerDashboard = () => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [pendingSessions, setPendingSessions] = useState([]);
   const [socket, setSocket] = useState(null);
+  const [showPendingPopup, setShowPendingPopup] = useState(false);
+  const [lastSessionId, setLastSessionId] = useState(null);
   const [notifications, setNotifications] = useState(3);
   const navigate = useNavigate();
 
@@ -73,10 +76,17 @@ const AstrologerDashboard = () => {
         type: "chat",
       });
       fetchPendingSessions();
+      setShowPendingPopup(true); // open popup after fetching
     });
 
     socket.on("chat:joined", ({ sessionId }) => {
-      navigate(`/chat/${sessionId}`);
+      setLastSessionId(sessionId);
+      // navigate will happen after user closes the popup
+      // fetchPendingSessions(); // already fetched via socket listener
+      // showPendingPopup will be triggered by socket listener
+      // keep navigation here as fallback if socket doesn't trigger
+      // navigate(`/chat/${sessionId}`);
+
     });
 
     return () => {
