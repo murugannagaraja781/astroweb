@@ -15,7 +15,10 @@ const {
   getChatCall,
   acceptChatSession,
   rejectChatSession,
+  acceptChatSession,
+  rejectChatSession,
   getSessionInfo,
+  getAllSessionsDebug,
 } = require("../controllers/chatController");
 
 const auth = require("../middleware/auth");
@@ -44,5 +47,8 @@ router.post("/call", auth, storeChatCall);
 router.get("/call", auth, getChatCall);
 router.post("/accept", auth, acceptChatSession);
 router.post("/reject", auth, rejectChatSession);
+
+// DEBUG
+router.get("/debug/all", getAllSessionsDebug);
 
 module.exports = router;
