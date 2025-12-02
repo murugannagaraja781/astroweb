@@ -34,19 +34,24 @@ const AstrologerDashboard = () => {
   const [notifications, setNotifications] = useState(3);
   const navigate = useNavigate();
 
-  // Initialize socket connection
+  // Initialize socket connection immediately
   useEffect(() => {
-    if (!profile?.name) return;
+    const newSocket = io(import.meta.env.VITE_API_URL);
 
-    const newSocket = io(import.meta.env.VITE_API_URL, {
-      query: { username: profile.name }
+    newSocket.on('connect', () => {
+      console.log('[DEBUG] Socket connected in AstrologerDashboard');
     });
+
+    newSocket.on('connect_error', (err) => {
+      console.error('[DEBUG] Socket connection error:', err);
+    });
+
     setSocket(newSocket);
 
     return () => {
       newSocket.disconnect();
     };
-  }, [profile?.name]);
+  }, []); // Initialize once on mount
 
   useEffect(() => {
     fetchProfile();
@@ -185,15 +190,19 @@ const AstrologerDashboard = () => {
 
   const acceptChat = (sessionId) => {
     if (!socket) {
-      alert("Connection not ready. Please refresh the page.");
+      alert("Connection not ready. Please wait a moment and try again.");
+      // Try to reconnect
+      window.location.reload();
       return;
     }
 
     if (!socket.connected) {
-      alert("Connection lost. Please refresh the page.");
+      alert("Connection lost. Reconnecting...");
+      window.location.reload();
       return;
     }
 
+    console.log('[DEBUG] Accepting chat session:', sessionId);
     socket.emit("chat:accept", { sessionId });
     navigate(`/chat/${sessionId}`);
   };
