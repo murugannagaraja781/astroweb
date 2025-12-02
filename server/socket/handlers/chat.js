@@ -73,9 +73,13 @@ const startChatSession = async (io, sessionId) => {
                 name: astrologerUser?.name || 'Astrologer'
             },
             ratePerMinute: s.ratePerMinute,
-            startedAt: s.startedAt
+            startedAt: s.startedAt,
+            status: 'active'
         });
 
+        // Emit chat accepted and started events
+        io.to(sessionId).emit('chat:accepted', { sessionId });
+        io.to(sessionId).emit('chat:started', { sessionId, startedAt: s.startedAt });
         io.to(sessionId).emit('chat:joined', { sessionId });
 
         const ratePerSecond = (s.ratePerMinute || 1) / 60;
