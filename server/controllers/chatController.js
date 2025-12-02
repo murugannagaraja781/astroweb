@@ -303,10 +303,14 @@ exports.getSessionHistory = async (req, res) => {
     if (!s) {
       return res.status(404).json({ msg: "Session not found" });
     }
+    const clientId = s.clientId ? s.clientId.toString() : null;
+    const astrologerId = s.astrologerId ? s.astrologerId.toString() : null;
+
     if (
-      req.user.id !== s.clientId.toString() &&
-      req.user.id !== s.astrologerId.toString()
+      req.user.id !== clientId &&
+      req.user.id !== astrologerId
     ) {
+      console.log(`[DEBUG] Unauthorized access to session history. User: ${req.user.id}, Client: ${clientId}, Astrologer: ${astrologerId}`);
       return res.status(403).json({ msg: "Unauthorized" });
     }
     const messages = await ChatMessage.find({ sessionId }).sort({
@@ -553,22 +557,26 @@ exports.getSessionInfo = async (req, res) => {
     }
 
     // Verify user is authorized to view this session
+    const clientId = session.clientId ? session.clientId._id.toString() : null;
+    const astrologerId = session.astrologerId ? session.astrologerId._id.toString() : null;
+
     if (
-      req.user.id !== session.clientId._id.toString() &&
-      req.user.id !== session.astrologerId._id.toString()
+      req.user.id !== clientId &&
+      req.user.id !== astrologerId
     ) {
+      console.log(`[DEBUG] Unauthorized access to session info. User: ${req.user.id}, Client: ${clientId}, Astrologer: ${astrologerId}`);
       return res.status(403).json({ msg: 'Unauthorized' });
     }
 
     res.json({
       sessionId: session.sessionId,
       client: {
-        id: session.clientId._id,
-        name: session.clientId.name
+        id: session.clientId ? session.clientId._id : null,
+        name: session.clientId ? session.clientId.name : "Unknown User"
       },
       astrologer: {
-        id: session.astrologerId._id,
-        name: session.astrologerId.name
+        id: session.astrologerId ? session.astrologerId._id : null,
+        name: session.astrologerId ? session.astrologerId.name : "Unknown Astrologer"
       },
       ratePerMinute: session.ratePerMinute,
       status: session.status,
