@@ -169,10 +169,24 @@ const Chat = () => {
       setSessionInfo(info);
     });
 
+    // Listen for chat acceptance
+    socket.on("chat:accepted", (data) => {
+      console.log("[Chat] Chat accepted:", data);
+      fetchSessionInfo(); // Refresh session info to get updated status
+    });
+
+    // Listen for chat started
+    socket.on("chat:started", (data) => {
+      console.log("[Chat] Chat started:", data);
+      fetchSessionInfo(); // Refresh session info
+    });
+
     return () => {
       socket.off("chat:message");
       socket.off("chat:typing");
       socket.off("chat:session_info");
+      socket.off("chat:accepted");
+      socket.off("chat:started");
     };
   }, [id, fetchChat, fetchSessionInfo]);
 
@@ -407,16 +421,34 @@ const Chat = () => {
           <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container">
             {conversation.length === 0 ? (
               <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full mb-4">
-                  <Gem className="text-yellow-200" size={24} />
-                </div>
-                <h3 className="text-lg font-semibold text-yellow-200 mb-2">
-                  Welcome to Royal Astrology
-                </h3>
-                <p className="text-yellow-300 text-sm max-w-md mx-auto">
-                  Begin your royal consultation with our expert astrologer.
-                  Share your birth details and questions for divine guidance.
-                </p>
+                {sessionInfo?.status === 'requested' ? (
+                  // Waiting for acceptance
+                  <>
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-800 rounded-full mb-4 animate-pulse">
+                      <Sparkles className="text-purple-200" size={24} />
+                    </div>
+                    <h3 className="text-lg font-semibold text-purple-200 mb-2">
+                      Connecting to Cosmos...
+                    </h3>
+                    <p className="text-purple-300 text-sm max-w-md mx-auto">
+                      Waiting for astrologer to accept your chat request...
+                    </p>
+                  </>
+                ) : (
+                  // Chat is active but no messages yet
+                  <>
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full mb-4">
+                      <Gem className="text-yellow-200" size={24} />
+                    </div>
+                    <h3 className="text-lg font-semibold text-yellow-200 mb-2">
+                      Welcome to Royal Astrology
+                    </h3>
+                    <p className="text-yellow-300 text-sm max-w-md mx-auto">
+                      Begin your royal consultation with our expert astrologer.
+                      Share your birth details and questions for divine guidance.
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               conversation.map((msg, index) => {
