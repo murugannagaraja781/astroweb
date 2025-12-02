@@ -78,10 +78,9 @@ const startChatSession = async (io, sessionId) => {
         });
 
         // Emit chat accepted and started events
-        const room = `chat_${sessionId}`;
-        io.to(room).emit('chat:accepted', { sessionId });
-        io.to(room).emit('chat:started', { sessionId, startedAt: s.startedAt });
-        io.to(room).emit('chat:joined', { sessionId });
+        io.to(sessionId).emit('chat:accepted', { sessionId });
+        io.to(sessionId).emit('chat:started', { sessionId, startedAt: s.startedAt });
+        io.to(sessionId).emit('chat:joined', { sessionId });
 
         const ratePerSecond = (s.ratePerMinute || 1) / 60;
         let elapsed = 0;
@@ -99,7 +98,7 @@ const startChatSession = async (io, sessionId) => {
             if (!wallet) {
                 clearInterval(t);
                 sessionTimers.delete(sessionId);
-                io.to(room).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
+                io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
                 s.status = 'ended';
                 s.endedAt = new Date();
                 s.duration = elapsed;
@@ -112,7 +111,7 @@ const startChatSession = async (io, sessionId) => {
             if (wallet.balance < cost && wallet.balance > 0) {
                 clearInterval(t);
                 sessionTimers.delete(sessionId);
-                io.to(room).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
+                io.to(sessionId).emit('chat:end', { sessionId, reason: 'insufficient_balance' });
                 s.status = 'ended';
                 s.endedAt = new Date();
                 s.duration = elapsed;
@@ -124,7 +123,7 @@ const startChatSession = async (io, sessionId) => {
             if (wallet.balance > 0) {
                 wallet.balance = parseFloat((wallet.balance - cost).toFixed(2));
                 await wallet.save();
-                io.to(room).emit('wallet:update', { sessionId, balance: wallet.balance, elapsed });
+                io.to(sessionId).emit('wallet:update', { sessionId, balance: wallet.balance, elapsed });
             }
         }, 1000);
 
@@ -220,14 +219,14 @@ module.exports = (io, socket) => {
             const { sessionId, senderId, text = '', type = 'text', tempId } = data;
             const s = await ChatSession.findOne({ sessionId });
             if (!s || s.status !== 'active') return;
-            const room = `chat_${sessionId}`;
+            const roomId = sessionId;
             const receiverId = senderId === s.clientId.toString() ? s.astrologerId : s.clientId;
-            const message = new ChatMessage({ sender: senderId, receiver: receiverId, roomId: sessionId, sessionId, message: text, type, timestamp: new Date() });
+            const message = new ChatMessage({ sender: senderId, receiver: receiverId, roomId, sessionId, message: text, type, timestamp: new Date() });
             await message.save();
-            io.to(room).emit('chat:message', {
+            io.to(roomId).emit('chat:message', {
                 _id: message._id,
                 sessionId,
-                roomId: sessionId,
+                roomId,
                 senderId,
                 receiverId: receiverId.toString(),
                 text,
@@ -243,8 +242,7 @@ module.exports = (io, socket) => {
     socket.on('chat:typing', (data) => {
         const { sessionId, userId } = data;
         // Broadcast to everyone in the room (they can filter their own typing on client side)
-        const room = `chat_${sessionId}`;
-        socket.to(room).emit('chat:typing', { sessionId, userId });
+        socket.to(sessionId).emit('chat:typing', { sessionId, userId });
     });
 
     socket.on('chat:end', async (data) => {
@@ -278,10 +276,8 @@ module.exports = (io, socket) => {
                 }
             );
 
-            const room = `chat_${sessionId}`;
-            io.to(room).emit('chat:end', { sessionId, reason: 'ended' });
+            io.to(sessionId).emit('chat:end', { sessionId, reason: 'ended' });
         } catch (err) {
-            console.error('Error ending chat:', err);
             socket.emit('chat:error', { error: 'end_failed' });
         }
     });
@@ -390,8 +386,7 @@ module.exports = (io, socket) => {
     // Explicit join chat room
     socket.on('join_chat', ({ sessionId }) => {
         if (!sessionId) return;
-        const room = `chat_${sessionId}`;
-        socket.join(room);
-        console.log(`[DEBUG] Socket ${socket.id} joined chat session ${room}`);
+        socket.join(sessionId);
+        console.log(`[DEBUG] Socket ${socket.id} joined chat session ${sessionId}`);
     });
 };
