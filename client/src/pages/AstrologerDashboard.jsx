@@ -14,6 +14,7 @@ import {
   User,
   Star,
   Zap,
+  Sparkles,
   Users,
   Calendar,
   BarChart3,
@@ -38,6 +39,7 @@ const AstrologerDashboard = () => {
   const [incomingRequest, setIncomingRequest] = useState(null);
   const [requestQueue, setRequestQueue] = useState([]);
   const [showOfflinePopup, setShowOfflinePopup] = useState(false);
+  const [earnings, setEarnings] = useState(0);
 
   const audioRef = useRef(null);
   const notificationSoundRef = useRef(null);
@@ -97,6 +99,7 @@ useEffect(() => {
 
   useEffect(() => {
     fetchProfile();
+    fetchEarnings();
   }, []);
 
   // Setup socket listeners when socket is ready
@@ -281,6 +284,22 @@ useEffect(() => {
       setProfile(res.data);
     } catch (err) {
       console.error("Error fetching profile:", err);
+    }
+  };
+
+  const fetchEarnings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/earnings`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setEarnings(res.data.totalEarnings || 0);
+    } catch (err) {
+      console.error("Error fetching earnings:", err);
+      setEarnings(0);
     }
   };
 
@@ -510,12 +529,12 @@ useEffect(() => {
       requiresOnline: true, // NEW: Requires online status
     },
     {
-      id: "calls",
-      icon: Phone,
-      label: "Calls",
-      color: "from-green-500 to-emerald-500",
+      id: "astrology",
+      icon: Sparkles,
+      label: "Astrology",
+      color: "from-purple-500 to-indigo-500",
       badge: null,
-      requiresOnline: true, // NEW: Requires online status
+      navigateTo: "/astrology", // Navigate to astrology dashboard
     },
     {
       id: "earnings",
@@ -523,43 +542,51 @@ useEffect(() => {
       label: "Earnings",
       color: "from-yellow-500 to-orange-500",
       badge: null,
-    },
-    {
-      id: "clients",
-      icon: Users,
-      label: "Clients",
-      color: "from-indigo-500 to-blue-500",
-      badge: null,
-    },
-    {
-      id: "schedule",
-      icon: Calendar,
-      label: "Schedule",
-      color: "from-red-500 to-pink-500",
-      badge: null,
-    },
-    {
-      id: "analytics",
-      icon: BarChart3,
-      label: "Analytics",
-      color: "from-teal-500 to-green-500",
-      badge: null,
-    },
-    {
-      id: "profile",
-      icon: User,
-      label: "Profile",
-      color: "from-gray-600 to-gray-800",
-      badge: null,
-    },
+    }
+    // {
+    //   id: "clients",
+    //   icon: Users,
+    //   label: "Clients",
+    //   color: "from-indigo-500 to-blue-500",
+    //   badge: null,
+    // },
+    // {
+    //   id: "schedule",
+    //   icon: Calendar,
+    //   label: "Schedule",
+    //   color: "from-red-500 to-pink-500",
+    //   badge: null,
+    // },
+    // {
+    //   id: "analytics",
+    //   icon: BarChart3,
+    //   label: "Analytics",
+    //   color: "from-teal-500 to-green-500",
+    //   badge: null,
+    // },
+    // {
+    //   id: "profile",
+    //   icon: User,
+    //   label: "Profile",
+    //   color: "from-gray-600 to-gray-800",
+    //   badge: null,
+    // },
   ];
 
-  const handleTabChange = (tabId, requiresOnline) => {
-    if (requiresOnline && !profile?.isOnline) {
+  const handleTabChange = (item) => {
+    // If menu item has navigateTo, navigate instead of changing tab
+    if (item.navigateTo) {
+      navigate(item.navigateTo);
+      return;
+    }
+
+    // Check online status requirement
+    if (item.requiresOnline && !profile?.isOnline) {
       setShowOfflinePopup(true);
       return;
     }
-    setActiveTab(tabId);
+
+    setActiveTab(item.id);
   };
 
   if (!profile) {
@@ -806,7 +833,7 @@ useEffect(() => {
             <div className="text-xs text-gray-600">Pending Requests</div>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
-            <div className="text-2xl font-bold text-green-600">₹2,847</div>
+            <div className="text-2xl font-bold text-green-600">₹{earnings.toLocaleString('en-IN')}</div>
             <div className="text-xs text-gray-600">Earnings</div>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
@@ -825,7 +852,7 @@ useEffect(() => {
             return (
               <button
                 key={item.id}
-                onClick={() => handleTabChange(item.id, item.requiresOnline)}
+                onClick={() => handleTabChange(item)}
                 className={`relative bg-white rounded-2xl p-4 shadow-lg text-center transition-all transform hover:scale-105 ${
                   activeTab === item.id ? "ring-2 ring-purple-500" : ""
                 }`}
