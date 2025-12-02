@@ -1,18 +1,14 @@
-
+ // AstrologerDetail.jsx
 import { useState, useEffect, useContext } from "react";
-import Modal from "../components/Modal";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import ClienttoAstrologyvideocall from './AstrologertoClientVideoCall'
+import ClienttoAstrologyvideocall from "./AstrologertoClientVideoCall";
 
-// import ClienttoAstrologyvideocall from './ClientcalltoAstrologerVideoCall'
 import {
-  Video,
   MessageCircle,
   Star,
   Award,
-  Globe,
   Languages,
   Sparkles,
   ArrowLeft,
@@ -27,9 +23,10 @@ import {
 import { io } from "socket.io-client";
 
 const AstrologerDetail = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // astrologerId
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
   const [astrologer, setAstrologer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
@@ -37,50 +34,47 @@ const AstrologerDetail = () => {
   const [waitingType, setWaitingType] = useState("");
   const [socket, setSocket] = useState(null);
   const [showVideoCall, setShowVideoCall] = useState(false);
-  const [showPendingPopup, setShowPendingPopup] = useState(false);
   const [lastSessionId, setLastSessionId] = useState(null);
 
-  // Initialize socket connection
-  // useEffect(() => {
-  //   if (!user?.name) return;
-
-  //   const newSocket = io(import.meta.env.VITE_API_URL, {
-  //     query: { username: user.name }
-  //   });
-  //   setSocket(newSocket);
-
-  //   return () => {
-  //     newSocket.disconnect();
-  //   };
-  // }, [user?.name]);
+  // ============================
+  // SOCKET SETUP (CLIENT SIDE)
+  // ============================
   useEffect(() => {
-  if (!user?.name) return;
+    if (!user?.name) return;
 
-  const newSocket = io(import.meta.env.VITE_API_URL, {
-    query: { username: user.name }
-  });
-  setSocket(newSocket);
+    const newSocket = io(import.meta.env.VITE_API_URL, {
+      query: { username: user.name },
+    });
 
-  // ADD THIS 🚨🚨🚨
-  newSocket.on("chat:accepted", ({ sessionId }) => {
-    console.log("Chat accepted → redirecting...", sessionId);
-    navigate(`/chat/${sessionId}`);
-  });
+    setSocket(newSocket);
 
-  newSocket.on("chat:rejected", () => {
-    alert("Astrologer rejected your chat request");
-    setWaiting(false);
-    setShowPendingPopup(false);
-  });
+    newSocket.on("connect", () => {
+      console.log("[Client] Socket connected:", newSocket.id);
+    });
 
-  return () => {
-    newSocket.off("chat:accepted");
-    newSocket.off("chat:rejected");
-    newSocket.disconnect();
-  };
-}, [user?.name]);
+    // When astrologer accepts, redirect client to /chat/:sessionId
+    newSocket.on("chat:accepted", ({ sessionId }) => {
+      console.log("[Client] Chat accepted → redirecting...", sessionId);
+      setWaiting(false);
+      setLastSessionId(sessionId);
+      navigate(`/chat/${sessionId}`);
+    });
 
+    // When astrologer rejects
+    newSocket.on("chat:rejected", ({ sessionId }) => {
+      console.log("[Client] Chat rejected for session", sessionId);
+      setWaiting(false);
+      alert("Astrologer rejected your chat request.");
+    });
 
+    return () => {
+      newSocket.off("chat:accepted");
+      newSocket.off("chat:rejected");
+      newSocket.disconnect();
+    };
+  }, [user?.name, navigate]);
+
+  // Load astrologer + balance
   useEffect(() => {
     fetchAstrologer();
     if (user) {
@@ -90,7 +84,11 @@ const AstrologerDetail = () => {
 
   const fetchBalance = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/wallet/balance`,
+        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
+      );
       setBalance(res.data.balance);
     } catch (err) {
       console.error("Error fetching balance:", err);
@@ -102,7 +100,6 @@ const AstrologerDetail = () => {
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/public/astrologers`
       );
-      // Add null check for response data
       if (res.data && Array.isArray(res.data)) {
         const astro = res.data.find((a) => a._id === id);
         setAstrologer(astro || null);
@@ -126,6 +123,9 @@ const AstrologerDetail = () => {
       .toUpperCase();
   };
 
+  // ============================
+  // VIDEO CALL HANDLER
+  // ============================
   const handleVideoCall = () => {
     if (!user) {
       alert("Please login to continue");
@@ -139,7 +139,6 @@ const AstrologerDetail = () => {
       return;
     }
 
-    // Add null check for astrologer
     if (!astrologer) {
       alert("Astrologer information not available. Please try again.");
       return;
@@ -153,6 +152,9 @@ const AstrologerDetail = () => {
     setShowVideoCall(true);
   };
 
+  // ============================
+  // CHAT REQUEST (CLIENT → ASTRO)
+  // ============================
   const requestChat = async () => {
     if (!user) {
       alert("Please login to continue");
@@ -166,7 +168,6 @@ const AstrologerDetail = () => {
       return;
     }
 
-    // Add null check for astrologer
     if (!astrologer) {
       alert("Astrologer information not available. Please try again.");
       return;
@@ -182,7 +183,6 @@ const AstrologerDetail = () => {
       return;
     }
 
-    // Check if socket is actually connected
     if (!socket.connected) {
       alert("Connection not established. Please refresh and try again.");
       return;
@@ -199,26 +199,23 @@ const AstrologerDetail = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Validate response data
       if (!res.data || !res.data.sessionId) {
         throw new Error("Invalid response from server");
       }
 
       const { sessionId, ratePerMinute } = res.data;
 
-      // Verify user.id exists before emitting
+      // Emit socket event to astrologer(s)
       if (user.id) {
-        socket.emit("user_online", { userId: user.id });
         socket.emit("chat:request", {
           clientId: user.id,
           astrologerId: id,
           ratePerMinute: ratePerMinute || 1,
-          sessionId: sessionId
+          sessionId,
         });
       }
 
       setLastSessionId(sessionId);
-      setShowPendingPopup(true); // open popup after request
     } catch (err) {
       console.error("Error requesting chat:", err);
       setWaiting(false);
@@ -226,7 +223,9 @@ const AstrologerDetail = () => {
     }
   };
 
-
+  // ============================
+  // RENDER
+  // ============================
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
@@ -266,11 +265,12 @@ const AstrologerDetail = () => {
             <ArrowLeft className="w-5 h-5" />
             Back to Profile
           </button>
-          {/* Replace with your actual AstrologerVideoCall component */}
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-white text-center">
             <div className="text-6xl mb-4">📹</div>
             <h3 className="text-2xl font-bold mb-4">Video Call Feature</h3>
-            <div className="text-purple-200 mb-6"><ClienttoAstrologyvideocall/></div>
+            <div className="text-purple-200 mb-6">
+              <ClienttoAstrologyvideocall />
+            </div>
             <button
               onClick={() => setShowVideoCall(false)}
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
@@ -345,7 +345,9 @@ const AstrologerDetail = () => {
                 <div className="flex items-center justify-center md:justify-start gap-2 text-2xl font-bold text-yellow-300 mb-6">
                   <Star className="w-6 h-6 fill-yellow-300" />
                   ₹{astrologer.profile?.ratePerMinute || 0}/min
-                  <span className="text-sm text-purple-200 ml-2">Cosmic Consultation</span>
+                  <span className="text-sm text-purple-200 ml-2">
+                    Cosmic Consultation
+                  </span>
                 </div>
 
                 {/* Action Buttons */}
@@ -376,7 +378,9 @@ const AstrologerDetail = () => {
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 text-purple-600 mb-2">
                   <Clock className="w-5 h-5" />
-                  <span className="text-2xl font-bold">{astrologer.profile.experience}+</span>
+                  <span className="text-2xl font-bold">
+                    {astrologer.profile.experience}+
+                  </span>
                 </div>
                 <p className="text-sm text-gray-600">Years Experience</p>
               </div>
@@ -410,51 +414,57 @@ const AstrologerDetail = () => {
           {/* Content Area */}
           <div className="p-8">
             {/* Specialties */}
-            {astrologer.profile?.specialties && astrologer.profile.specialties.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
-                    <Sparkles className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800">Cosmic Specialties</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {astrologer.profile.specialties.map((specialty, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 text-center group hover:from-purple-100 hover:to-pink-100 transition-all"
-                    >
-                      <span className="text-purple-700 font-semibold group-hover:text-purple-800">
-                        {specialty}
-                      </span>
+            {astrologer.profile?.specialties &&
+              astrologer.profile.specialties.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
+                      <Sparkles className="w-6 h-6 text-white" />
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Languages */}
-              {astrologer.profile?.languages && astrologer.profile.languages.length > 0 && (
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
-                      <Languages className="w-5 h-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800">Cosmic Languages</h3>
+                    <h3 className="text-2xl font-bold text-gray-800">
+                      Cosmic Specialties
+                    </h3>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {astrologer.profile.languages.map((lang, idx) => (
-                      <span
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {astrologer.profile.specialties.map((specialty, idx) => (
+                      <div
                         key={idx}
-                        className="px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-xl text-sm font-medium shadow-sm"
+                        className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 text-center group hover:from-purple-100 hover:to-pink-100 transition-all"
                       >
-                        {lang}
-                      </span>
+                        <span className="text-purple-700 font-semibold group-hover:text-purple-800">
+                          {specialty}
+                        </span>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Languages */}
+              {astrologer.profile?.languages &&
+                astrologer.profile.languages.length > 0 && (
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
+                        <Languages className="w-5 h-5 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-800">
+                        Cosmic Languages
+                      </h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {astrologer.profile.languages.map((lang, idx) => (
+                        <span
+                          key={idx}
+                          className="px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-xl text-sm font-medium shadow-sm"
+                        >
+                          {lang}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
               {/* Experience */}
               {astrologer.profile?.experience && (
@@ -463,7 +473,9 @@ const AstrologerDetail = () => {
                     <div className="p-2 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl">
                       <Award className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-800">Wisdom Journey</h3>
+                    <h3 className="text-xl font-bold text-gray-800">
+                      Wisdom Journey
+                    </h3>
                   </div>
                   <p className="text-gray-700 text-lg font-semibold">
                     {astrologer.profile.experience} years of cosmic guidance
@@ -471,7 +483,9 @@ const AstrologerDetail = () => {
                   <div className="mt-3 w-full bg-orange-200 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full"
-                      style={{ width: `${Math.min(astrologer.profile.experience * 10, 100)}%` }}
+                      style={{
+                        width: `${Math.min(astrologer.profile.experience * 10, 100)}%`,
+                      }}
                     ></div>
                   </div>
                 </div>
@@ -485,7 +499,9 @@ const AstrologerDetail = () => {
                   <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl">
                     <Heart className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800">Cosmic Message</h3>
+                  <h3 className="text-2xl font-bold text-gray-800">
+                    Cosmic Message
+                  </h3>
                 </div>
                 <p className="text-gray-700 leading-relaxed text-lg">
                   {astrologer.profile.bio}
