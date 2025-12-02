@@ -87,6 +87,9 @@ const AppLayout = ({ children }) => {
   // Hide mobile nav on astrologer dashboard
   const isAstrologerDashboard = location.pathname === '/astrologer-dashboard';
 
+  // Hide mobile nav on astrology dashboard
+  const isAstrologyDashboard = location.pathname === '/astrology';
+
   // Home page - mobile nav only
   if (isHomePage) {
     return (
@@ -122,6 +125,11 @@ const AppLayout = ({ children }) => {
 
   // Astrologer dashboard - no mobile nav
   if (isAstrologerDashboard) {
+    return <>{children}</>;
+  }
+
+  // Astrology dashboard - no mobile nav
+  if (isAstrologyDashboard) {
     return <>{children}</>;
   }
 
