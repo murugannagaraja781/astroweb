@@ -311,18 +311,21 @@ exports.getSessionHistory = async (req, res) => {
     // 2. User is the client
     // 3. User is the astrologer
     // 4. User has astrologer role and astrologerId is null (unassigned session)
+    // 5. User has client role and clientId matches (for their own sessions)
     const isAuthorized =
       req.user.role === 'admin' ||
       req.user.id === clientId ||
       req.user.id === astrologerId ||
-      (req.user.role === 'astrologer' && !astrologerId);
+      (req.user.role === 'astrologer' && !astrologerId) ||
+      (req.user.role === 'client' && req.user.id === clientId);
 
     if (!isAuthorized) {
-      console.log(`[DEBUG] Unauthorized access to session history. User: ${req.user.id}, Client: ${clientId}, Astrologer: ${astrologerId}`);
+      console.log(`[DEBUG] Unauthorized access to session history. User: ${req.user.id}, Role: ${req.user.role}, Client: ${clientId}, Astrologer: ${astrologerId}`);
       return res.status(403).json({
         msg: "Unauthorized",
         debug: {
           currentUserId: req.user.id,
+          currentUserRole: req.user.role,
           sessionClientId: clientId,
           sessionAstrologerId: astrologerId
         }
@@ -605,18 +608,21 @@ exports.getSessionInfo = async (req, res) => {
     // 2. User is the client
     // 3. User is the astrologer
     // 4. User has astrologer role and astrologerId is null (unassigned session)
+    // 5. User has client role and clientId matches (for their own sessions)
     const isAuthorized =
       req.user.role === 'admin' ||
       req.user.id === clientId ||
       req.user.id === astrologerId ||
-      (req.user.role === 'astrologer' && !astrologerId);
+      (req.user.role === 'astrologer' && !astrologerId) ||
+      (req.user.role === 'client' && req.user.id === clientId);
 
     if (!isAuthorized) {
-      console.log(`[DEBUG] Unauthorized access to session info. User: ${req.user.id}, Client: ${clientId}, Astrologer: ${astrologerId}`);
+      console.log(`[DEBUG] Unauthorized access to session info. User: ${req.user.id}, Role: ${req.user.role}, Client: ${clientId}, Astrologer: ${astrologerId}`);
       return res.status(403).json({
         msg: 'Unauthorized',
         debug: {
           currentUserId: req.user.id,
+          currentUserRole: req.user.role,
           sessionClientId: clientId,
           sessionAstrologerId: astrologerId
         }
