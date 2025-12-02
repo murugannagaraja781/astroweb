@@ -1,13 +1,9 @@
 const express = require("express");
 const router = express.Router();
 
-const {
-    initiatePhonePePayment,
-    phonePeCallback
-} = require("../controllers/phonePeController");
+const { initiatePhonePePayment } = require("../controllers/phonePeController");
 
-// NEVER PUT () after function name
+// FINAL FIXED ROUTE
 router.post("/initiate", initiatePhonePePayment);
-router.post("/callback", phonePeCallback);
 
 module.exports = router;
