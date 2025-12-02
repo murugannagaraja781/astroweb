@@ -26,6 +26,8 @@ const Chat = lazy(() => import('./pages/Chat'));
 const AstrologyDashboard = lazy(() => import('./pages/AstrologyDashboard'));
 const PhonePeTest = lazy(() => import('./pages/PhonePeTest'));
 const HealthTest = lazy(() => import('./pages/HealthTest'));
+const AstrologerListChat = lazy(() => import('./pages/AstrologerListChat'));
+const AstrologerListCalls = lazy(() => import('./pages/AstrologerListCalls'));
 
 // Loading component
 const LoadingFallback = () => (
@@ -82,6 +84,9 @@ const AppLayout = ({ children }) => {
   // Hide mobile nav on chat pages
   const isChatPage = location.pathname.startsWith('/chat/');
 
+  // Hide mobile nav on astrologer dashboard
+  const isAstrologerDashboard = location.pathname === '/astrologer-dashboard';
+
   // Home page - mobile nav only
   if (isHomePage) {
     return (
@@ -112,6 +117,11 @@ const AppLayout = ({ children }) => {
   }
 
   if (isChatPage) {
+    return <>{children}</>;
+  }
+
+  // Astrologer dashboard - no mobile nav
+  if (isAstrologerDashboard) {
     return <>{children}</>;
   }
 
@@ -152,6 +162,8 @@ function App() {
                   <Route path="/call/:id" element={<VideoCall />} />
                   <Route path="/chat/:id" element={<Chat />} />
                   <Route path="/astrology" element={<ProtectedAstrology />} />
+                  <Route path="/astrologers/chat" element={<AstrologerListChat />} />
+                  <Route path="/astrologers/calls" element={<AstrologerListCalls />} />
                   <Route path="/phonepe-test" element={<PhonePeTest />} />
                   <Route path="/health-test" element={<HealthTest />} />
                 </Routes>

@@ -28,8 +28,8 @@ const MobileNav = () => {
   const navItems = [
     { to: "/", icon: Home, label: "Home" },
     { to: getDashboardLink(), icon: LayoutDashboard, label: "Dash" },
-    { to: "/chat/0", icon: MessageCircle, label: "Chat" },
-    { to: "/call/0", icon: Video, label: "Call" },
+    { to: "/astrologers/chat", icon: MessageCircle, label: "Chat" },
+    { to: "/astrologers/calls", icon: Video, label: "Call" },
     { to: "/profile", icon: User, label: "Profile" },
   ];
 
