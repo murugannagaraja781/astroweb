@@ -28,21 +28,22 @@ const PhonePeTest = () => {
       setLoading(true);
       setTestResult(null);
 
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/payment/phonepe/initiate`,
-        {
-          amount: parseFloat(amount),
-          userId: 'TEST_USER_123',
-          userName: 'Test User',
-          mobileNumber: '9999999999'
-        },
-        {
-          headers: {
-            'x-auth-token': token
-          }
-        }
-      );
+    const token = localStorage.getItem('token');
+const res = await axios.post(
+  `${import.meta.env.VITE_API_URL}/api/payment/phonepe/initiate`,
+  {
+    amount: parseFloat(amount),
+    userId: 'TEST_USER_123',
+    userName: 'Test User',
+    mobileNumber: '9999999999'
+  },
+  {
+    headers: {
+      'x-auth-token': token
+    }
+  }
+);
+
 
       setTestResult(res.data);
 

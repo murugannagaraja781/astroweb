@@ -26,6 +26,7 @@ app.set("io", io);
 
 // Routes
 app.use("/api/chatcalldetails", require("./routes/chatCallDetailsRoutes"));
+app.use("/api/payment/phonepe", require("./routes/phonePeRoutes"));
 
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/otp", require("./routes/otpRoutes"));
@@ -36,7 +37,6 @@ app.use("/api/call", require("./routes/callRoutes"));
 app.use("/api/chat", require("./routes/chatRoutes")); // NEW: Chat routes
 app.use("/api/public", require("./routes/publicRoutes"));
 app.use("/api/horoscope", require("./routes/horoscopeRoutes"));
-app.use("/api/payment/phonepe", require("./routes/phonePeRoutes")); // PhonePe Payment Gateway
 // Agora token endpoint
 app.use("/api/agora", require("./routes/agoraRoutes"));
 

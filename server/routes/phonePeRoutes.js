@@ -1,15 +1,13 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { initiatePhonePePayment, phonePeCallback, testPhonePeConfig } = require('../controllers/phonePeController');
-const auth = require('../middleware/auth');
 
-// Test PhonePe configuration
-router.get('/test', testPhonePeConfig);
+const {
+    initiatePhonePePayment,
+    phonePeCallback
+} = require("../controllers/phonePeController");
 
-// Initiate payment
-router.post('/initiate', auth, initiatePhonePePayment);
-
-// Payment callback from PhonePe
-router.post('/callback', phonePeCallback);
+// NEVER PUT () after function name
+router.post("/initiate", initiatePhonePePayment);
+router.post("/callback", phonePeCallback);
 
 module.exports = router;

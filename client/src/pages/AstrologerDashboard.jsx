@@ -1,5 +1,5 @@
  // AstrologerDashboard.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Modal from "../components/Modal";
 import axios from "axios";
 import { io } from "socket.io-client";
@@ -18,6 +18,7 @@ import {
   Calendar,
   BarChart3,
   Bell,
+  X,
 } from "lucide-react";
 
 const AstrologerDashboard = () => {
@@ -32,12 +33,51 @@ const AstrologerDashboard = () => {
   const [pendingVideoCalls, setPendingVideoCalls] = useState([]);
   const [pendingAudioCalls, setPendingAudioCalls] = useState([]);
   const [socket, setSocket] = useState(null);
-  const [notifications, setNotifications] = useState(3);
+  const [notifications, setNotifications] = useState(0);
+  const [showIncomingPopup, setShowIncomingPopup] = useState(false);
+  const [incomingRequest, setIncomingRequest] = useState(null);
+  const [requestQueue, setRequestQueue] = useState([]);
+
+  const audioRef = useRef(null);
+  const notificationSoundRef = useRef(null);
   const navigate = useNavigate();
+
+  // Initialize notification sound
+ useEffect(() => {
+  const audio = new Audio("/notification.mp3");
+  audio.preload = "auto";
+  audio.volume = 1.0;
+  notificationSoundRef.current = audio;
+}, []);useEffect(() => {
+  window.testNotificationSound = () => {
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.play()
+        .then(() => console.log("Sound OK"))
+        .catch(err => console.log("Sound Blocked:", err));
+    } else {
+      console.log("Audio ref missing");
+    }
+  };
+}, []);
+
+
+useEffect(() => {
+  const unlock = () => {
+    const btn = document.getElementById("unlock-audio");
+    if (btn) btn.click();
+    window.removeEventListener("click", unlock);
+  };
+  window.addEventListener("click", unlock);
+}, []);
+
 
   // Initialize socket connection once
   useEffect(() => {
-    const newSocket = io(import.meta.env.VITE_API_URL);
+    const newSocket = io(import.meta.env.VITE_API_URL, {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+    });
 
     newSocket.on("connect", () => {
       console.log("[Astrologer] Socket connected:", newSocket.id);
@@ -62,54 +102,110 @@ const AstrologerDashboard = () => {
   useEffect(() => {
     if (!socket) return;
 
-    // Video call
     // Video call request
     socket.on("call:request", (data) => {
       console.log("Incoming call request:", data);
-      // Add to pending video calls list
-      setPendingVideoCalls((prev) => [
-        ...prev,
-        {
-          id: `${data.fromId}_${Date.now()}`,
-          fromId: data.fromId,
-          fromName: data.fromName,
-          fromSocketId: data.fromSocketId,
-          fromImage: data.fromImage,
-          timestamp: new Date()
-        }
-      ]);
+
+      const newVideoRequest = {
+        id: `${data.fromId}_${Date.now()}`,
+        type: "video",
+        fromId: data.fromId,
+        fromName: data.fromName || "Client",
+        fromSocketId: data.fromSocketId,
+        fromImage: data.fromImage,
+        timestamp: new Date(),
+        roomId: data.roomId,
+        status: "pending"
+      };
+
+      setPendingVideoCalls((prev) => [...prev, newVideoRequest]);
+
+      // Add to incoming popup queue
+      addToRequestQueue(newVideoRequest);
+
       setNotifications((n) => n + 1);
+      playNotificationSound();
     });
 
     // Chat request from client
     socket.on("chat:request", (payload) => {
       console.log("[Astrologer] Chat request received:", payload);
-      fetchPendingSessions();
+
+      const newChatRequest = {
+        id: payload.sessionId || `${payload.userId?._id}_${Date.now()}`,
+        type: "chat",
+        fromId: payload.userId?._id,
+        fromName: payload.userId?.name || "Client",
+        fromSocketId: payload.socketId,
+        sessionId: payload.sessionId,
+        timestamp: new Date(),
+        status: "pending"
+      };
+
+      // Add to pending sessions if not already there
+      setPendingSessions((prev) => {
+        const exists = prev.some(s => s.sessionId === payload.sessionId);
+        if (!exists) {
+          return [...prev, {
+            sessionId: payload.sessionId,
+            userId: payload.userId,
+            client: payload.userId,
+            createdAt: new Date(),
+            ...newChatRequest
+          }];
+        }
+        return prev;
+      });
+
+      // Add to incoming popup queue
+      addToRequestQueue(newChatRequest);
+
       setNotifications((n) => n + 1);
+      playNotificationSound();
     });
 
     // Audio call request
     socket.on("audio:request", (data) => {
       console.log("Incoming audio call request:", data);
-      setPendingAudioCalls((prev) => [
-        ...prev,
-        {
-          id: `${data.fromId}_${Date.now()}`,
-          fromId: data.fromId,
-          fromName: data.fromName,
-          fromSocketId: data.fromSocketId,
-          fromImage: data.fromImage,
-          timestamp: new Date()
-        }
-      ]);
+
+      const newAudioRequest = {
+        id: `${data.fromId}_${Date.now()}`,
+        type: "audio",
+        fromId: data.fromId,
+        fromName: data.fromName || "Client",
+        fromSocketId: data.fromSocketId,
+        fromImage: data.fromImage,
+        timestamp: new Date(),
+        roomId: data.roomId,
+        status: "pending"
+      };
+
+      setPendingAudioCalls((prev) => [...prev, newAudioRequest]);
+
+      // Add to incoming popup queue
+      addToRequestQueue(newAudioRequest);
+
       setNotifications((n) => n + 1);
+      playNotificationSound();
     });
 
     return () => {
-      socket.off("callUser");
+      socket.off("call:request");
       socket.off("chat:request");
+      socket.off("audio:request");
     };
   }, [socket]);
+useEffect(() => {
+  window.testNotificationSound = () => {
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.play()
+        .then(() => console.log("Sound played"))
+        .catch(err => console.log("Sound blocked:", err));
+    } else {
+      console.log("Audio ref not ready");
+    }
+  };
+}, []);
 
   useEffect(() => {
     if (profile?.userId && socket) {
@@ -118,6 +214,59 @@ const AstrologerDashboard = () => {
       fetchPendingSessions();
     }
   }, [profile?.userId, socket]);
+
+  // Play notification sound
+ // SUPER RELIABLE Notification Sound (works always when tab is open)
+ const playNotificationSound = () => {
+  const audio = notificationSoundRef.current;
+  if (!audio) return;
+
+  audio.pause();
+  audio.currentTime = 0;
+
+  audio.play()
+    .then(() => {
+      console.log("🔔 Sound played");
+    })
+    .catch(err => {
+      console.warn("⚠️ Sound blocked:", err);
+    });
+};
+
+
+
+  // Add request to queue and show popup
+  const addToRequestQueue = (request) => {
+    setRequestQueue((prev) => {
+      const newQueue = [...prev, request];
+
+      // If no popup is currently showing, show this one
+      if (!showIncomingPopup) {
+        setIncomingRequest(request);
+        setShowIncomingPopup(true);
+      }
+
+      return newQueue;
+    });
+  };
+
+  // Handle next request in queue
+  const handleNextRequest = () => {
+    setRequestQueue((prev) => {
+      const [, ...remaining] = prev;
+
+      if (remaining.length > 0) {
+        setIncomingRequest(remaining[0]);
+        setShowIncomingPopup(true);
+        playNotificationSound();
+      } else {
+        setShowIncomingPopup(false);
+        setIncomingRequest(null);
+      }
+
+      return remaining;
+    });
+  };
 
   const fetchProfile = async () => {
     try {
@@ -189,6 +338,95 @@ const AstrologerDashboard = () => {
     setIncomingCall(null);
   };
 
+  // Accept incoming request from popup
+  const acceptIncomingRequest = (request) => {
+    if (!socket) return;
+
+    // Stop notification sound
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.pause();
+      notificationSoundRef.current.currentTime = 0;
+    }
+
+    if (request.type === "chat") {
+      socket.emit("chat:accept", { sessionId: request.sessionId });
+      navigate(`/chat/${request.sessionId}`);
+    } else if (request.type === "video") {
+      const roomId = request.roomId || `video_${Date.now()}_${request.fromId}`;
+      socket.emit("call:accept", {
+        toSocketId: request.fromSocketId,
+        roomId
+      });
+      setActiveCallRoomId(roomId);
+      setActiveCallType("video");
+      setActiveCallPeerId(request.fromSocketId);
+      setActiveTab("calls");
+    } else if (request.type === "audio") {
+      const roomId = request.roomId || `audio_${Date.now()}_${request.fromId}`;
+      socket.emit("audio:accept", {
+        toSocketId: request.fromSocketId,
+        roomId
+      });
+      setActiveCallRoomId(roomId);
+      setActiveCallType("audio");
+      setActiveCallPeerId(request.fromSocketId);
+      setActiveTab("calls");
+    }
+
+    // Remove from pending lists
+    if (request.type === "chat") {
+      setPendingSessions(prev => prev.filter(s => s.sessionId !== request.sessionId));
+    } else if (request.type === "video") {
+      setPendingVideoCalls(prev => prev.filter(v => v.id !== request.id));
+    } else if (request.type === "audio") {
+      setPendingAudioCalls(prev => prev.filter(a => a.id !== request.id));
+    }
+
+    // Show next request in queue
+    handleNextRequest();
+  };
+
+  // Reject incoming request from popup
+  const rejectIncomingRequest = (request) => {
+    if (!socket) return;
+
+    // Stop notification sound
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.pause();
+      notificationSoundRef.current.currentTime = 0;
+    }
+
+    // Emit reject event
+    if (request.type === "chat") {
+      socket.emit("chat:reject", { sessionId: request.sessionId });
+    } else if (request.type === "video") {
+      socket.emit("call:reject", { toSocketId: request.fromSocketId });
+    } else if (request.type === "audio") {
+      socket.emit("audio:reject", { toSocketId: request.fromSocketId });
+    }
+
+    // Remove from pending lists
+    if (request.type === "chat") {
+      setPendingSessions(prev => prev.filter(s => s.sessionId !== request.sessionId));
+    } else if (request.type === "video") {
+      setPendingVideoCalls(prev => prev.filter(v => v.id !== request.id));
+    } else if (request.type === "audio") {
+      setPendingAudioCalls(prev => prev.filter(a => a.id !== request.id));
+    }
+
+    // Show next request in queue
+    handleNextRequest();
+  };
+
+  // Close popup without action
+  const closeIncomingPopup = () => {
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.pause();
+      notificationSoundRef.current.currentTime = 0;
+    }
+    handleNextRequest();
+  };
+
   const toggleStatus = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -230,7 +468,6 @@ const AstrologerDashboard = () => {
 
     try {
       const token = localStorage.getItem("token");
-      // whatever debug/cleanup you were doing
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/chat/debug/all`,
         { sessionId },
@@ -258,7 +495,7 @@ const AstrologerDashboard = () => {
       icon: MessageCircle,
       label: "Inbox",
       color: "from-purple-500 to-pink-500",
-      badge: pendingSessions.length + pendingVideoCalls.length,
+      badge: pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length,
     },
     {
       id: "calls",
@@ -317,7 +554,83 @@ const AstrologerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
-      {/* Incoming Call/Chat Modal */}
+      {/* Incoming Request Popup */}
+    { window.testNotificationSound()
+    }
+
+      {showIncomingPopup && incomingRequest && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-purple-700 via-pink-700 to-blue-700 text-white p-6 md:p-8 rounded-3xl shadow-2xl text-center max-w-md w-full animate-slideInUp border-2 border-white/30 relative">
+            {/* Close button */}
+            <button
+              onClick={closeIncomingPopup}
+              className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm animate-pulse">
+              <div className="text-3xl">
+                {incomingRequest.type === "chat" ? "💬" :
+                 incomingRequest.type === "video" ? "📹" : "🎙️"}
+              </div>
+            </div>
+
+            <h2 className="text-xl md:text-2xl font-bold mb-2">
+              Incoming {incomingRequest.type === "chat" ? "Chat" :
+                       incomingRequest.type === "video" ? "Video Call" : "Audio Call"}
+            </h2>
+
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center mr-3">
+                <User size={20} />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-lg">{incomingRequest.fromName}</p>
+                <p className="text-white/80 text-sm">
+                  {incomingRequest.type === "chat" ? "wants to chat with you" :
+                   incomingRequest.type === "video" ? "requesting video consultation" :
+                   "requesting audio consultation"}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-sm text-white/60 mb-6">
+              Requested just now
+              {requestQueue.length > 1 && (
+                <span className="ml-2 bg-white/20 px-2 py-1 rounded-full">
+                  +{requestQueue.length - 1} more in queue
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => rejectIncomingRequest(incomingRequest)}
+                className="flex-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-6 py-3 rounded-2xl font-bold transition-all transform hover:scale-105 shadow-lg flex items-center justify-center"
+              >
+                <span className="mr-2">❌</span>
+                Reject
+              </button>
+              <button
+                onClick={() => acceptIncomingRequest(incomingRequest)}
+                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-2xl font-bold transition-all transform hover:scale-105 shadow-lg flex items-center justify-center animate-pulse"
+              >
+                <span className="mr-2">
+                  {incomingRequest.type === "chat" ? "💬" : "📞"}
+                </span>
+                Accept {incomingRequest.type === "chat" ? "Chat" : "Call"}
+              </button>
+            </div>
+
+            <div className="mt-4 text-xs text-white/50">
+              Auto-decline in 30 seconds
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Old Incoming Call Modal (kept for backward compatibility) */}
       {incomingCall && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full animate-scale-in">
@@ -360,13 +673,19 @@ const AstrologerDashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Notification Bell with Count */}
               <div className="relative">
-                <Bell className="w-6 h-6" />
-                {notifications > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {notifications}
-                  </span>
-                )}
+                <button
+                  onClick={() => setActiveTab("inbox")}
+                  className="relative p-2 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <Bell className="w-6 h-6" />
+                  {(pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length) > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                      {pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length}
+                    </span>
+                  )}
+                </button>
               </div>
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                 <User className="w-5 h-5" />
@@ -386,6 +705,11 @@ const AstrologerDashboard = () => {
                 <span className="font-semibold">
                   {profile.isOnline ? "Online & Available" : "Offline & Meditating"}
                 </span>
+                {profile.isOnline && (
+                  <span className="text-xs bg-green-500/30 px-2 py-1 rounded-full">
+                    🔔 Incoming notifications enabled
+                  </span>
+                )}
               </div>
               <button
                 onClick={toggleStatus}
@@ -406,8 +730,8 @@ const AstrologerDashboard = () => {
       <div className="container mx-auto px-4 -mt-6 mb-6">
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
-            <div className="text-2xl font-bold text-purple-600">12</div>
-            <div className="text-xs text-gray-600">Today's Calls</div>
+            <div className="text-2xl font-bold text-purple-600">{pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length}</div>
+            <div className="text-xs text-gray-600">Pending Requests</div>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
             <div className="text-2xl font-bold text-green-600">₹2,847</div>
@@ -443,7 +767,7 @@ const AstrologerDashboard = () => {
                   {item.label}
                 </div>
                 {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
                     {item.badge}
                   </span>
                 )}
@@ -471,18 +795,24 @@ const AstrologerDashboard = () => {
                     Pending Requests
                   </h3>
                   {(pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length) > 0 && (
-                    <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full">
+                    <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full animate-pulse">
                       {pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length} New
                     </span>
                   )}
                 </div>
+
+                {/* Sound Controls */}
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>🔔</span>
+                  <span>Notifications enabled</span>
+                </div>
               </div>
 
               {/* Sub-tabs for Chat and Video */}
-              <div className="flex gap-2 mb-6 border-b border-gray-200">
+              <div className="flex gap-2 mb-6 border-b border-gray-200 overflow-x-auto">
                 <button
                   onClick={() => setInboxTab("chat")}
-                  className={`px-6 py-3 font-semibold transition-all ${
+                  className={`px-6 py-3 font-semibold transition-all whitespace-nowrap ${
                     inboxTab === "chat"
                       ? "text-purple-600 border-b-2 border-purple-600"
                       : "text-gray-500 hover:text-gray-700"
@@ -492,7 +822,7 @@ const AstrologerDashboard = () => {
                 </button>
                 <button
                   onClick={() => setInboxTab("video")}
-                  className={`px-6 py-3 font-semibold transition-all ${
+                  className={`px-6 py-3 font-semibold transition-all whitespace-nowrap ${
                     inboxTab === "video"
                       ? "text-green-600 border-b-2 border-green-600"
                       : "text-gray-500 hover:text-gray-700"
@@ -502,7 +832,7 @@ const AstrologerDashboard = () => {
                 </button>
                 <button
                   onClick={() => setInboxTab("audio")}
-                  className={`px-6 py-3 font-semibold transition-all ${
+                  className={`px-6 py-3 font-semibold transition-all whitespace-nowrap ${
                     inboxTab === "audio"
                       ? "text-blue-600 border-b-2 border-blue-600"
                       : "text-gray-500 hover:text-gray-700"
@@ -511,6 +841,21 @@ const AstrologerDashboard = () => {
                   🎙️ Audio Calls ({pendingAudioCalls.length})
                 </button>
               </div>
+<button
+  id="unlock-audio"
+  onClick={() => {
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.play().then(() => {
+        notificationSoundRef.current.pause();
+        notificationSoundRef.current.currentTime = 0;
+        console.log("🔓 Audio unlocked");
+      });
+    }
+  }}
+  className="hidden"
+>
+  Unlock Audio
+</button>
 
               {/* Chat Requests Tab */}
               {inboxTab === "chat" && (
@@ -640,7 +985,7 @@ const AstrologerDashboard = () => {
                                 <button
                                   onClick={() => {
                                     if (socket) {
-                                      const roomId = `video_${Date.now()}_${call.fromId}`;
+                                      const roomId = call.roomId || `video_${Date.now()}_${call.fromId}`;
                                       socket.emit("call:accept", {
                                         toSocketId: call.fromSocketId,
                                         roomId
@@ -722,7 +1067,7 @@ const AstrologerDashboard = () => {
                                 <button
                                   onClick={() => {
                                     if (socket) {
-                                      const roomId = `audio_${Date.now()}_${call.fromId}`;
+                                      const roomId = call.roomId || `audio_${Date.now()}_${call.fromId}`;
                                       socket.emit("audio:accept", {
                                         toSocketId: call.fromSocketId,
                                         roomId
@@ -757,7 +1102,7 @@ const AstrologerDashboard = () => {
                   <Phone className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-800">
-                  Video Call Studio
+                  {activeCallType === "video" ? "Video" : "Audio"} Call Studio
                 </h3>
               </div>
               {activeCallType === "video" ? (
@@ -781,7 +1126,7 @@ const AstrologerDashboard = () => {
       </div>
 
       {/* Bottom Navigation Bar (Mobile) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 md:hidden z-40">
         <div className="grid grid-cols-5 gap-2">
           {menuItems.slice(0, 5).map((item) => {
             const Icon = item.icon;
@@ -807,6 +1152,47 @@ const AstrologerDashboard = () => {
           })}
         </div>
       </div>
+
+      {/* Hidden audio element for notification sound */}
+ <audio ref={notificationSoundRef} src="/notification.mp3" preload="auto"></audio>
+
+
+      {/* Add custom CSS animations */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideInUp {
+          from {
+            transform: translateY(100px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        @keyframes scaleIn {
+          from {
+            transform: scale(0.8);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        .animate-slideInUp {
+          animation: slideInUp 0.4s ease-out;
+        }
+        .animate-scale-in {
+          animation: scaleIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
