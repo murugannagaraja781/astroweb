@@ -37,6 +37,7 @@ const AstrologerDashboard = () => {
   const [showIncomingPopup, setShowIncomingPopup] = useState(false);
   const [incomingRequest, setIncomingRequest] = useState(null);
   const [requestQueue, setRequestQueue] = useState([]);
+  const [showOfflinePopup, setShowOfflinePopup] = useState(false);
 
   const audioRef = useRef(null);
   const notificationSoundRef = useRef(null);
@@ -436,9 +437,19 @@ useEffect(() => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setProfile(res.data);
+      // Close offline popup if it was open
+      setShowOfflinePopup(false);
     } catch (err) {
       console.error("Error updating status:", err);
     }
+  };
+
+  const checkOnlineStatus = () => {
+    if (!profile?.isOnline) {
+      setShowOfflinePopup(true);
+      return false;
+    }
+    return true;
   };
 
   // ACCEPT CHAT FROM LIST
@@ -496,6 +507,7 @@ useEffect(() => {
       label: "Inbox",
       color: "from-purple-500 to-pink-500",
       badge: pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length,
+      requiresOnline: true, // NEW: Requires online status
     },
     {
       id: "calls",
@@ -503,6 +515,7 @@ useEffect(() => {
       label: "Calls",
       color: "from-green-500 to-emerald-500",
       badge: null,
+      requiresOnline: true, // NEW: Requires online status
     },
     {
       id: "earnings",
@@ -541,6 +554,14 @@ useEffect(() => {
     },
   ];
 
+  const handleTabChange = (tabId, requiresOnline) => {
+    if (requiresOnline && !profile?.isOnline) {
+      setShowOfflinePopup(true);
+      return;
+    }
+    setActiveTab(tabId);
+  };
+
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
@@ -554,6 +575,57 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
+      {/* Offline Status Popup */}
+      {showOfflinePopup && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-orange-600 via-red-600 to-pink-600 text-white p-6 md:p-8 rounded-3xl shadow-2xl text-center max-w-md w-full animate-slideInUp border-2 border-white/30 relative">
+            {/* Close button */}
+            <button
+              onClick={() => setShowOfflinePopup(false)}
+              className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+              <div className="text-4xl">🌙</div>
+            </div>
+
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+              You're Currently Offline
+            </h2>
+
+            <p className="text-white/90 mb-6 text-sm md:text-base">
+              To start receiving consultation requests from clients, you need to enable your online status.
+            </p>
+
+            <div className="bg-white/10 rounded-xl p-4 mb-6 border border-white/20">
+              <p className="text-sm text-white/80 mb-2">When you go online:</p>
+              <ul className="text-left text-sm space-y-1 text-white/90">
+                <li>✅ Receive chat, video, and audio call requests</li>
+                <li>✅ Appear in client's online astrologer list</li>
+                <li>✅ Start earning from consultations</li>
+              </ul>
+            </div>
+
+            <button
+              onClick={toggleStatus}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 mb-3"
+            >
+              <span>🌟</span>
+              <span>Enable Online Status</span>
+            </button>
+
+            <button
+              onClick={() => setShowOfflinePopup(false)}
+              className="text-white/70 hover:text-white text-sm transition-colors"
+            >
+              Maybe later
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Incoming Request Popup */}
     { window.testNotificationSound()
     }
@@ -753,7 +825,7 @@ useEffect(() => {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => handleTabChange(item.id, item.requiresOnline)}
                 className={`relative bg-white rounded-2xl p-4 shadow-lg text-center transition-all transform hover:scale-105 ${
                   activeTab === item.id ? "ring-2 ring-purple-500" : ""
                 }`}
