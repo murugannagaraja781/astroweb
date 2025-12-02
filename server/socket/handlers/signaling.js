@@ -142,19 +142,13 @@ module.exports = (io, socket) => {
     // Video call answer
     socket.on('call:answer', ({ toSocketId, answer }) => {
         console.log(`[Video Call] Answer from ${socket.id} to ${toSocketId}`);
-        io.to(toSocketId).emit('call:answer', {
-            fromSocketId: socket.id,
-            answer
-        });
+        io.to(toSocketId).emit('call:answer', { answer });
     });
 
     // Video call ICE candidate
     socket.on('call:candidate', ({ toSocketId, candidate }) => {
         console.log(`[Video Call] Candidate from ${socket.id} to ${toSocketId}`);
-        io.to(toSocketId).emit('call:candidate', {
-            fromSocketId: socket.id,
-            candidate
-        });
+        io.to(toSocketId).emit('call:candidate', { candidate });
     });
 
     // Video call end
@@ -178,19 +172,13 @@ module.exports = (io, socket) => {
     // Audio call answer
     socket.on('audio:answer', ({ toSocketId, answer }) => {
         console.log(`[Audio Call] Answer from ${socket.id} to ${toSocketId}`);
-        io.to(toSocketId).emit('audio:answer', {
-            fromSocketId: socket.id,
-            answer
-        });
+        io.to(toSocketId).emit('audio:answer', { answer });
     });
 
     // Audio call ICE candidate
     socket.on('audio:candidate', ({ toSocketId, candidate }) => {
         console.log(`[Audio Call] Candidate from ${socket.id} to ${toSocketId}`);
-        io.to(toSocketId).emit('audio:candidate', {
-            fromSocketId: socket.id,
-            candidate
-        });
+        io.to(toSocketId).emit('audio:candidate', { candidate });
     });
 
     // Audio call end
