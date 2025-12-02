@@ -129,6 +129,34 @@ module.exports = (io, socket) => {
         io.to(to).emit('webrtc_answer', { answer });
     });
 
+    // ===== NEW: Call Acceptance Handlers =====
+    socket.on('call:accept', ({ toSocketId, roomId }) => {
+        console.log(`[Video Call] Accepted by ${socket.id} for ${toSocketId}`);
+        io.to(toSocketId).emit('call:accepted', {
+            roomId,
+            fromSocketId: socket.id
+        });
+    });
+
+    socket.on('audio:accept', ({ toSocketId, roomId }) => {
+        console.log(`[Audio Call] Accepted by ${socket.id} for ${toSocketId}`);
+        io.to(toSocketId).emit('audio:accepted', {
+            roomId,
+            fromSocketId: socket.id
+        });
+    });
+
+    // Call Rejection Handlers
+    socket.on('call:reject', ({ toSocketId }) => {
+        console.log(`[Video Call] Rejected by ${socket.id} for ${toSocketId}`);
+        io.to(toSocketId).emit('call:rejected');
+    });
+
+    socket.on('audio:reject', ({ toSocketId }) => {
+        console.log(`[Audio Call] Rejected by ${socket.id} for ${toSocketId}`);
+        io.to(toSocketId).emit('audio:rejected');
+    });
+
     // ===== NEW: Video Call Handlers =====
     // Video call offer
     socket.on('call:offer', ({ toSocketId, offer }) => {

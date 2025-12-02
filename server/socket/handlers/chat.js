@@ -1,6 +1,7 @@
 const ChatMessage = require('../../models/ChatMessage');
 const ChatSession = require('../../models/ChatSession');
 const ChatCallDetails = require('../../models/ChatCallDetails');
+const User = require('../../models/User');
 const Wallet = require('../../models/Wallet');
 const presence = require('./presence');
 const onlineUsers = presence.onlineUsers;
@@ -173,7 +174,15 @@ module.exports = (io, socket) => {
             // Notify astrologer (optional, but good for UI updates if they are on dashboard)
             const astroSock = onlineUsers.get(String(astrologerId));
             if (astroSock) {
-                io.to(astroSock).emit('chat:request', { sessionId: sid, clientId, astrologerId });
+                // Fetch user details to send to astrologer
+                const user = await User.findById(clientId).select('name _id avatar');
+                io.to(astroSock).emit('chat:request', {
+                    sessionId: sid,
+                    userId: user, // Send full user object as userId to match client expectation
+                    clientId,
+                    astrologerId,
+                    socketId: socket.id
+                });
             }
 
             socket.emit('chat:requested', { sessionId: sid });

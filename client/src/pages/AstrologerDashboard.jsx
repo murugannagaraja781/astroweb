@@ -240,34 +240,26 @@ useEffect(() => {
 
 
   // Add request to queue and show popup
+  // Add request to queue
   const addToRequestQueue = (request) => {
-    setRequestQueue((prev) => {
-      const newQueue = [...prev, request];
-
-      // If no popup is currently showing, show this one
-      if (!showIncomingPopup) {
-        setIncomingRequest(request);
-        setShowIncomingPopup(true);
-      }
-
-      return newQueue;
-    });
+    setRequestQueue((prev) => [...prev, request]);
   };
+
+  // Process queue: Show popup if queue has items and no popup is showing
+  useEffect(() => {
+    if (!showIncomingPopup && requestQueue.length > 0) {
+      setIncomingRequest(requestQueue[0]);
+      setShowIncomingPopup(true);
+      playNotificationSound();
+    }
+  }, [requestQueue, showIncomingPopup]);
 
   // Handle next request in queue
   const handleNextRequest = () => {
+    setShowIncomingPopup(false);
+    setIncomingRequest(null);
     setRequestQueue((prev) => {
       const [, ...remaining] = prev;
-
-      if (remaining.length > 0) {
-        setIncomingRequest(remaining[0]);
-        setShowIncomingPopup(true);
-        playNotificationSound();
-      } else {
-        setShowIncomingPopup(false);
-        setIncomingRequest(null);
-      }
-
       return remaining;
     });
   };
