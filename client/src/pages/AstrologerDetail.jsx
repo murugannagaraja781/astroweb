@@ -41,18 +41,45 @@ const AstrologerDetail = () => {
   const [lastSessionId, setLastSessionId] = useState(null);
 
   // Initialize socket connection
+  // useEffect(() => {
+  //   if (!user?.name) return;
+
+  //   const newSocket = io(import.meta.env.VITE_API_URL, {
+  //     query: { username: user.name }
+  //   });
+  //   setSocket(newSocket);
+
+  //   return () => {
+  //     newSocket.disconnect();
+  //   };
+  // }, [user?.name]);
   useEffect(() => {
-    if (!user?.name) return;
+  if (!user?.name) return;
 
-    const newSocket = io(import.meta.env.VITE_API_URL, {
-      query: { username: user.name }
-    });
-    setSocket(newSocket);
+  const newSocket = io(import.meta.env.VITE_API_URL, {
+    query: { username: user.name }
+  });
+  setSocket(newSocket);
 
-    return () => {
-      newSocket.disconnect();
-    };
-  }, [user?.name]);
+  // ADD THIS 🚨🚨🚨
+  newSocket.on("chat:accepted", ({ sessionId }) => {
+    console.log("Chat accepted → redirecting...", sessionId);
+    navigate(`/chat/${sessionId}`);
+  });
+
+  newSocket.on("chat:rejected", () => {
+    alert("Astrologer rejected your chat request");
+    setWaiting(false);
+    setShowPendingPopup(false);
+  });
+
+  return () => {
+    newSocket.off("chat:accepted");
+    newSocket.off("chat:rejected");
+    newSocket.disconnect();
+  };
+}, [user?.name]);
+
 
   useEffect(() => {
     fetchAstrologer();
