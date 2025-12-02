@@ -76,6 +76,16 @@ const Chat = () => {
     fetchChat();
     fetchSessionInfo();
 
+    // Poll session status every 2 seconds until it becomes active
+    const statusPoll = setInterval(() => {
+      fetchSessionInfo();
+    }, 2000);
+
+    // Stop polling after 30 seconds
+    setTimeout(() => {
+      clearInterval(statusPoll);
+    }, 30000);
+
     // Socket Error Handling
     socket.on("connect_error", (err) => {
       setError(`Connection error: ${err.message}. Please refresh the page.`);
@@ -97,6 +107,7 @@ const Chat = () => {
     });
 
     return () => {
+      clearInterval(statusPoll);
       socket.off("connect_error");
       socket.off("disconnect");
       socket.off("reconnect");
@@ -191,6 +202,13 @@ const Chat = () => {
   }, [id, fetchChat, fetchSessionInfo]);
 
   useEffect(scrollToBottom, [conversation]);
+
+  // Stop polling when session becomes active
+  useEffect(() => {
+    if (sessionInfo?.status === 'active') {
+      console.log('[Chat] Session is now active, UI should update');
+    }
+  }, [sessionInfo?.status]);
 
   // Session timer
   useEffect(() => {
