@@ -306,11 +306,18 @@ exports.getSessionHistory = async (req, res) => {
     const clientId = s.clientId ? s.clientId.toString() : null;
     const astrologerId = s.astrologerId ? s.astrologerId.toString() : null;
 
-    if (
-      req.user.role !== 'admin' &&
-      req.user.id !== clientId &&
-      req.user.id !== astrologerId
-    ) {
+    // Allow access if:
+    // 1. User is admin
+    // 2. User is the client
+    // 3. User is the astrologer
+    // 4. User has astrologer role and astrologerId is null (unassigned session)
+    const isAuthorized =
+      req.user.role === 'admin' ||
+      req.user.id === clientId ||
+      req.user.id === astrologerId ||
+      (req.user.role === 'astrologer' && !astrologerId);
+
+    if (!isAuthorized) {
       console.log(`[DEBUG] Unauthorized access to session history. User: ${req.user.id}, Client: ${clientId}, Astrologer: ${astrologerId}`);
       return res.status(403).json({
         msg: "Unauthorized",
@@ -359,12 +366,16 @@ exports.getPendingSessions = async (req, res) => {
 
     // For astrologers, show ALL pending/active sessions (not just their own)
     // This handles cases where astrologer IDs might not match exactly
+    // Only show sessions from the last 24 hours to avoid clutter
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
     const sessions = await ChatSession.find({
-      status: { $in: ["requested", "active"] }
+      status: { $in: ["requested", "active"] },
+      createdAt: { $gte: twentyFourHoursAgo }
     })
       .sort({ createdAt: -1 })
       .lean();
-    console.log(`[DEBUG] Found ${sessions.length} pending sessions (all astrologers)`);
+    console.log(`[DEBUG] Found ${sessions.length} pending sessions (last 24 hours)`);
     const userIds = Array.from(
       new Set(
         sessions.flatMap((s) => [
@@ -589,11 +600,18 @@ exports.getSessionInfo = async (req, res) => {
     const clientId = session.clientId ? session.clientId._id.toString() : null;
     const astrologerId = session.astrologerId ? session.astrologerId._id.toString() : null;
 
-    if (
-      req.user.role !== 'admin' &&
-      req.user.id !== clientId &&
-      req.user.id !== astrologerId
-    ) {
+    // Allow access if:
+    // 1. User is admin
+    // 2. User is the client
+    // 3. User is the astrologer
+    // 4. User has astrologer role and astrologerId is null (unassigned session)
+    const isAuthorized =
+      req.user.role === 'admin' ||
+      req.user.id === clientId ||
+      req.user.id === astrologerId ||
+      (req.user.role === 'astrologer' && !astrologerId);
+
+    if (!isAuthorized) {
       console.log(`[DEBUG] Unauthorized access to session info. User: ${req.user.id}, Client: ${clientId}, Astrologer: ${astrologerId}`);
       return res.status(403).json({
         msg: 'Unauthorized',
