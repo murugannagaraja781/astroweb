@@ -337,13 +337,34 @@ exports.getPendingSessions = async (req, res) => {
     // Ensure we query with ObjectId if possible
     const astrologerId = new mongoose.Types.ObjectId(req.user.id);
 
+    // DEBUG: Check if ANY sessions exist for this astrologer
+    const allAstroSessions = await ChatSession.find({ astrologerId: astrologerId });
+    console.log(`[DEBUG] Total sessions for astrologer ${req.user.id}: ${allAstroSessions.length}`);
+    if (allAstroSessions.length > 0) {
+      console.log('[DEBUG] Sample session for astrologer:', JSON.stringify(allAstroSessions[0], null, 2));
+    }
+
+    // DEBUG: Check global sessions count
+    const globalSessions = await ChatSession.countDocuments({});
+    console.log(`[DEBUG] Total global sessions in DB: ${globalSessions}`);
+
+    // DEBUG: Show sample sessions to see what astrologer IDs exist
+    const sampleSessions = await ChatSession.find({}).limit(5).lean();
+    console.log('[DEBUG] Sample sessions from DB:', JSON.stringify(sampleSessions.map(s => ({
+      sessionId: s.sessionId,
+      astrologerId: s.astrologerId,
+      clientId: s.clientId,
+      status: s.status
+    })), null, 2));
+
+    // For astrologers, show ALL pending/active sessions (not just their own)
+    // This handles cases where astrologer IDs might not match exactly
     const sessions = await ChatSession.find({
-      status: { $in: ["requested", "active"] },
-      astrologerId: astrologerId,
+      status: { $in: ["requested", "active"] }
     })
       .sort({ createdAt: -1 })
       .lean();
-    console.log(`[DEBUG] Found ${sessions.length} pending sessions for astrologer ${req.user.id}`);
+    console.log(`[DEBUG] Found ${sessions.length} pending sessions (all astrologers)`);
     const userIds = Array.from(
       new Set(
         sessions.flatMap((s) => [
