@@ -307,11 +307,19 @@ exports.getSessionHistory = async (req, res) => {
     const astrologerId = s.astrologerId ? s.astrologerId.toString() : null;
 
     if (
+      req.user.role !== 'admin' &&
       req.user.id !== clientId &&
       req.user.id !== astrologerId
     ) {
       console.log(`[DEBUG] Unauthorized access to session history. User: ${req.user.id}, Client: ${clientId}, Astrologer: ${astrologerId}`);
-      return res.status(403).json({ msg: "Unauthorized" });
+      return res.status(403).json({
+        msg: "Unauthorized",
+        debug: {
+          currentUserId: req.user.id,
+          sessionClientId: clientId,
+          sessionAstrologerId: astrologerId
+        }
+      });
     }
     const messages = await ChatMessage.find({ sessionId }).sort({
       timestamp: 1,
@@ -561,11 +569,19 @@ exports.getSessionInfo = async (req, res) => {
     const astrologerId = session.astrologerId ? session.astrologerId._id.toString() : null;
 
     if (
+      req.user.role !== 'admin' &&
       req.user.id !== clientId &&
       req.user.id !== astrologerId
     ) {
       console.log(`[DEBUG] Unauthorized access to session info. User: ${req.user.id}, Client: ${clientId}, Astrologer: ${astrologerId}`);
-      return res.status(403).json({ msg: 'Unauthorized' });
+      return res.status(403).json({
+        msg: 'Unauthorized',
+        debug: {
+          currentUserId: req.user.id,
+          sessionClientId: clientId,
+          sessionAstrologerId: astrologerId
+        }
+      });
     }
 
     res.json({
