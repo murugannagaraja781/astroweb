@@ -128,4 +128,76 @@ module.exports = (io, socket) => {
         const { to, answer } = data;
         io.to(to).emit('webrtc_answer', { answer });
     });
+
+    // ===== NEW: Video Call Handlers =====
+    // Video call offer
+    socket.on('call:offer', ({ toSocketId, offer }) => {
+        console.log(`[Video Call] Offer from ${socket.id} to ${toSocketId}`);
+        io.to(toSocketId).emit('call:offer', {
+            fromSocketId: socket.id,
+            offer
+        });
+    });
+
+    // Video call answer
+    socket.on('call:answer', ({ toSocketId, answer }) => {
+        console.log(`[Video Call] Answer from ${socket.id} to ${toSocketId}`);
+        io.to(toSocketId).emit('call:answer', {
+            fromSocketId: socket.id,
+            answer
+        });
+    });
+
+    // Video call ICE candidate
+    socket.on('call:candidate', ({ toSocketId, candidate }) => {
+        console.log(`[Video Call] Candidate from ${socket.id} to ${toSocketId}`);
+        io.to(toSocketId).emit('call:candidate', {
+            fromSocketId: socket.id,
+            candidate
+        });
+    });
+
+    // Video call end
+    socket.on('call:end', ({ toSocketId }) => {
+        console.log(`[Video Call] End from ${socket.id} to ${toSocketId}`);
+        io.to(toSocketId).emit('call:end', {
+            fromSocketId: socket.id
+        });
+    });
+
+    // ===== NEW: Audio Call Handlers =====
+    // Audio call offer
+    socket.on('audio:offer', ({ toSocketId, offer }) => {
+        console.log(`[Audio Call] Offer from ${socket.id} to ${toSocketId}`);
+        io.to(toSocketId).emit('audio:offer', {
+            fromSocketId: socket.id,
+            offer
+        });
+    });
+
+    // Audio call answer
+    socket.on('audio:answer', ({ toSocketId, answer }) => {
+        console.log(`[Audio Call] Answer from ${socket.id} to ${toSocketId}`);
+        io.to(toSocketId).emit('audio:answer', {
+            fromSocketId: socket.id,
+            answer
+        });
+    });
+
+    // Audio call ICE candidate
+    socket.on('audio:candidate', ({ toSocketId, candidate }) => {
+        console.log(`[Audio Call] Candidate from ${socket.id} to ${toSocketId}`);
+        io.to(toSocketId).emit('audio:candidate', {
+            fromSocketId: socket.id,
+            candidate
+        });
+    });
+
+    // Audio call end
+    socket.on('audio:end', ({ toSocketId }) => {
+        console.log(`[Audio Call] End from ${socket.id} to ${toSocketId}`);
+        io.to(toSocketId).emit('audio:end', {
+            fromSocketId: socket.id
+        });
+    });
 };
