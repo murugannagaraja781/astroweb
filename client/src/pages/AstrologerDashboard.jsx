@@ -451,7 +451,23 @@ const AstrologerDashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {pendingSessions.map((session) => (
+                  {pendingSessions.map((session) => {
+                    // Calculate time ago
+                    const timeAgo = () => {
+                      const now = new Date();
+                      const created = new Date(session.createdAt);
+                      const diffMs = now - created;
+                      const diffMins = Math.floor(diffMs / 60000);
+                      const diffHours = Math.floor(diffMins / 60);
+                      const diffDays = Math.floor(diffHours / 24);
+
+                      if (diffDays > 0) return `${diffDays}d ago`;
+                      if (diffHours > 0) return `${diffHours}h ago`;
+                      if (diffMins > 0) return `${diffMins}m ago`;
+                      return 'Just now';
+                    };
+
+                    return (
                     <div
                       key={session.sessionId}
                       className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-6"
@@ -463,6 +479,9 @@ const AstrologerDashboard = () => {
                           </p>
                           <p className="text-sm text-gray-600">
                             Waiting for your cosmic guidance...
+                          </p>
+                          <p className="text-xs text-purple-600 mt-1">
+                            Requested {timeAgo()}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -481,7 +500,7 @@ const AstrologerDashboard = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>

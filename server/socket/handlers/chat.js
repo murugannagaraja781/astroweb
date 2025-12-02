@@ -191,8 +191,25 @@ module.exports = (io, socket) => {
     socket.on('chat:accept', async (payload) => {
         try {
             const { sessionId } = payload;
+            console.log(`[DEBUG] Astrologer accepting chat session: ${sessionId}`);
+
+            // Get session to find client
+            const session = await ChatSession.findOne({ sessionId });
+            if (session && session.clientId) {
+                // Notify the client that their request was accepted
+                const clientSocketId = onlineUsers.get(session.clientId.toString());
+                if (clientSocketId) {
+                    io.to(clientSocketId).emit('chat:accepted_by_astrologer', {
+                        sessionId,
+                        message: 'Your chat request has been accepted!'
+                    });
+                    console.log(`[DEBUG] Notified client ${session.clientId} that chat was accepted`);
+                }
+            }
+
             await startChatSession(io, sessionId);
         } catch (err) {
+            console.error('[ERROR] chat:accept failed:', err);
             socket.emit('chat:error', { error: 'accept_failed' });
         }
     });

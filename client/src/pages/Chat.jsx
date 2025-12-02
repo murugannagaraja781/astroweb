@@ -186,6 +186,12 @@ const Chat = () => {
       fetchSessionInfo(); // Refresh session info to get updated status
     });
 
+    // Listen for when astrologer accepts (client-side notification)
+    socket.on("chat:accepted_by_astrologer", (data) => {
+      console.log("[Chat] Astrologer accepted your request:", data);
+      fetchSessionInfo(); // Refresh session info immediately
+    });
+
     // Listen for chat started
     socket.on("chat:started", (data) => {
       console.log("[Chat] Chat started:", data);
@@ -197,6 +203,7 @@ const Chat = () => {
       socket.off("chat:typing");
       socket.off("chat:session_info");
       socket.off("chat:accepted");
+      socket.off("chat:accepted_by_astrologer");
       socket.off("chat:started");
     };
   }, [id, fetchChat, fetchSessionInfo]);
