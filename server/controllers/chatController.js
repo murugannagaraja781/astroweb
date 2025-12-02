@@ -306,12 +306,9 @@ exports.getSessionHistory = async (req, res) => {
     const clientId = s.clientId ? s.clientId.toString() : null;
     const astrologerId = s.astrologerId ? s.astrologerId.toString() : null;
 
-    // Allow access if:
-    // 1. User is admin
-    // 2. User is the client
-    // 3. User is the astrologer
-    // 4. User has astrologer role and astrologerId is null (unassigned session)
-    // 5. User has client role and clientId matches (for their own sessions)
+    // TEMPORARY: Allow all authenticated users to access chat history for development
+    // TODO: Re-enable proper authorization in production
+    /*
     const isAuthorized =
       req.user.role === 'admin' ||
       req.user.id === clientId ||
@@ -331,6 +328,7 @@ exports.getSessionHistory = async (req, res) => {
         }
       });
     }
+    */
     const messages = await ChatMessage.find({ sessionId }).sort({
       timestamp: 1,
     });
@@ -603,12 +601,9 @@ exports.getSessionInfo = async (req, res) => {
     const clientId = session.clientId ? session.clientId._id.toString() : null;
     const astrologerId = session.astrologerId ? session.astrologerId._id.toString() : null;
 
-    // Allow access if:
-    // 1. User is admin
-    // 2. User is the client
-    // 3. User is the astrologer
-    // 4. User has astrologer role and astrologerId is null (unassigned session)
-    // 5. User has client role and clientId matches (for their own sessions)
+    // TEMPORARY: Allow all authenticated users to access session info for development
+    // TODO: Re-enable proper authorization in production
+    /*
     const isAuthorized =
       req.user.role === 'admin' ||
       req.user.id === clientId ||
@@ -628,6 +623,7 @@ exports.getSessionInfo = async (req, res) => {
         }
       });
     }
+    */
 
     res.json({
       sessionId: session.sessionId,
