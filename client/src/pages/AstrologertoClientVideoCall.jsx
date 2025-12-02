@@ -1,205 +1,219 @@
- // AstrologertoClientVideoCall.jsx
+// AstrologertoClientVideoCall.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import { FiVideo, FiVideoOff, FiMic, FiMicOff, FiPhone } from "react-icons/fi";
 
-const SIGNALING_SERVER =
-  import.meta.env.VITE_SIGNALING_SERVER ||
-  "https://astroweb-production.up.railway.app";
+const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVER || "https://astroweb-production.up.railway.app";
 
 const ICE_SERVERS = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    ...(import.meta.env.VITE_TURN_URL ? [{
+        urls: import.meta.env.VITE_TURN_URL,
+        username: import.meta.env.VITE_TURN_USERNAME,
+        credential: import.meta.env.VITE_TURN_CREDENTIAL,
+    }] : []),
+  ],
 };
 
-export default function AstrologertoClientVideoCall() {
+export default function AstrologertoClientVideoCall({ roomId, socket: propSocket, astrologerId, peerSocketId }) {
   const localRef = useRef(null);
   const remoteRef = useRef(null);
   const socket = useRef(null);
   const pc = useRef(null);
   const localStream = useRef(null);
 
-  const [clientSocketId, setClientSocketId] = useState(null);
-  const [waitingForAnswer, setWaitingForAnswer] = useState(false);
-  const [inCall, setInCall] = useState(false);
+  const [callStatus, setCallStatus] = useState("initializing");
+  const [isLocalVideoEnabled, setIsLocalVideoEnabled] = useState(true);
+  const [isLocalAudioEnabled, setIsLocalAudioEnabled] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAIOption, setShowAIOption] = useState(false);
 
   useEffect(() => {
-    socket.current = io(SIGNALING_SERVER);
+    console.log("[VideoCall] Props:", { roomId, peerSocketId, hasSocket: !!propSocket });
 
-    // Someone (client) connects → astrologer needs their socket id
-    socket.current.on("connect", () => {
-      console.log("Astrologer connected:", socket.current.id);
-    });
-
-    // When client joins astrologer room in UI → this event triggers
-    socket.current.on("peer:joined", ({ socketId }) => {
-      console.log("Client joined:", socketId);
-      setClientSocketId(socketId);
-    });
-
-    socket.current.on("video:call_accepted", handleCallAccepted);
-    socket.current.on("video:call_rejected", handleCallRejected);
-    socket.current.on("call:answer", handleAnswer);
-    socket.current.on("call:candidate", handleCandidate);
-    socket.current.on("call:end", () => cleanup());
-
-    return () => cleanup();
-  }, []);
-
-  // Setup Local Media
-  const setupLocal = async () => {
-    if (localStream.current) return;
-
-    localStream.current = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-
-    localRef.current.srcObject = localStream.current;
-  };
-
-  // Send call request to client
-  const startCall = async () => {
-    if (!clientSocketId) {
-      alert("Client not connected yet");
+    if (!roomId || !peerSocketId) {
+      console.error("[VideoCall] Missing required props:", { roomId, peerSocketId });
+      setError("Missing connection information. Please try again.");
       return;
     }
 
-    await setupLocal();
-
-    socket.current.emit("video:call_request", {
-      to: clientSocketId,
-    });
-
-    setWaitingForAnswer(true);
-  };
-
-  // When client accepts → astrologer creates offer
-  const handleCallAccepted = async () => {
-    setWaitingForAnswer(false);
-
-    pc.current = new RTCPeerConnection(ICE_SERVERS);
-
-    // Add media tracks
-    localStream.current.getTracks().forEach((track) =>
-      pc.current.addTrack(track, localStream.current)
-    );
-
-    pc.current.ontrack = (e) => {
-      remoteRef.current.srcObject = e.streams[0];
-      setInCall(true);
-    };
-
-    pc.current.onicecandidate = (e) => {
-      if (e.candidate) {
-        socket.current.emit("call:candidate", {
-          to: clientSocketId,
-          candidate: e.candidate,
-        });
-      }
-    };
-
-    // Create offer
-    const offer = await pc.current.createOffer();
-    await pc.current.setLocalDescription(offer);
-
-    socket.current.emit("call:offer", {
-      to: clientSocketId,
-      offer,
-    });
-  };
-
-  // When client rejects
-  const handleCallRejected = () => {
-    setWaitingForAnswer(false);
-    alert("Client rejected the call");
-  };
-
-  // When astrologer receives the client's answer
-  const handleAnswer = async ({ answer }) => {
-    if (!pc.current) return;
-
-    await pc.current.setRemoteDescription(answer);
-    setInCall(true);
-  };
-
-  // Handle ICE candidate from client
-  const handleCandidate = async ({ candidate }) => {
-    if (!pc.current) return;
-    await pc.current.addIceCandidate(candidate);
-  };
-
-  // End call
-  const endCall = () => {
-    socket.current.emit("call:end", { to: clientSocketId });
-    cleanup();
-  };
-
-  // Cleanup function
-  const cleanup = () => {
-    try {
-      pc.current?.close();
-    } catch {}
-    pc.current = null;
-
-    if (localStream.current) {
-      localStream.current.getTracks().forEach((t) => t.stop());
+    if (propSocket) {
+        console.log("[VideoCall] Using provided socket");
+        socket.current = propSocket;
+    } else {
+        console.log("[VideoCall] Creating new socket connection");
+        socket.current = io(SIGNALING_SERVER);
     }
 
-    setInCall(false);
-    setWaitingForAnswer(false);
+    const initCall = async () => {
+        try {
+            console.log("[VideoCall] Requesting media access...");
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localStream.current = stream;
+            if (localRef.current) localRef.current.srcObject = stream;
+            console.log("[VideoCall] Media access granted");
+
+            pc.current = new RTCPeerConnection(ICE_SERVERS);
+            console.log("[VideoCall] RTCPeerConnection created");
+
+            stream.getTracks().forEach(track => pc.current.addTrack(track, stream));
+
+            pc.current.onicecandidate = (event) => {
+                if (event.candidate) {
+                    console.log("[VideoCall] Sending ICE candidate to:", peerSocketId);
+                    socket.current.emit("call:candidate", {
+                        toSocketId: peerSocketId,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            pc.current.ontrack = (event) => {
+                console.log("[VideoCall] Received remote track");
+                if (remoteRef.current) remoteRef.current.srcObject = event.streams[0];
+            };
+
+            pc.current.onconnectionstatechange = () => {
+                console.log("[VideoCall] Connection state:", pc.current.connectionState);
+                if (pc.current.connectionState === 'connected') {
+                    setCallStatus("connected");
+                }
+            };
+
+            const offer = await pc.current.createOffer();
+            await pc.current.setLocalDescription(offer);
+            console.log("[VideoCall] Sending offer to:", peerSocketId);
+
+            socket.current.emit("call:offer", {
+                toSocketId: peerSocketId,
+                offer
+            });
+            setCallStatus("calling");
+
+        } catch (err) {
+            console.error("[VideoCall] Error initializing call:", err);
+            setError("Failed to access camera/microphone: " + err.message);
+        }
+    };
+
+    initCall();
+
+    const handleAnswer = async ({ answer }) => {
+        if (pc.current) {
+            await pc.current.setRemoteDescription(new RTCSessionDescription(answer));
+        }
+    };
+
+    const handleCandidate = async ({ candidate }) => {
+        if (pc.current) {
+            await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+    };
+
+    const handleEnd = () => {
+        setCallStatus("ended");
+        setShowAIOption(true);
+        cleanup();
+    };
+
+    socket.current.on("call:answer", handleAnswer);
+    socket.current.on("call:candidate", handleCandidate);
+    socket.current.on("call:end", handleEnd);
+
+    return () => {
+        cleanup();
+        socket.current.off("call:answer");
+        socket.current.off("call:candidate");
+        socket.current.off("call:end");
+    };
+  }, [roomId, peerSocketId]);
+
+  const cleanup = () => {
+      if (localStream.current) {
+          localStream.current.getTracks().forEach(track => track.stop());
+      }
+      if (pc.current) pc.current.close();
+  };
+
+  const toggleVideo = () => {
+      if (localStream.current) {
+          const track = localStream.current.getVideoTracks()[0];
+          track.enabled = !track.enabled;
+          setIsLocalVideoEnabled(track.enabled);
+      }
+  };
+
+  const toggleAudio = () => {
+      if (localStream.current) {
+          const track = localStream.current.getAudioTracks()[0];
+          track.enabled = !track.enabled;
+          setIsLocalAudioEnabled(track.enabled);
+      }
+  };
+
+  const endCall = () => {
+      if (socket.current) {
+          socket.current.emit("call:end", { toSocketId: peerSocketId });
+      }
+      setCallStatus("ended");
+      setShowAIOption(true);
+      cleanup();
   };
 
   return (
-    <div className="p-4 text-center text-white">
-      <h2 className="text-xl mb-4">Astrologer Video Call</h2>
+    <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white p-4 rounded-xl">
+        <h2 className="text-xl mb-4">Video Call</h2>
+        {error && <div className="text-red-500 mb-4">{error}</div>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
+            <div className="relative bg-gray-800 rounded-lg overflow-hidden aspect-video">
+                <video ref={localRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                <div className="absolute bottom-2 left-2 bg-black/50 px-2 py-1 rounded text-sm">You</div>
+            </div>
+            <div className="relative bg-gray-800 rounded-lg overflow-hidden aspect-video">
+                <video ref={remoteRef} autoPlay playsInline className="w-full h-full object-cover" />
+                <div className="absolute bottom-2 left-2 bg-black/50 px-2 py-1 rounded text-sm">Astrologer</div>
+                {callStatus !== "connected" && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                        <span className="animate-pulse">{callStatus === "calling" ? "Calling..." : "Connecting..."}</span>
+                    </div>
+                )}
+            </div>
+        </div>
 
-      {!clientSocketId && (
-        <p className="text-yellow-400">Waiting for client to join…</p>
-      )}
+        {showAIOption && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-50 rounded-xl backdrop-blur-sm">
+                <h3 className="text-2xl mb-4 text-purple-300 font-bold">Call Ended</h3>
+                <p className="mb-8 text-gray-300 text-center max-w-md">
+                    The stars are still aligned! Continue your cosmic journey with our AI Astrologer.
+                </p>
+                <button
+                    onClick={() => alert("Redirecting to AI Astrologer...")}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg mb-4"
+                >
+                    ✨ Talk to AI Astrologer
+                </button>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="text-gray-400 hover:text-white transition-colors"
+                >
+                    Close
+                </button>
+            </div>
+        )}
 
-      {clientSocketId && !inCall && !waitingForAnswer && (
-        <button
-          onClick={startCall}
-          className="bg-green-600 px-4 py-2 rounded-md"
-        >
-          Start Call
-        </button>
-      )}
-
-      {waitingForAnswer && (
-        <p className="mt-4 text-blue-300">📞 Calling client… waiting…</p>
-      )}
-
-      {/* Local Video */}
-      <div className="mt-4">
-        <h4>You</h4>
-        <video
-          ref={localRef}
-          autoPlay
-          muted
-          playsInline
-          className="w-64 bg-black rounded-md"
-        />
-      </div>
-
-      {/* Remote Video */}
-      <div className="mt-4">
-        <h4>Client</h4>
-        <video
-          ref={remoteRef}
-          autoPlay
-          playsInline
-          className="w-64 bg-black rounded-md"
-        />
-      </div>
-
-      {inCall && (
-        <button
-          onClick={endCall}
-          className="mt-6 bg-red-600 px-4 py-2 rounded-md"
-        >
-          End Call
-        </button>
-      )}
+        <div className="flex gap-4 mt-6">
+            <button onClick={toggleVideo} className={`p-4 rounded-full ${isLocalVideoEnabled ? 'bg-gray-700' : 'bg-red-600'}`}>
+                {isLocalVideoEnabled ? <FiVideo /> : <FiVideoOff />}
+            </button>
+            <button onClick={toggleAudio} className={`p-4 rounded-full ${isLocalAudioEnabled ? 'bg-gray-700' : 'bg-red-600'}`}>
+                {isLocalAudioEnabled ? <FiMic /> : <FiMicOff />}
+            </button>
+            <button onClick={endCall} className="p-4 rounded-full bg-red-600 hover:bg-red-700">
+                <FiPhone className="transform rotate-135" />
+            </button>
+        </div>
     </div>
   );
 }

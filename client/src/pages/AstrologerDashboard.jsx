@@ -21,9 +21,13 @@ import {
 
 const AstrologerDashboard = () => {
   const [activeTab, setActiveTab] = useState("inbox");
+  const [inboxTab, setInboxTab] = useState("chat"); // 'chat' or 'video'
   const [profile, setProfile] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [activeCallRoomId, setActiveCallRoomId] = useState(null);
   const [pendingSessions, setPendingSessions] = useState([]);
+  const [pendingVideoCalls, setPendingVideoCalls] = useState([]);
+  const [pendingAudioCalls, setPendingAudioCalls] = useState([]);
   const [socket, setSocket] = useState(null);
   const [notifications, setNotifications] = useState(3);
   const navigate = useNavigate();
@@ -56,14 +60,45 @@ const AstrologerDashboard = () => {
     if (!socket) return;
 
     // Video call
-    socket.on("callUser", (data) => {
-      setIncomingCall(data);
+    // Video call request
+    socket.on("call:request", (data) => {
+      console.log("Incoming call request:", data);
+      // Add to pending video calls list
+      setPendingVideoCalls((prev) => [
+        ...prev,
+        {
+          id: `${data.fromId}_${Date.now()}`,
+          fromId: data.fromId,
+          fromName: data.fromName,
+          fromSocketId: data.fromSocketId,
+          fromImage: data.fromImage,
+          timestamp: new Date()
+        }
+      ]);
+      setNotifications((n) => n + 1);
     });
 
     // Chat request from client
     socket.on("chat:request", (payload) => {
       console.log("[Astrologer] Chat request received:", payload);
       fetchPendingSessions();
+      setNotifications((n) => n + 1);
+    });
+
+    // Audio call request
+    socket.on("audio:request", (data) => {
+      console.log("Incoming audio call request:", data);
+      setPendingAudioCalls((prev) => [
+        ...prev,
+        {
+          id: `${data.fromId}_${Date.now()}`,
+          fromId: data.fromId,
+          fromName: data.fromName,
+          fromSocketId: data.fromSocketId,
+          fromImage: data.fromImage,
+          timestamp: new Date()
+        }
+      ]);
       setNotifications((n) => n + 1);
     });
 
@@ -75,8 +110,8 @@ const AstrologerDashboard = () => {
 
   useEffect(() => {
     if (profile?.userId && socket) {
-      // If you want astrologer-specific join, you can do it here
-      socket.emit("join", profile.userId);
+      // Register astrologer in onlineUsers map
+      socket.emit("user_online", { userId: profile.userId });
       fetchPendingSessions();
     }
   }, [profile?.userId, socket]);
@@ -128,19 +163,25 @@ const AstrologerDashboard = () => {
     if (incomingCall.type === "chat") {
       socket.emit("chat:accept", { sessionId: incomingCall.callId });
       navigate(`/chat/${incomingCall.callId}`);
-    } else {
-      socket.emit("answerCall", {
-        to: incomingCall.from,
-        callId: incomingCall.callId,
+    } else if (incomingCall.type === "video") {
+      const roomId = `video_${Date.now()}_${incomingCall.from}`;
+      socket.emit("call:accept", {
+        toSocketId: incomingCall.socketId,
+        roomId
       });
-      navigate(`/call/${incomingCall.from}?callId=${incomingCall.callId}`);
+      setActiveCallRoomId(roomId);
+      setActiveTab("calls");
     }
     setIncomingCall(null);
   };
 
   const rejectCall = () => {
     if (incomingCall && socket) {
-      socket.emit("rejectCall", { to: incomingCall.from });
+      if (incomingCall.type === "video") {
+          socket.emit("call:reject", { toSocketId: incomingCall.socketId });
+      } else {
+          // Chat reject logic if needed
+      }
     }
     setIncomingCall(null);
   };
@@ -214,7 +255,7 @@ const AstrologerDashboard = () => {
       icon: MessageCircle,
       label: "Inbox",
       color: "from-purple-500 to-pink-500",
-      badge: pendingSessions.length,
+      badge: pendingSessions.length + pendingVideoCalls.length,
     },
     {
       id: "calls",
@@ -418,82 +459,205 @@ const AstrologerDashboard = () => {
 
           {activeTab === "inbox" && (
             <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
-                  <MessageCircle className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
+                    <MessageCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Pending Requests
+                  </h3>
+                  {(pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length) > 0 && (
+                    <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full">
+                      {pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length} New
+                    </span>
+                  )}
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">
-                  Pending Requests
-                </h3>
-                {pendingSessions.length > 0 && (
-                  <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full">
-                    {pendingSessions.length} New
-                  </span>
-                )}
               </div>
 
-              {pendingSessions.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">✨</div>
-                  <p className="text-gray-500 text-lg">No pending requests</p>
-                  <p className="text-gray-400">
-                    Clients will appear here when they request consultations
-                  </p>
+              {/* Sub-tabs for Chat and Video */}
+              <div className="flex gap-2 mb-6 border-b border-gray-200">
+                <button
+                  onClick={() => setInboxTab("chat")}
+                  className={`px-6 py-3 font-semibold transition-all ${
+                    inboxTab === "chat"
+                      ? "text-purple-600 border-b-2 border-purple-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  💬 Chat Requests ({pendingSessions.length})
+                </button>
+                <button
+                  onClick={() => setInboxTab("video")}
+                  className={`px-6 py-3 font-semibold transition-all ${
+                    inboxTab === "video"
+                      ? "text-green-600 border-b-2 border-green-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  📹 Video Calls ({pendingVideoCalls.length})
+                </button>
+                <button
+                  onClick={() => setInboxTab("audio")}
+                  className={`px-6 py-3 font-semibold transition-all ${
+                    inboxTab === "audio"
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  🎙️ Audio Calls ({pendingAudioCalls.length})
+                </button>
+              </div>
+
+              {/* Chat Requests Tab */}
+              {inboxTab === "chat" && (
+                <div>
+                  {pendingSessions.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4">✨</div>
+                      <p className="text-gray-500 text-lg">No pending chat requests</p>
+                      <p className="text-gray-400">
+                        Clients will appear here when they request chat consultations
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {pendingSessions.map((session) => {
+                        const timeAgo = () => {
+                          const now = new Date();
+                          const created = new Date(session.createdAt);
+                          const diffMs = now - created;
+                          const diffMins = Math.floor(diffMs / 60000);
+                          const diffHours = Math.floor(diffMins / 60);
+                          const diffDays = Math.floor(diffHours / 24);
+
+                          if (diffDays > 0) return `${diffDays}d ago`;
+                          if (diffHours > 0) return `${diffHours}h ago`;
+                          if (diffMins > 0) return `${diffMins}m ago`;
+                          return "Just now";
+                        };
+
+                        return (
+                          <div
+                            key={session.sessionId}
+                            className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-6"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-bold text-gray-800">
+                                  {session.userId?.name ||
+                                    session.client?.name ||
+                                    "Mysterious Client"}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Waiting for your cosmic guidance...
+                                </p>
+                                <p className="text-xs text-purple-600 mt-1">
+                                  Requested {timeAgo()}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => rejectChat(session.sessionId)}
+                                  className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition-all transform hover:scale-105"
+                                >
+                                  Reject
+                                </button>
+                                <button
+                                  onClick={() => acceptChat(session.sessionId)}
+                                  className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-all transform hover:scale-105"
+                                >
+                                  Accept Chat
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {pendingSessions.map((session) => {
-                    const timeAgo = () => {
-                      const now = new Date();
-                      const created = new Date(session.createdAt);
-                      const diffMs = now - created;
-                      const diffMins = Math.floor(diffMs / 60000);
-                      const diffHours = Math.floor(diffMins / 60);
-                      const diffDays = Math.floor(diffHours / 24);
+              )}
 
-                      if (diffDays > 0) return `${diffDays}d ago`;
-                      if (diffHours > 0) return `${diffHours}h ago`;
-                      if (diffMins > 0) return `${diffMins}m ago`;
-                      return "Just now";
-                    };
+              {/* Video Call Requests Tab */}
+              {inboxTab === "video" && (
+                <div>
+                  {pendingVideoCalls.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4">📹</div>
+                      <p className="text-gray-500 text-lg">No pending video call requests</p>
+                      <p className="text-gray-400">
+                        Clients will appear here when they request video consultations
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {pendingVideoCalls.map((call) => {
+                        const timeAgo = () => {
+                          const now = new Date();
+                          const created = new Date(call.timestamp);
+                          const diffMs = now - created;
+                          const diffMins = Math.floor(diffMs / 60000);
+                          const diffHours = Math.floor(diffMins / 60);
 
-                    return (
-                      <div
-                        key={session.sessionId}
-                        className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-6"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-bold text-gray-800">
-                              {session.userId?.name ||
-                                session.client?.name ||
-                                "Mysterious Client"}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Waiting for your cosmic guidance...
-                            </p>
-                            <p className="text-xs text-purple-600 mt-1">
-                              Requested {timeAgo()}
-                            </p>
+                          if (diffHours > 0) return `${diffHours}h ago`;
+                          if (diffMins > 0) return `${diffMins}m ago`;
+                          return "Just now";
+                        };
+
+                        return (
+                          <div
+                            key={call.id}
+                            className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-bold text-gray-800">
+                                  {call.fromName || "Client"}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  📞 Requesting video consultation...
+                                </p>
+                                <p className="text-xs text-green-600 mt-1">
+                                  Requested {timeAgo()}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    if (socket) {
+                                      socket.emit("call:reject", { toSocketId: call.fromSocketId });
+                                    }
+                                    setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
+                                  }}
+                                  className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition-all transform hover:scale-105"
+                                >
+                                  Reject
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (socket) {
+                                      const roomId = `video_${Date.now()}_${call.fromId}`;
+                                      socket.emit("call:accept", {
+                                        toSocketId: call.fromSocketId,
+                                        roomId
+                                      });
+                                      setActiveCallRoomId(roomId);
+                                      setActiveTab("calls");
+                                    }
+                                    setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
+                                  }}
+                                  className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-all transform hover:scale-105"
+                                >
+                                  Accept Call
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => rejectChat(session.sessionId)}
-                              className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition-all transform hover:scale-105"
-                            >
-                              Reject
-                            </button>
-                            <button
-                              onClick={() => acceptChat(session.sessionId)}
-                              className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-all transform hover:scale-105"
-                            >
-                              Accept Chat
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -509,7 +673,7 @@ const AstrologerDashboard = () => {
                   Video Call Studio
                 </h3>
               </div>
-              <ClientVideoCall />
+              <ClientVideoCall roomId={activeCallRoomId} />
             </div>
           )}
 

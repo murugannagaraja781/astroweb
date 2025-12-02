@@ -77,6 +77,7 @@ const Chat = () => {
     }
 
     console.log("[Chat] Joining session:", id);
+    socket.emit("user_online", { userId: user.id });
     socket.emit("join_chat", { sessionId: id, userId: user.id });
 
     // Initial load

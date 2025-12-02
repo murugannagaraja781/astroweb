@@ -8,11 +8,12 @@ exports.getPublicAstrologers = async (req, res) => {
         const astrologers = await User.find({ role: 'astrologer' }).select('name email'); // Select basic info
 
         const result = await Promise.all(astrologers.map(async (astro) => {
-            const profile = await AstrologerProfile.findOne({ userId: astro._id }).select('profileImage languages specialties ratePerMinute isOnline bio');
+            const profile = await AstrologerProfile.findOne({ userId: astro._id }).select('profileImage languages specialties ratePerMinute isOnline bio experience');
             return {
                 _id: astro._id,
                 name: astro.name,
-                ...profile?._doc
+                ...profile?._doc,
+                userId: astro._id, // Put userId AFTER spread to prevent overwriting
             };
         }));
 

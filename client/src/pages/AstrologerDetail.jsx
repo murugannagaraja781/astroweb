@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
 import ClienttoAstrologyvideocall from "./AstrologertoClientVideoCall";
+import AudioCall from "./AudioCall";
 
 import {
   MessageCircle,
@@ -34,6 +35,11 @@ const AstrologerDetail = () => {
   const [waitingType, setWaitingType] = useState("");
   const [socket, setSocket] = useState(null);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [videoRoomId, setVideoRoomId] = useState(null);
+  const [peerSocketId, setPeerSocketId] = useState(null);
+  const [showAudioCall, setShowAudioCall] = useState(false);
+  const [audioRoomId, setAudioRoomId] = useState(null);
+  const [audioPeerSocketId, setAudioPeerSocketId] = useState(null);
   const [lastSessionId, setLastSessionId] = useState(null);
 
   // ============================
@@ -50,6 +56,10 @@ const AstrologerDetail = () => {
 
     newSocket.on("connect", () => {
       console.log("[Client] Socket connected:", newSocket.id);
+      // Register user in onlineUsers map
+      if (user?.id) {
+        newSocket.emit("user_online", { userId: user.id });
+      }
     });
 
     // When astrologer accepts, redirect client to /chat/:sessionId
@@ -67,9 +77,39 @@ const AstrologerDetail = () => {
       alert("Astrologer rejected your chat request.");
     });
 
+    // Video Call Listeners
+    newSocket.on("call:accepted", ({ roomId, fromSocketId }) => {
+      console.log("Video call accepted:", roomId, fromSocketId);
+      setWaiting(false);
+      setVideoRoomId(roomId);
+      setPeerSocketId(fromSocketId);
+      setShowVideoCall(true);
+    });
+
+    newSocket.on("call:rejected", () => {
+      setWaiting(false);
+      alert("Astrologer is busy or rejected the call.");
+    });
+
+    // Audio Call Listeners
+    newSocket.on("audio:accepted", ({ roomId, fromSocketId }) => {
+      console.log("Audio call accepted:", roomId, fromSocketId);
+      setWaiting(false);
+      setAudioRoomId(roomId);
+      setAudioPeerSocketId(fromSocketId);
+      setShowAudioCall(true);
+    });
+
+    newSocket.on("audio:rejected", () => {
+      setWaiting(false);
+      alert("Astrologer rejected the audio call.");
+    });
+
     return () => {
       newSocket.off("chat:accepted");
       newSocket.off("chat:rejected");
+      newSocket.off("call:accepted");
+      newSocket.off("call:rejected");
       newSocket.disconnect();
     };
   }, [user?.name, navigate]);
@@ -149,7 +189,74 @@ const AstrologerDetail = () => {
       return;
     }
 
-    setShowVideoCall(true);
+    if (!socket || !socket.connected) {
+        alert("Connection not ready. Please refresh.");
+        return;
+    }
+
+    setWaiting(true);
+    setWaitingType("call");
+
+    console.log("[VideoCall] Sending call request to astrologer:", {
+      fromId: user.id,
+      toId: astrologer.userId,
+      astrologerProfileId: id
+    });
+
+    socket.emit("call:request", {
+        fromId: user.id,
+        toId: astrologer.userId, // Use userId, not profile ID
+        fromName: user.name,
+        fromImage: user.avatar || ""
+    });
+  };
+
+  // ============================
+  // AUDIO CALL HANDLER
+  // ============================
+  const handleAudioCall = () => {
+    if (!user) {
+      alert("Please login to continue");
+      navigate("/login");
+      return;
+    }
+
+    if (user.role === "client" && balance < 1) {
+      alert("Insufficient balance! Please add money to your wallet.");
+      navigate("/dashboard");
+      return;
+    }
+
+    if (!astrologer) {
+      alert("Astrologer information not available. Please try again.");
+      return;
+    }
+
+    if (!astrologer.isOnline) {
+      alert("This astrologer is currently offline. Please try again later.");
+      return;
+    }
+
+    if (!socket || !socket.connected) {
+        alert("Connection not ready. Please refresh.");
+        return;
+    }
+
+    setWaiting(true);
+    setWaitingType("audio");
+
+    console.log("[AudioCall] Sending audio call request to astrologer:", {
+      fromId: user.id,
+      toId: astrologer.userId,
+      astrologerProfileId: id
+    });
+
+    socket.emit("audio:request", {
+        fromId: user.id,
+        toId: astrologer.userId,
+        fromName: user.name,
+        fromImage: user.avatar || ""
+    });
   };
 
   // ============================
@@ -269,14 +376,38 @@ const AstrologerDetail = () => {
             <div className="text-6xl mb-4">📹</div>
             <h3 className="text-2xl font-bold mb-4">Video Call Feature</h3>
             <div className="text-purple-200 mb-6">
-              <ClienttoAstrologyvideocall />
+            <div className="text-purple-200 mb-6">
+              <ClienttoAstrologyvideocall
+                roomId={videoRoomId}
+                socket={socket}
+                astrologerId={id}
+                peerSocketId={peerSocketId}
+              />
             </div>
-            <button
-              onClick={() => setShowVideoCall(false)}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
-            >
-              Return to Profile
-            </button>
+            </div>
+            {/* Audio Call Component */}
+            {showAudioCall && audioRoomId && (
+              <div className="text-purple-200 mb-6">
+                <AudioCall
+                  roomId={audioRoomId}
+                  socket={socket}
+                  peerSocketId={audioPeerSocketId}
+                  isInitiator={true}
+                />
+              </div>
+            )}
+
+            <div className="text-center">
+              <button
+                onClick={() => {
+                  setShowVideoCall(false);
+                  setShowAudioCall(false);
+                }}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
+              >
+                Return to Profile
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -354,10 +485,17 @@ const AstrologerDetail = () => {
                 <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                   <button
                     onClick={handleVideoCall}
-                    className="flex items-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
                   >
-                    <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    <Camera className="w-5 h-5" />
                     Video Call
+                  </button>
+                  <button
+                    onClick={handleAudioCall}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <Phone className="w-5 h-5" />
+                    Audio Call
                   </button>
 
                   <button

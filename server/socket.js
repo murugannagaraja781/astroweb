@@ -1,103 +1,128 @@
 // server/socket.js
+const chatHandler = require('./socket/handlers/chat');
+const presenceHandler = require('./socket/handlers/presence');
+const { onlineUsers } = require('./socket/handlers/presence');
+
 module.exports = function (io) {
     io.on("connection", (socket) => {
         console.log("🔌 Socket connected:", socket.id);
 
+        // Initialize handlers
+        presenceHandler(io, socket);
+        chatHandler(io, socket);
+
         // =====================================================
-        // DIRECT 1-TO-1 VIDEO CALL SIGNALING (FINAL VERSION)
+        // VIDEO CALL SIGNALING
         // =====================================================
 
-        // Astrologer -> Client : call request
-        socket.on("video:call_request", ({ to, roomId }) => {
-            console.log("📞 Video call request →", to);
-            io.to(to).emit("video:incoming_call", {
-                from: socket.id,
+        // Client -> Server -> Astrologer: Call Request
+        socket.on("call:request", ({ fromId, toId, fromName, fromImage }) => {
+            console.log(`📞 Call request from ${fromId} to ${toId}`);
+            const targetSocketId = onlineUsers.get(toId);
+
+            if (targetSocketId) {
+                io.to(targetSocketId).emit("call:request", {
+                    fromId,
+                    fromName,
+                    fromImage,
+                    fromSocketId: socket.id // Send caller's socket ID for direct reply
+                });
+            } else {
+                // Astrologer offline
+                console.log(`User ${toId} is offline`);
+                socket.emit("call:offline");
+            }
+        });
+
+        // Astrologer -> Server -> Client: Call Accepted
+        socket.on("call:accept", ({ toSocketId, roomId }) => {
+            console.log(`✅ Call accepted for socket ${toSocketId}`);
+            io.to(toSocketId).emit("call:accepted", {
                 roomId,
+                fromSocketId: socket.id
             });
         });
 
-        // Client accepts call
-        socket.on("video:call_accept", ({ to, roomId }) => {
-            console.log("✅ Call accepted →", to);
-            io.to(to).emit("video:call_accepted", { roomId });
+        // Astrologer -> Server -> Client: Call Rejected
+        socket.on("call:reject", ({ toSocketId }) => {
+            console.log(`❌ Call rejected for socket ${toSocketId}`);
+            io.to(toSocketId).emit("call:rejected");
         });
 
-        // Client rejects call
-        socket.on("video:call_reject", ({ to, roomId }) => {
-            console.log("❌ Call rejected →", to);
-            io.to(to).emit("video:call_rejected", { roomId });
-        });
-
-        // ----------------------------
-        // WEBRTC: OFFER
-        // ----------------------------
-        socket.on("call:offer", ({ offer, to }) => {
-            io.to(to).emit("call:offer", {
-                from: socket.id,
-                offer,
-            });
+        // End Call
+        socket.on("call:end", ({ toSocketId }) => {
+            if (toSocketId) io.to(toSocketId).emit("call:end");
         });
 
         // ----------------------------
-        // WEBRTC: ANSWER
+        // WEBRTC SIGNALING
         // ----------------------------
-        socket.on("call:answer", ({ answer, to }) => {
-            io.to(to).emit("call:answer", {
-                from: socket.id,
-                answer,
-            });
+
+        socket.on("call:offer", ({ toSocketId, offer }) => {
+            io.to(toSocketId).emit("call:offer", { fromSocketId: socket.id, offer });
         });
 
-        // ----------------------------
-        // WEBRTC: ICE CANDIDATES
-        // ----------------------------
-        socket.on("call:candidate", ({ candidate, to }) => {
-            io.to(to).emit("call:candidate", {
-                from: socket.id,
-                candidate,
-            });
+        socket.on("call:answer", ({ toSocketId, answer }) => {
+            io.to(toSocketId).emit("call:answer", { fromSocketId: socket.id, answer });
         });
 
-        // ----------------------------
-        // END CALL
-        // ----------------------------
-        socket.on("call:end", ({ to, reason }) => {
-            io.to(to).emit("call:end", { reason });
+        socket.on("call:candidate", ({ toSocketId, candidate }) => {
+            io.to(toSocketId).emit("call:candidate", { fromSocketId: socket.id, candidate });
         });
 
         // =====================================================
-        // CHAT SYSTEM (ROOM BASED) — This is correct
+        // AUDIO CALL SIGNALING
         // =====================================================
 
-        socket.on("join_chat", ({ sessionId }) => {
-            if (!sessionId) return;
-            const room = `chat_${sessionId}`;
-            socket.join(room);
-            console.log(`💬 ${socket.id} joined ${room}`);
-            socket.emit("chat:joined", { sessionId });
+        // Client -> Server -> Astrologer: Audio Call Request
+        socket.on("audio:request", ({ fromId, toId, fromName, fromImage }) => {
+            console.log(`🎙️ Audio call request from ${fromId} to ${toId}`);
+            const targetSocketId = onlineUsers.get(toId);
+
+            if (targetSocketId) {
+                io.to(targetSocketId).emit("audio:request", {
+                    fromId,
+                    fromName,
+                    fromImage,
+                    fromSocketId: socket.id
+                });
+            } else {
+                console.log(`User ${toId} is offline`);
+                socket.emit("audio:offline");
+            }
         });
 
-        socket.on("chat:request", (payload) => {
-            io.emit("chat:request", payload);
+        // Astrologer -> Server -> Client: Audio Call Accepted
+        socket.on("audio:accept", ({ toSocketId, roomId }) => {
+            console.log(`✅ Audio call accepted for socket ${toSocketId}`);
+            io.to(toSocketId).emit("audio:accepted", {
+                roomId,
+                fromSocketId: socket.id
+            });
         });
 
-        socket.on("chat:accept", ({ sessionId }) => {
-            io.emit("chat:accepted", { sessionId });
+        // Astrologer -> Server -> Client: Audio Call Rejected
+        socket.on("audio:reject", ({ toSocketId }) => {
+            console.log(`❌ Audio call rejected for socket ${toSocketId}`);
+            io.to(toSocketId).emit("audio:rejected");
         });
 
-        socket.on("chat:reject", ({ sessionId }) => {
-            io.emit("chat:rejected", { sessionId });
+        // End Audio Call
+        socket.on("audio:end", ({ toSocketId }) => {
+            if (toSocketId) io.to(toSocketId).emit("audio:end");
         });
 
-        socket.on("chat:message", (msg) => {
-            if (!msg || !msg.sessionId) return;
-            const room = `chat_${msg.sessionId}`;
-            io.to(room).emit("chat:message", msg);
+        // Audio WebRTC Signaling
+        socket.on("audio:offer", ({ toSocketId, offer }) => {
+            io.to(toSocketId).emit("audio:offer", { fromSocketId: socket.id, offer });
         });
 
-        socket.on("chat:typing", ({ sessionId, userId }) => {
-            const room = `chat_${sessionId}`;
-            socket.to(room).emit("chat:typing", { userId });
+        socket.on("audio:answer", ({ toSocketId, answer }) => {
+            io.to(toSocketId).emit("audio:answer", { fromSocketId: socket.id, answer });
+        });
+
+        socket.on("audio:candidate", ({ toSocketId, candidate }) => {
+            io.to(toSocketId).emit("audio:candidate", { fromSocketId: socket.id, candidate });
         });
 
         // =====================================================
