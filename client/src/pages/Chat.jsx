@@ -168,6 +168,13 @@ const Chat = () => {
       fetchSessionInfo();
     };
 
+    const onWalletUpdate = (data) => {
+      // data: { sessionId, balance, elapsed }
+      if (data.elapsed) {
+        setSessionDuration(data.elapsed);
+      }
+    };
+
     // attach listeners
     socket.on("connect_error", onConnectError);
     socket.on("disconnect", onDisconnect);
@@ -178,6 +185,7 @@ const Chat = () => {
     socket.on("chat:accepted", onChatAccepted);
     socket.on("chat:accepted_by_astrologer", onChatAcceptedByAstrologer);
     socket.on("chat:started", onChatStarted);
+    socket.on("wallet:update", onWalletUpdate);
 
     // cleanup
     return () => {
@@ -193,6 +201,7 @@ const Chat = () => {
       socket.off("chat:accepted", onChatAccepted);
       socket.off("chat:accepted_by_astrologer", onChatAcceptedByAstrologer);
       socket.off("chat:started", onChatStarted);
+      socket.off("wallet:update", onWalletUpdate);
     };
   }, [id, user?.id, user?.name, fetchChat, fetchSessionInfo]);
 
@@ -205,19 +214,19 @@ const Chat = () => {
     }
   }, [sessionInfo?.status]);
 
-  // Session timer
+  // Session timer (fallback if socket doesn't send updates often enough)
   useEffect(() => {
-    if (!sessionInfo?.startedAt) return;
+    if (!sessionInfo?.startedAt || sessionInfo.status !== "active") return;
 
     const interval = setInterval(() => {
+      const start = new Date(sessionInfo.startedAt);
       const now = new Date();
-      const started = new Date(sessionInfo.startedAt);
-      const diff = Math.floor((now - started) / 1000);
+      const diff = Math.floor((now - start) / 1000);
       setSessionDuration(diff);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [sessionInfo?.startedAt]);
+  }, [sessionInfo]);
 
   // Helper function to format duration
   const formatDuration = (seconds) => {
@@ -269,64 +278,115 @@ const Chat = () => {
     socket.emit("chat:typing", { sessionId: id, userId: user.id });
   };
 
-  // --- Audio Record ---
+  // --- File Upload ---
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("chatId", id);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/chat/upload/image`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const { url } = res.data;
+
+      // Send image message via socket
+      socket.emit("chat:message", {
+        sessionId: id,
+        senderId: user.id,
+        text: "Sent an image",
+        type: "image",
+        mediaUrl: url,
+      });
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      alert("Failed to upload image");
+    }
+  };
+
+  // --- Audio Recording ---
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
-
       audioChunksRef.current = [];
-      mediaRecorderRef.current.ondataavailable = (e) =>
-        audioChunksRef.current.push(e.data);
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
 
       mediaRecorderRef.current.onstop = async () => {
-        const blob = new Blob(audioChunksRef.current, { type: "audio/mp3" });
-        const url = URL.createObjectURL(blob);
-
-        const audioMsg = {
-          senderId: user.id,
-          audioUrl: url,
-          timestamp: new Date().toISOString(),
-          status: "sent",
-        };
-
-        setConversation((prev) => [...prev, audioMsg]);
-
-        socket.emit("chat:message", {
-          sessionId: id,
-          senderId: user.id,
-          text: "",
-          type: "audio",
-        });
-
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         const formData = new FormData();
-        formData.append("audio", blob);
+        formData.append("voice", blob);
         formData.append("chatId", id);
-        formData.append("sender", user.id);
 
         try {
-          await axios.post(
-            `${import.meta.env.VITE_API_URL}/api/chat/send-audio`,
+          const token = localStorage.getItem("token");
+          const res = await axios.post(
+            `${import.meta.env.VITE_API_URL}/api/chat/upload/voice`,
             formData,
-            { headers: { "Content-Type": "multipart/form-data" } }
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+                Authorization: `Bearer ${token}`,
+              },
+            }
           );
-          audioMsg.status = "delivered";
-        } catch (e) {
-          audioMsg.status = "failed";
+
+          const { url } = res.data;
+
+          const audioMsg = {
+            senderId: user.id,
+            audioUrl: url,
+            timestamp: new Date().toISOString(),
+            status: "sent",
+          };
+
+          setConversation((prev) => [...prev, audioMsg]);
+
+          socket.emit("chat:message", {
+            sessionId: id,
+            senderId: user.id,
+            text: "Voice message",
+            type: "audio",
+            mediaUrl: url,
+            duration: 0, // You might want to calculate duration
+          });
+        } catch (err) {
+          console.error("Error uploading voice note:", err);
         }
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
-    } catch (error) {
-      console.error("Error starting recording:", error);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      alert("Microphone access denied");
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current) {
+    if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      mediaRecorderRef.current.stream
+        .getTracks()
+        .forEach((track) => track.stop());
     }
   };
 
@@ -344,9 +404,9 @@ const Chat = () => {
             <p className="text-gray-600 mb-6">{error}</p>
             <button
               onClick={() => setError(null)}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all"
+              className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition-colors"
             >
-              Close
+              Dismiss
             </button>
           </div>
         </div>
@@ -364,7 +424,7 @@ const Chat = () => {
         }
         @media (min-width: 768px) {
           .message-container {
-            padding-bottom: 140px;
+            padding-bottom: 120px;
           }
         }
         .chat-footer {
@@ -410,17 +470,17 @@ const Chat = () => {
                 ? sessionInfo?.astrologer?.name || "Astrologer"
                 : sessionInfo?.client?.name || "Client"}
             </h1>
-            <p className="text-sm text-yellow-300">
-              {sessionDuration > 0
-                ? formatDuration(sessionDuration)
-                : "Starting..."}
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm text-yellow-300">
             <Star size={16} className="fill-yellow-400" />
             <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
+          </div>
+
+          {/* Timer Display */}
+          <div className="bg-black/40 px-3 py-1.5 rounded-lg border border-yellow-600/30 text-yellow-300 font-mono text-sm">
+            {sessionDuration > 0 ? formatDuration(sessionDuration) : "00:00"}
           </div>
 
           <button
@@ -432,7 +492,7 @@ const Chat = () => {
                 window.history.back();
               }
             }}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-semibold transition-colors shadow-lg"
+            className="px-4 py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-all"
           >
             End Chat
           </button>
