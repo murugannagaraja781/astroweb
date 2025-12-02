@@ -1,4 +1,4 @@
-```javascript
+
 import { useState, useEffect, useContext } from "react";
 import Modal from "../components/Modal";
 import { useParams, useNavigate } from "react-router-dom";
@@ -63,9 +63,7 @@ const AstrologerDetail = () => {
 
   const fetchBalance = async () => {
     try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/wallet/balance`
-      );
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wallet/balance`);
       setBalance(res.data.balance);
     } catch (err) {
       console.error("Error fetching balance:", err);
@@ -245,7 +243,7 @@ const AstrologerDetail = () => {
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-white text-center">
             <div className="text-6xl mb-4">📹</div>
             <h3 className="text-2xl font-bold mb-4">Video Call Feature</h3>
-            <p className="text-purple-200 mb-6"><ClienttoAstrologyvideocall/></p>
+            <div className="text-purple-200 mb-6"><ClienttoAstrologyvideocall/></div>
             <button
               onClick={() => setShowVideoCall(false)}
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
@@ -334,7 +332,7 @@ const AstrologerDetail = () => {
                   </button>
 
                   <button
-                    onClick={handleChat}
+                    onClick={requestChat}
                     className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
                   >
                     <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />

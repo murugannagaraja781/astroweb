@@ -33,7 +33,11 @@ export const ThemeProvider = ({ children }) => {
         setActiveThemeName(res.data.theme);
       }
     } catch (err) {
-      console.error('Failed to fetch theme settings:', err);
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        // Silent fail for unauthorized/forbidden - use default theme
+      } else {
+        console.error('Failed to fetch theme settings:', err);
+      }
     } finally {
       setLoading(false);
     }

@@ -60,7 +60,7 @@ const MobileNav = () => {
           if (label === "Profile") {
             return (
               <div
-                key={to}
+                key={label}
                 className="relative flex flex-col items-center justify-center w-16 h-14"
               >
                 <button
@@ -170,7 +170,7 @@ const MobileNav = () => {
 
           return (
             <Link
-              key={to}
+              key={label}
               to={to}
               className="relative flex flex-col items-center justify-center w-16 h-14"
             >

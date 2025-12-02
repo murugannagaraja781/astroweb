@@ -93,7 +93,7 @@ const DesktopHeader = () => {
               const isActive = location.pathname === to;
               return (
                 <Link
-                  key={to}
+                  key={label}
                   to={to}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300 relative group ${
                     isActive
