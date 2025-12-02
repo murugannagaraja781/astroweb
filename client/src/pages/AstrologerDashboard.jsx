@@ -5,6 +5,7 @@ import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
+import AudioCall from "./AudioCall";
 import {
   Home,
   MessageCircle,
@@ -25,6 +26,8 @@ const AstrologerDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [activeCallRoomId, setActiveCallRoomId] = useState(null);
+  const [activeCallType, setActiveCallType] = useState("video");
+  const [activeCallPeerId, setActiveCallPeerId] = useState(null);
   const [pendingSessions, setPendingSessions] = useState([]);
   const [pendingVideoCalls, setPendingVideoCalls] = useState([]);
   const [pendingAudioCalls, setPendingAudioCalls] = useState([]);
@@ -660,6 +663,90 @@ const AstrologerDashboard = () => {
                   )}
                 </div>
               )}
+
+              {/* Audio Call Requests Tab */}
+              {inboxTab === "audio" && (
+                <div>
+                  {pendingAudioCalls.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4">🎙️</div>
+                      <p className="text-gray-500 text-lg">No pending audio call requests</p>
+                      <p className="text-gray-400">
+                        Clients will appear here when they request audio consultations
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {pendingAudioCalls.map((call) => {
+                        const timeAgo = () => {
+                          const now = new Date();
+                          const created = new Date(call.timestamp);
+                          const diffMs = now - created;
+                          const diffMins = Math.floor(diffMs / 60000);
+                          const diffHours = Math.floor(diffMins / 60);
+
+                          if (diffHours > 0) return `${diffHours}h ago`;
+                          if (diffMins > 0) return `${diffMins}m ago`;
+                          return "Just now";
+                        };
+
+                        return (
+                          <div
+                            key={call.id}
+                            className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-bold text-gray-800">
+                                  {call.fromName || "Client"}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  🎧 Requesting audio consultation...
+                                </p>
+                                <p className="text-xs text-blue-600 mt-1">
+                                  Requested {timeAgo()}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    if (socket) {
+                                      socket.emit("audio:reject", { toSocketId: call.fromSocketId });
+                                    }
+                                    setPendingAudioCalls((prev) => prev.filter((c) => c.id !== call.id));
+                                  }}
+                                  className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition-all transform hover:scale-105"
+                                >
+                                  Reject
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (socket) {
+                                      const roomId = `audio_${Date.now()}_${call.fromId}`;
+                                      socket.emit("audio:accept", {
+                                        toSocketId: call.fromSocketId,
+                                        roomId
+                                      });
+                                      setActiveCallRoomId(roomId);
+                                      setActiveCallType("audio");
+                                      setActiveCallPeerId(call.fromSocketId);
+                                      setActiveTab("calls");
+                                    }
+                                    setPendingAudioCalls((prev) => prev.filter((c) => c.id !== call.id));
+                                  }}
+                                  className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-all transform hover:scale-105"
+                                >
+                                  Accept Call
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -673,7 +760,15 @@ const AstrologerDashboard = () => {
                   Video Call Studio
                 </h3>
               </div>
-              <ClientVideoCall roomId={activeCallRoomId} />
+              {activeCallType === "video" ? (
+                <ClientVideoCall roomId={activeCallRoomId} />
+              ) : (
+                <AudioCall
+                    roomId={activeCallRoomId}
+                    socket={socket}
+                    peerSocketId={activeCallPeerId}
+                />
+              )}
             </div>
           )}
 

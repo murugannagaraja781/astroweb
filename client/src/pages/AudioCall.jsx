@@ -1,160 +1,52 @@
 // AudioCall.jsx - Audio-only call component
 import React, { useEffect, useRef, useState } from "react";
 import { FiMic, FiMicOff, FiPhone } from "react-icons/fi";
+import { useWebRTCCall } from "../hooks/useWebRTCCall";
 
-const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVER || "https://astroweb-production.up.railway.app";
-
-const ICE_SERVERS = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    ...(import.meta.env.VITE_TURN_URL ? [{
-        urls: import.meta.env.VITE_TURN_URL,
-        username: import.meta.env.VITE_TURN_USERNAME,
-        credential: import.meta.env.VITE_TURN_CREDENTIAL,
-    }] : []),
-  ],
-};
-
-export default function AudioCall({ roomId, socket: propSocket, peerSocketId, isInitiator = false }) {
-  const socket = useRef(null);
-  const pc = useRef(null);
-  const localStream = useRef(null);
-  const audioContext = useRef(null);
-  const analyser = useRef(null);
-  const animationFrame = useRef(null);
-
-  const [callStatus, setCallStatus] = useState("initializing");
+export default function AudioCall({ roomId, socket, peerSocketId, isInitiator = false }) {
   const [isLocalAudioEnabled, setIsLocalAudioEnabled] = useState(true);
-  const [error, setError] = useState(null);
   const [callDuration, setCallDuration] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const [showAIOption, setShowAIOption] = useState(false);
 
+  const audioContext = useRef(null);
+  const analyser = useRef(null);
+  const animationFrame = useRef(null);
+
+  const { callStatus, localStream, remoteStream, error, endCall, toggleMute } = useWebRTCCall({
+      socket,
+      roomId,
+      peerSocketId,
+      isInitiator,
+      onCallEnd: () => setShowAIOption(true)
+  });
+
   useEffect(() => {
-    console.log("[AudioCall] Props:", { roomId, peerSocketId, isInitiator, hasSocket: !!propSocket });
+      if (callStatus === "connected") {
+          const interval = setInterval(() => {
+              setCallDuration(prev => prev + 1);
+          }, 1000);
+          return () => clearInterval(interval);
+      }
+  }, [callStatus]);
 
-    if (!roomId) {
-      console.error("[AudioCall] Missing roomId");
-      setError("Missing connection information");
-      return;
-    }
+  useEffect(() => {
+      if (localStream) {
+          setupAudioVisualization(localStream);
+      }
+      return () => {
+          if (audioContext.current) audioContext.current.close();
+          if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
+      };
+  }, [localStream]);
 
-    socket.current = propSocket;
-
-    const initCall = async () => {
-        try {
-            console.log("[AudioCall] Requesting microphone access...");
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            localStream.current = stream;
-            console.log("[AudioCall] Microphone access granted");
-
-            // Setup audio visualization
-            setupAudioVisualization(stream);
-
-            pc.current = new RTCPeerConnection(ICE_SERVERS);
-            console.log("[AudioCall] RTCPeerConnection created");
-
-            stream.getTracks().forEach(track => pc.current.addTrack(track, stream));
-
-            pc.current.onicecandidate = (event) => {
-                if (event.candidate && peerSocketId) {
-                    console.log("[AudioCall] Sending ICE candidate");
-                    socket.current.emit("audio:candidate", {
-                        toSocketId: peerSocketId,
-                        candidate: event.candidate
-                    });
-                }
-            };
-
-            pc.current.ontrack = (event) => {
-                console.log("[AudioCall] Received remote audio track");
-                const remoteAudio = new Audio();
-                remoteAudio.srcObject = event.streams[0];
-                remoteAudio.play();
-            };
-
-            pc.current.onconnectionstatechange = () => {
-                console.log("[AudioCall] Connection state:", pc.current.connectionState);
-                if (pc.current.connectionState === 'connected') {
-                    setCallStatus("connected");
-                    startCallTimer();
-                } else if (pc.current.connectionState === 'disconnected') {
-                    setCallStatus("disconnected");
-                } else if (pc.current.connectionState === 'failed') {
-                    setCallStatus("failed");
-                    setError("Connection failed");
-                }
-            };
-
-            if (isInitiator && peerSocketId) {
-                const offer = await pc.current.createOffer();
-                await pc.current.setLocalDescription(offer);
-                console.log("[AudioCall] Sending offer");
-                socket.current.emit("audio:offer", {
-                    toSocketId: peerSocketId,
-                    offer
-                });
-                setCallStatus("calling");
-            } else {
-                setCallStatus("waiting");
-            }
-
-        } catch (err) {
-            console.error("[AudioCall] Error initializing call:", err);
-            setError("Failed to access microphone: " + err.message);
-        }
-    };
-
-    initCall();
-
-    const handleOffer = async ({ fromSocketId, offer }) => {
-        console.log("[AudioCall] Received offer from:", fromSocketId);
-        if (pc.current) {
-            await pc.current.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer = await pc.current.createAnswer();
-            await pc.current.setLocalDescription(answer);
-            socket.current.emit("audio:answer", {
-                toSocketId: fromSocketId,
-                answer
-            });
-            setCallStatus("connected");
-        }
-    };
-
-    const handleAnswer = async ({ answer }) => {
-        console.log("[AudioCall] Received answer");
-        if (pc.current) {
-            await pc.current.setRemoteDescription(new RTCSessionDescription(answer));
-        }
-    };
-
-    const handleCandidate = async ({ candidate }) => {
-        if (pc.current) {
-            await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
-        }
-    };
-
-    const handleEnd = () => {
-        console.log("[AudioCall] Call ended by peer");
-        setCallStatus("ended");
-        setShowAIOption(true);
-        cleanup();
-    };
-
-    socket.current.on("audio:offer", handleOffer);
-    socket.current.on("audio:answer", handleAnswer);
-    socket.current.on("audio:candidate", handleCandidate);
-    socket.current.on("audio:end", handleEnd);
-
-    return () => {
-        cleanup();
-        socket.current.off("audio:offer");
-        socket.current.off("audio:answer");
-        socket.current.off("audio:candidate");
-        socket.current.off("audio:end");
-    };
-  }, [roomId, peerSocketId, isInitiator]);
+  useEffect(() => {
+      if (remoteStream) {
+          const remoteAudio = new Audio();
+          remoteAudio.srcObject = remoteStream;
+          remoteAudio.play().catch(e => console.error("Error playing remote audio:", e));
+      }
+  }, [remoteStream]);
 
   const setupAudioVisualization = (stream) => {
       try {
@@ -165,6 +57,7 @@ export default function AudioCall({ roomId, socket: propSocket, peerSocketId, is
           analyser.current.fftSize = 256;
 
           const updateAudioLevel = () => {
+              if (!analyser.current) return;
               const dataArray = new Uint8Array(analyser.current.frequencyBinCount);
               analyser.current.getByteFrequencyData(dataArray);
               const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
@@ -178,38 +71,9 @@ export default function AudioCall({ roomId, socket: propSocket, peerSocketId, is
       }
   };
 
-  const startCallTimer = () => {
-      const interval = setInterval(() => {
-          setCallDuration(prev => prev + 1);
-      }, 1000);
-
-      return () => clearInterval(interval);
-  };
-
-  const cleanup = () => {
-      if (localStream.current) {
-          localStream.current.getTracks().forEach(track => track.stop());
-      }
-      if (pc.current) pc.current.close();
-      if (audioContext.current) audioContext.current.close();
-      if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
-  };
-
-  const toggleAudio = () => {
-      if (localStream.current) {
-          const track = localStream.current.getAudioTracks()[0];
-          track.enabled = !track.enabled;
-          setIsLocalAudioEnabled(track.enabled);
-      }
-  };
-
-  const endCall = () => {
-      if (socket.current && peerSocketId) {
-          socket.current.emit("audio:end", { toSocketId: peerSocketId });
-      }
-      setCallStatus("ended");
-      setShowAIOption(true);
-      cleanup();
+  const handleToggleMute = () => {
+      const isEnabled = toggleMute();
+      setIsLocalAudioEnabled(isEnabled);
   };
 
   const formatDuration = (seconds) => {
@@ -221,7 +85,13 @@ export default function AudioCall({ roomId, socket: propSocket, peerSocketId, is
   return (
     <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white p-8 rounded-xl relative">
         <h2 className="text-2xl font-bold mb-2">🎙️ Audio Call</h2>
-        <p className="text-sm text-purple-200 mb-6">{callStatus === "connected" ? "Connected" : "Connecting..."}</p>
+        <p className="text-sm text-purple-200 mb-6">
+            {callStatus === "connected" ? "Connected" :
+             callStatus === "calling" ? "Calling..." :
+             callStatus === "waiting" ? "Waiting for answer..." :
+             callStatus === "ended" ? "Call Ended" :
+             "Initializing..."}
+        </p>
 
         {error && <div className="text-red-400 mb-4 bg-red-900/30 px-4 py-2 rounded-lg">{error}</div>}
 
@@ -274,7 +144,7 @@ export default function AudioCall({ roomId, socket: propSocket, peerSocketId, is
         {/* Controls */}
         <div className="flex gap-4 mt-6">
             <button
-                onClick={toggleAudio}
+                onClick={handleToggleMute}
                 className={`p-6 rounded-full transition-all transform hover:scale-110 ${isLocalAudioEnabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-700'}`}
                 title={isLocalAudioEnabled ? "Mute" : "Unmute"}
             >

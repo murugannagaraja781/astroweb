@@ -43,25 +43,29 @@ app.use("/api/agora", require("./routes/agoraRoutes"));
 // Database Connection
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
+  .then(() => {
+    console.log("✅ MongoDB Connected");
+    // Start Billing Tracker (Server-side time tracking)
+    const billingTracker = new BillingTracker(io);
+    billingTracker.start();
+
+    // Graceful shutdown for billing tracker
+    process.on("SIGTERM", () => {
+      console.log("SIGTERM received, shutting down gracefully");
+      billingTracker.stop();
+      server.close(() => {
+        console.log("Server closed");
+        process.exit(0);
+      });
+    });
+  })
   .catch((err) => console.log("❌ MongoDB Error:", err));
 
 // Socket.IO Setup (Modular Handlers)
 require("./socket")(io);
 
-// Start Billing Tracker (Server-side time tracking)
-const billingTracker = new BillingTracker(io);
-billingTracker.start();
-
 // Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down gracefully");
-  billingTracker.stop();
-  server.close(() => {
-    console.log("Server closed");
-    process.exit(0);
-  });
-});
+
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
