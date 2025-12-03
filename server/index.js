@@ -38,6 +38,7 @@ app.use("/api/chat", require("./routes/chatRoutes")); // NEW: Chat routes
 app.use("/api/public", require("./routes/publicRoutes"));
 app.use("/api/horoscope", require("./routes/horoscopeRoutes"));
 app.use("/api/charts", require("./routes/chartRoutes")); // Chart generation routes
+app.use("/api/behavior", require("./routes/behaviorRoutes")); // Behavior analysis routes
 // Agora token endpoint
 app.use("/api/agora", require("./routes/agoraRoutes"));
 
