@@ -413,7 +413,7 @@ const Chat = () => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         input,
         textarea,
         select {

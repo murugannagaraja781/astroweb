@@ -160,7 +160,7 @@ const ChartModal = ({ isOpen, onClose }) => {
       </div>
 
       {/* Custom Animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }

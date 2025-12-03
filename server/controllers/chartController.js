@@ -50,6 +50,16 @@ exports.generateBirthChart = async (req, res) => {
         // Generate birth chart
         const birthChart = birthChartGenerator.generateBirthChart(positions, ascendant);
 
+        // Transform planets to be grouped by house for the frontend
+        const planetsByHouse = {};
+        Object.entries(birthChart.planets).forEach(([planet, data]) => {
+            const house = data.house;
+            if (!planetsByHouse[house]) {
+                planetsByHouse[house] = [];
+            }
+            planetsByHouse[house].push(planet);
+        });
+
         // Add additional details
         const moonLongitude = positions.Moon.longitude;
         const moonRashi = getRashiFromLongitude(moonLongitude);
@@ -60,7 +70,8 @@ exports.generateBirthChart = async (req, res) => {
             success: true,
             data: {
                 houses: birthChart.houses,
-                planets: birthChart.planets,
+                planets: planetsByHouse, // Send grouped planets
+                rawPlanets: birthChart.planets, // Send raw data just in case
                 ascendant,
                 ayanamsa,
                 lagna,
@@ -357,6 +368,16 @@ exports.generateCompleteReport = async (req, res) => {
             }
         );
 
+        // Transform planets to be grouped by house for the frontend
+        const planetsByHouse = {};
+        Object.entries(birthChart.planets).forEach(([planet, data]) => {
+            const house = data.house;
+            if (!planetsByHouse[house]) {
+                planetsByHouse[house] = [];
+            }
+            planetsByHouse[house].push(planet);
+        });
+
         // Add additional details
         const moonLongitude = positions.Moon.longitude;
         const moonRashi = getRashiFromLongitude(moonLongitude);
@@ -368,7 +389,8 @@ exports.generateCompleteReport = async (req, res) => {
             data: {
                 birthChart: {
                     houses: birthChart.houses,
-                    planets: birthChart.planets,
+                    planets: planetsByHouse, // Send grouped planets
+                    rawPlanets: birthChart.planets,
                     lagna,
                     moonSign: moonRashi,
                     moonNakshatra
