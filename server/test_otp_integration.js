@@ -2,7 +2,7 @@
 require('dotenv').config();
 const axios = require('axios');
 
-const API_URL = process.env.BACKEND_URL || 'http://localhost:9001';
+const API_URL = process.env.BACKEND_URL || 'https://astroweb-production.up.railway.app';
 const TEST_PHONE = '9876543210'; // Replace with your test phone number
 
 console.log('🧪 Testing MSG91 OTP Integration\n');

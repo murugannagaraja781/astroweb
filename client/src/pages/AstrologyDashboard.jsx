@@ -13,7 +13,7 @@ import {
 import SouthIndianChart from "../components/SouthIndianChart";
 import NorthIndianChart from "../components/NorthIndianChart";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:9001";
+const API_URL = import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app";
 
 const PlaceSearch = ({ value, onChange, onSelect }) => {
   const [suggestions, setSuggestions] = useState([]);

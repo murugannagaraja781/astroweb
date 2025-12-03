@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:9001/api';
+const API_URL = 'https://astroweb-production.up.railway.app/api';
 
 async function testSettings() {
     try {
