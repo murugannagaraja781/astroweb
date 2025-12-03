@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Download, Share2, Globe } from 'lucide-react';
 
 const BirthChartDisplay = ({ data, onBack, onClose }) => {
-  const [language, setLanguage] = useState('english'); // english, tamil, hindi
+  const [language, setLanguage] = useState('tamil'); // Default to Tamil
+  const [showNavamsa, setShowNavamsa] = useState(false); // Toggle between Rasi and Navamsa
 
   // Safety check
   if (!data) {
@@ -171,6 +172,48 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
   // Calculate Ascendant Sign Index
   const ascendantSignIndex = ascendant ? Math.floor(ascendant / 30) : -1;
 
+  // Calculate Navamsa (D9) positions
+  const calculateNavamsa = (longitude) => {
+    // Each sign is divided into 9 parts (Navamsa)
+    // Each Navamsa is 3°20' (3.333...)
+    const sign = Math.floor(longitude / 30);
+    const degreeInSign = longitude % 30;
+    const navamsaNumber = Math.floor(degreeInSign / (30 / 9)); // 0-8
+
+    // Navamsa calculation based on sign type
+    // Movable signs (0,3,6,9): Start from same sign
+    // Fixed signs (1,4,7,10): Start from 9th sign
+    // Dual signs (2,5,8,11): Start from 5th sign
+    let navamsaSign;
+    if ([0, 3, 6, 9].includes(sign)) {
+      // Movable: Aries, Cancer, Libra, Capricorn
+      navamsaSign = (sign + navamsaNumber) % 12;
+    } else if ([1, 4, 7, 10].includes(sign)) {
+      // Fixed: Taurus, Leo, Scorpio, Aquarius
+      navamsaSign = ((sign + 8) + navamsaNumber) % 12;
+    } else {
+      // Dual: Gemini, Virgo, Sagittarius, Pisces
+      navamsaSign = ((sign + 4) + navamsaNumber) % 12;
+    }
+
+    return navamsaSign;
+  };
+
+  // Organize planets by Navamsa Sign
+  const planetsByNavamsaSign = Array(12).fill(null).map(() => []);
+
+  if (positions) {
+    Object.entries(positions).forEach(([planet, data]) => {
+      const navamsaSignIndex = calculateNavamsa(data.longitude);
+      if (navamsaSignIndex >= 0 && navamsaSignIndex < 12) {
+        planetsByNavamsaSign[navamsaSignIndex].push(planet);
+      }
+    });
+  }
+
+  // Calculate Navamsa Ascendant
+  const navamsaAscendantIndex = ascendant ? calculateNavamsa(ascendant) : -1;
+
   // South Indian Chart Grid Layout (Fixed Signs)
   // Row 1: Pisces (11), Aries (0), Taurus (1), Gemini (2)
   // Row 2: Aquarius (10), [Center], Cancer (3)
@@ -178,32 +221,48 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
   // Row 4: Sagittarius (8), Scorpio (7), Libra (6), Virgo (5)
   // Note: Array indices are 0-11 (Aries=0)
 
-  const renderSouthIndianCell = (signIndex) => {
-    const isAscendant = signIndex === ascendantSignIndex;
-    const planetsInSign = planetsBySign[signIndex];
+  const renderSouthIndianCell = (signIndex, isNavamsa = false) => {
+    const isAscendant = isNavamsa
+      ? signIndex === navamsaAscendantIndex
+      : signIndex === ascendantSignIndex;
+    const planetsInSign = isNavamsa
+      ? planetsByNavamsaSign[signIndex]
+      : planetsBySign[signIndex];
+    const signName = rashiNamesList[signIndex]?.[language] || '';
 
     return (
-      <div className={`relative border border-yellow-600 bg-yellow-50 min-h-[80px] sm:min-h-[100px] p-1 flex flex-col items-center justify-center text-center ${isAscendant ? 'ring-2 ring-red-500 ring-inset' : ''}`}>
-        {/* Sign Name (Optional, usually omitted in traditional charts but helpful) */}
-        {/* <div className="absolute top-0 right-1 text-[8px] text-gray-400">{rashiNamesList[signIndex]?.[language]}</div> */}
+      <div className={`relative border-2 border-teal-600 bg-yellow-50 min-h-[80px] sm:min-h-[100px] p-2 flex flex-col justify-between text-center ${isAscendant ? 'ring-2 ring-red-500 ring-inset bg-red-50' : ''}`}>
+        {/* Sign Name at Top */}
+        <div className="text-[9px] sm:text-[10px] font-bold text-gray-700 leading-tight">
+          {signName}
+        </div>
 
         {/* Ascendant Marker */}
         {isAscendant && (
-          <div className="text-red-600 font-bold text-xs mb-1">
-            {language === 'tamil' ? 'ல' : language === 'hindi' ? 'ल' : 'Asc'}
+          <div className="absolute top-1 right-1 text-red-600 font-bold text-[10px] bg-white px-1 rounded">
+            {language === 'tamil' ? 'ல' : language === 'hindi' ? 'ल' : 'L'}
           </div>
         )}
 
-        {/* Planets */}
-        <div className="flex flex-wrap justify-center gap-1">
-          {planetsInSign.map((planet, idx) => (
-            <div key={idx} className="text-[10px] sm:text-xs font-semibold text-blue-800">
-              {getPlanetName(planet)}
-              <span className="text-[8px] text-gray-600 ml-0.5">
-                {formatDegree(positions[planet].longitude)}
-              </span>
-            </div>
-          ))}
+        {/* Planets in the middle */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
+          {planetsInSign.length > 0 ? (
+            planetsInSign.map((planet, idx) => (
+              <div key={idx} className="flex flex-col items-center">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm sm:text-base">{planetSymbols[planet]}</span>
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-blue-800">
+                    {getPlanetName(planet)}
+                  </span>
+                </div>
+                <span className="text-[8px] text-gray-600">
+                  {formatDegree(positions[planet].longitude)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-400 text-xs">-</div>
+          )}
         </div>
       </div>
     );
@@ -232,6 +291,16 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
         </div>
 
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowNavamsa(!showNavamsa)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+              showNavamsa
+                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
+            }`}
+          >
+            {showNavamsa ? (language === 'tamil' ? 'ராசி' : language === 'hindi' ? 'राशि' : 'Rasi') : (language === 'tamil' ? 'நவாம்சம்' : language === 'hindi' ? 'नवांश' : 'Navamsa')}
+          </button>
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm shadow-md hover:shadow-lg"
@@ -278,48 +347,87 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
         </div>
       </div>
 
-      {/* South Indian Chart */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-orange-100">
-        <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-          <span className="text-2xl">🕉️</span>
-          {t.southIndian}
-        </h3>
+      {/* Rasi Chart (South Indian Style) */}
+      {!showNavamsa && (
+        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-orange-100">
+          <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <span className="text-2xl">🕉️</span>
+            {language === 'tamil' ? 'ராசி கட்டம்' : language === 'hindi' ? 'राशि चक्र' : 'Rasi Chart (D1)'}
+          </h3>
 
-        <div className="max-w-2xl mx-auto border-2 border-yellow-600 bg-yellow-50 shadow-inner">
-          <div className="grid grid-cols-4">
-            {/* Row 1 */}
-            {renderSouthIndianCell(11)} {/* Pisces */}
-            {renderSouthIndianCell(0)}  {/* Aries */}
-            {renderSouthIndianCell(1)}  {/* Taurus */}
-            {renderSouthIndianCell(2)}  {/* Gemini */}
+          <div className="max-w-2xl mx-auto border-2 border-teal-600 bg-yellow-50 shadow-inner">
+            <div className="grid grid-cols-4">
+              {/* Row 1 */}
+              {renderSouthIndianCell(11, false)} {/* Pisces */}
+              {renderSouthIndianCell(0, false)}  {/* Aries */}
+              {renderSouthIndianCell(1, false)}  {/* Taurus */}
+              {renderSouthIndianCell(2, false)}  {/* Gemini */}
 
-            {/* Row 2 */}
-            {renderSouthIndianCell(10)} {/* Aquarius */}
-            <div className="col-span-2 row-span-2 border border-yellow-600 bg-white flex flex-col items-center justify-center relative overflow-hidden">
-              {/* Center Content - Ganesha & Info */}
-              <div className="absolute inset-0 opacity-20 bg-[url('/ganesha.png')] bg-center bg-no-repeat bg-contain"></div>
-              <div className="relative z-10 text-center space-y-2">
-                <div className="text-orange-800 font-bold text-xl">{t.rasi}</div>
-                <div className="text-sm font-semibold text-gray-600">{birthData?.date}</div>
-                <div className="text-sm font-semibold text-gray-600">{birthData?.time}</div>
-                <div className="text-xs text-gray-500">{birthData?.location?.latitude}, {birthData?.location?.longitude}</div>
+              {/* Row 2 */}
+              {renderSouthIndianCell(10, false)} {/* Aquarius */}
+              <div className="col-span-2 row-span-2 border-2 border-teal-600 bg-white flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="relative z-10 text-center space-y-2">
+                  <div className="text-teal-800 font-bold text-xl">{language === 'tamil' ? 'ராசி' : language === 'hindi' ? 'राशि' : 'Rasi'}</div>
+                  <div className="text-sm font-semibold text-gray-600">{birthData?.date}</div>
+                  <div className="text-sm font-semibold text-gray-600">{birthData?.time}</div>
+                </div>
               </div>
+              {renderSouthIndianCell(3, false)}  {/* Cancer */}
+
+              {/* Row 3 */}
+              {renderSouthIndianCell(9, false)}  {/* Capricorn */}
+              {renderSouthIndianCell(4, false)}  {/* Leo */}
+
+              {/* Row 4 */}
+              {renderSouthIndianCell(8, false)}  {/* Sagittarius */}
+              {renderSouthIndianCell(7, false)}  {/* Scorpio */}
+              {renderSouthIndianCell(6, false)}  {/* Libra */}
+              {renderSouthIndianCell(5, false)}  {/* Virgo */}
             </div>
-            {renderSouthIndianCell(3)}  {/* Cancer */}
-
-            {/* Row 3 */}
-            {renderSouthIndianCell(9)}  {/* Capricorn */}
-            {/* Center spans here */}
-            {renderSouthIndianCell(4)}  {/* Leo */}
-
-            {/* Row 4 */}
-            {renderSouthIndianCell(8)}  {/* Sagittarius */}
-            {renderSouthIndianCell(7)}  {/* Scorpio */}
-            {renderSouthIndianCell(6)}  {/* Libra */}
-            {renderSouthIndianCell(5)}  {/* Virgo */}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Navamsa Chart (D9) - South Indian Style */}
+      {showNavamsa && (
+        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-purple-100">
+          <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <span className="text-2xl">✨</span>
+            {language === 'tamil' ? 'நவாம்சம் கட்டம்' : language === 'hindi' ? 'नवांश चक्र' : 'Navamsa Chart (D9)'}
+          </h3>
+
+          <div className="max-w-2xl mx-auto border-2 border-teal-600 bg-yellow-50 shadow-inner">
+            <div className="grid grid-cols-4">
+              {/* Row 1 */}
+              {renderSouthIndianCell(11, true)} {/* Pisces */}
+              {renderSouthIndianCell(0, true)}  {/* Aries */}
+              {renderSouthIndianCell(1, true)}  {/* Taurus */}
+              {renderSouthIndianCell(2, true)}  {/* Gemini */}
+
+              {/* Row 2 */}
+              {renderSouthIndianCell(10, true)} {/* Aquarius */}
+              <div className="col-span-2 row-span-2 border-2 border-teal-600 bg-white flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="relative z-10 text-center space-y-2">
+                  <div className="text-purple-800 font-bold text-xl">{language === 'tamil' ? 'நவாம்சம்' : language === 'hindi' ? 'नवांश' : 'Navamsa'}</div>
+                  <div className="text-sm font-semibold text-gray-600">{birthData?.date}</div>
+                  <div className="text-sm font-semibold text-gray-600">{birthData?.time}</div>
+                </div>
+              </div>
+              {renderSouthIndianCell(3, true)}  {/* Cancer */}
+
+              {/* Row 3 */}
+              {renderSouthIndianCell(9, true)}  {/* Capricorn */}
+              {renderSouthIndianCell(4, true)}  {/* Leo */}
+
+              {/* Row 4 */}
+              {renderSouthIndianCell(8, true)}  {/* Sagittarius */}
+              {renderSouthIndianCell(7, true)}  {/* Scorpio */}
+              {renderSouthIndianCell(6, true)}  {/* Libra */}
+              {renderSouthIndianCell(5, true)}  {/* Virgo */}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Planetary Positions Table */}
       <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
