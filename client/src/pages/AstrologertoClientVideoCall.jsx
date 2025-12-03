@@ -30,6 +30,22 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
   const [error, setError] = useState(null);
   const [showAIOption, setShowAIOption] = useState(false);
 
+  const candidateQueue = useRef([]);
+
+  // Socket Initialization
+  useEffect(() => {
+    if (propSocket) {
+        console.log("[VideoCall] Using provided socket");
+        socket.current = propSocket;
+    } else {
+        if (!socket.current) {
+            console.log("[VideoCall] Creating new socket connection");
+            socket.current = io(SIGNALING_SERVER);
+        }
+    }
+  }, [propSocket]);
+
+  // Main Call Logic Effect
   useEffect(() => {
     console.log("[VideoCall] Props:", { roomId, peerSocketId, hasSocket: !!propSocket });
 
@@ -39,17 +55,14 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
       return;
     }
 
-    useEffect(() => {
-        if (propSocket) {
-            console.log("[VideoCall] Using provided socket");
-            socket.current = propSocket;
-        } else {
-            console.log("[VideoCall] Creating new socket connection");
-            socket.current = io(SIGNALING_SERVER);
-        }
-    }, [propSocket]);
+    // Ensure socket is ready
+    if (!socket.current && !propSocket) {
+        console.error("[VideoCall] No socket available");
+        setError("Connection failed. No socket.");
+        return;
+    }
 
-    const candidateQueue = useRef([]);
+    const activeSocket = socket.current || propSocket;
 
     const initCall = async () => {
         try {
@@ -66,8 +79,8 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
 
             pc.current.onicecandidate = (event) => {
                 if (event.candidate) {
-                    console.log("[VideoCall] Sending ICE candidate to:", peerSocketId);
-                    socket.current.emit("call:candidate", {
+            console.log("[VideoCall] Sending ICE candidate to:", peerSocketId);
+                    activeSocket.emit("call:candidate", {
                         toSocketId: peerSocketId,
                         candidate: event.candidate
                     });
@@ -93,7 +106,7 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
             await pc.current.setLocalDescription(offer);
             console.log("[VideoCall] Sending offer to:", peerSocketId);
 
-            socket.current.emit("call:offer", {
+            activeSocket.emit("call:offer", {
                 toSocketId: peerSocketId,
                 offer
             });
@@ -143,17 +156,17 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
         cleanup();
     };
 
-    socket.current.on("call:answer", handleAnswer);
-    socket.current.on("call:candidate", handleCandidate);
-    socket.current.on("call:end", handleEnd);
+    activeSocket.on("call:answer", handleAnswer);
+    activeSocket.on("call:candidate", handleCandidate);
+    activeSocket.on("call:end", handleEnd);
 
     return () => {
         cleanup();
-        socket.current.off("call:answer");
-        socket.current.off("call:candidate");
-        socket.current.off("call:end");
+        activeSocket.off("call:answer");
+        activeSocket.off("call:candidate");
+        activeSocket.off("call:end");
     };
-  }, [roomId, peerSocketId]);
+  }, [roomId, peerSocketId, propSocket]);
 
   const cleanup = () => {
       if (localStream.current) {
@@ -254,7 +267,7 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
     };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white p-4 rounded-xl relative">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4 rounded-xl relative">
         <h2 className="text-xl mb-2">Video Call</h2>
         {callStatus === "connected" && (
             <div className="text-2xl font-mono mb-4 text-green-400">
