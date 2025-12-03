@@ -28,7 +28,7 @@ export const ThemeProvider = ({ children }) => {
 
   const fetchTheme = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/settings`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/settings`);
       if (res.data && res.data.theme) {
         setActiveThemeName(res.data.theme);
       }

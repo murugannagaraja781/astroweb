@@ -1,5 +1,5 @@
 // AstrologertoClientVideoCall.jsx
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { FiVideo, FiVideoOff, FiMic, FiMicOff, FiPhone } from "react-icons/fi";
 
@@ -39,13 +39,15 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
       return;
     }
 
-    if (propSocket) {
-        console.log("[VideoCall] Using provided socket");
-        socket.current = propSocket;
-    } else {
-        console.log("[VideoCall] Creating new socket connection");
-        socket.current = io(SIGNALING_SERVER);
-    }
+    useEffect(() => {
+        if (propSocket) {
+            console.log("[VideoCall] Using provided socket");
+            socket.current = propSocket;
+        } else {
+            console.log("[VideoCall] Creating new socket connection");
+            socket.current = io(SIGNALING_SERVER);
+        }
+    }, [propSocket]);
 
     const candidateQueue = useRef([]);
 

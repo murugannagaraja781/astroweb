@@ -63,3 +63,18 @@ exports.getOffers = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+
+exports.getSettings = async (req, res) => {
+    try {
+        const Settings = require('../models/Settings');
+        let settings = await Settings.findOne();
+        if (!settings) {
+            settings = new Settings();
+            await settings.save();
+        }
+        res.json(settings);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};

@@ -41,6 +41,19 @@ const AstrologerDetail = () => {
   const [audioRoomId, setAudioRoomId] = useState(null);
   const [audioPeerSocketId, setAudioPeerSocketId] = useState(null);
   const [lastSessionId, setLastSessionId] = useState(null);
+  const [showMissedPopup, setShowMissedPopup] = useState(false);
+
+  // Timeout Logic
+  useEffect(() => {
+    let timer;
+    if (waiting) {
+      timer = setTimeout(() => {
+        setWaiting(false);
+        setShowMissedPopup(true);
+      }, 45000); // 45 seconds
+    }
+    return () => clearTimeout(timer);
+  }, [waiting]);
 
   // ============================
   // SOCKET SETUP (CLIENT SIDE)
@@ -682,6 +695,34 @@ const AstrologerDetail = () => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Missed Request Popup */}
+      {showMissedPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm mx-4 text-center transform animate-scale-in">
+            <div className="w-20 h-20 mx-auto mb-6 relative">
+              <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse"></div>
+              <div className="absolute inset-2 bg-red-500 rounded-full flex items-center justify-center">
+                <Clock className="w-8 h-8 text-white" />
+              </div>
+            </div>
+
+            <h4 className="text-2xl font-bold text-gray-800 mb-2">
+              Request Missed
+            </h4>
+            <p className="text-gray-600 mb-6">
+              The astrologer seems to be busy and missed your request. Please try again later.
+            </p>
+
+            <button
+              onClick={() => setShowMissedPopup(false)}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all w-full"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
