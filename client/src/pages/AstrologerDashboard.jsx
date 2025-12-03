@@ -48,12 +48,20 @@ const AstrologerDashboard = () => {
   const navigate = useNavigate();
 
   // Initialize notification sound
- useEffect(() => {
-  const audio = new Audio("/notification.mp3");
-  audio.preload = "auto";
-  audio.volume = 1.0;
-  notificationSoundRef.current = audio;
-}, []);useEffect(() => {
+  useEffect(() => {
+    const audio = new Audio("/notification.mp3");
+    audio.preload = "auto";
+    audio.volume = 1.0;
+    notificationSoundRef.current = audio;
+
+    // Cleanup on unmount
+    return () => {
+      if (notificationSoundRef.current) {
+        notificationSoundRef.current.pause();
+        notificationSoundRef.current = null;
+      }
+    };
+  }, []);useEffect(() => {
   window.testNotificationSound = () => {
     if (notificationSoundRef.current) {
       notificationSoundRef.current.play()
@@ -222,22 +230,31 @@ useEffect(() => {
   }, [profile?.userId, socket]);
 
   // Play notification sound
- // SUPER RELIABLE Notification Sound (works always when tab is open)
- const playNotificationSound = () => {
-  const audio = notificationSoundRef.current;
-  if (!audio) return;
+  // SUPER RELIABLE Notification Sound (works always when tab is open)
+  const playNotificationSound = () => {
+    const audio = notificationSoundRef.current;
+    if (!audio) return;
 
-  audio.pause();
-  audio.currentTime = 0;
+    // Reset audio to beginning
+    audio.pause();
+    audio.currentTime = 0;
 
-  audio.play()
-    .then(() => {
-      console.log("🔔 Sound played");
-    })
-    .catch(err => {
-      console.warn("⚠️ Sound blocked:", err);
-    });
-};
+    // Play with error handling
+    const playPromise = audio.play();
+
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("🔔 Sound played");
+        })
+        .catch(err => {
+          // Ignore AbortError (happens when audio is interrupted)
+          if (err.name !== 'AbortError') {
+            console.warn("⚠️ Sound blocked:", err);
+          }
+        });
+    }
+  };
 
 
 

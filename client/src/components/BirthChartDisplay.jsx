@@ -94,6 +94,19 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
 
   const t = translations[language];
 
+  // Planet Symbols
+  const planetSymbols = {
+    Sun: '☉',
+    Moon: '☽',
+    Mars: '♂',
+    Mercury: '☿',
+    Jupiter: '♃',
+    Venus: '♀',
+    Saturn: '♄',
+    Rahu: '☊',
+    Ketu: '☋'
+  };
+
   // Planet Names
   const planetNames = {
     Sun: { english: 'Sun', tamil: 'சூரியன்', hindi: 'सूर्य' },
