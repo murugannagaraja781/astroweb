@@ -1,6 +1,6 @@
 // AstrologertoClientVideoCall.test.jsx
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AstrologertoClientVideoCall from '../AstrologertoClientVideoCall';
 
@@ -46,9 +46,11 @@ jest.mock('socket.io-client', () => {
 
 describe('AstrologertoClientVideoCall', () => {
   test('renders without crashing and shows loading state', async () => {
-    render(
-      <AstrologertoClientVideoCall roomId="testRoom" peerSocketId="peer123" astrologerId="astro1" />
-    );
+    await act(async () => {
+      render(
+        <AstrologertoClientVideoCall roomId="testRoom" peerSocketId="peer123" astrologerId="astro1" />
+      );
+    });
     expect(screen.getByText(/Video Call/i)).toBeInTheDocument();
     // Initially should show connecting status
     await waitFor(() => {
