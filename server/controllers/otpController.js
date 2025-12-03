@@ -20,13 +20,14 @@ exports.sendOtp = async (req, res) => {
         }
 
         console.log('Sending OTP to:', cleanPhone);
-        console.log('Using Template ID:', process.env.MSG91_TEMPLATE_ID);
-        console.log('Using Sender ID:', process.env.MSG91_SENDER_ID);
+        console.log('Using Template ID:', process.env.MSG91_TEMPLATE_ID || '1407172294566795685');
+        console.log('Using Sender ID:', process.env.MSG91_SENDER_ID || 'ASTRO9');
 
-        // MSG91 API v5 - Send OTP with Template ID and Sender ID
+        // MSG91 API v5 - Send OTP with DLT-approved Template ID
+        // Template: "Dear customer,use this One Time Password ##OTP## to log in to your Astro5star account"
         const url = `https://control.msg91.com/api/v5/otp`;
         const params = {
-            template_id: process.env.MSG91_TEMPLATE_ID,
+            template_id: process.env.MSG91_TEMPLATE_ID || '1407172294566795685',
             mobile: `91${cleanPhone}`,
             authkey: process.env.MSG91_AUTHKEY,
             sender: process.env.MSG91_SENDER_ID || 'ASTRO9',

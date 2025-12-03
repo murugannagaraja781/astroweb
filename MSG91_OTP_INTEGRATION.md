@@ -4,10 +4,12 @@
 
 ### Configuration Details:
 - **Auth Key:** `478312AgHesvjV691c86b3P1`
-- **Template ID:** `1407172294566795685`
+- **Template ID:** `1407172294566795685` (DLT-Approved)
 - **Sender ID:** `ASTRO9`
+- **Template Content:** "Dear customer,use this One Time Password ##OTP## to log in to your Astro5star account"
 - **OTP Length:** 6 digits
 - **OTP Expiry:** 5 minutes
+- **DLT Status:** ✅ Approved for India
 
 ---
 
