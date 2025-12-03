@@ -6,6 +6,7 @@ import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
 import AudioCall from "./AudioCall";
+import ChartModal from "../components/ChartModal";
 import {
   Home,
   MessageCircle,
@@ -40,6 +41,7 @@ const AstrologerDashboard = () => {
   const [requestQueue, setRequestQueue] = useState([]);
   const [showOfflinePopup, setShowOfflinePopup] = useState(false);
   const [earnings, setEarnings] = useState(0);
+  const [showChartModal, setShowChartModal] = useState(false);
 
   const audioRef = useRef(null);
   const notificationSoundRef = useRef(null);
@@ -521,6 +523,14 @@ useEffect(() => {
       requiresOnline: true, // NEW: Requires online status
     },
     {
+      id: "charts",
+      icon: BarChart3,
+      label: "Charts",
+      color: "from-indigo-500 to-purple-500",
+      badge: null,
+      onClick: () => setShowChartModal(true), // Open chart modal
+    },
+    {
       id: "astrology",
       icon: Sparkles,
       label: "Astrology",
@@ -566,6 +576,12 @@ useEffect(() => {
   ];
 
   const handleTabChange = (item) => {
+    // If menu item has onClick, execute it
+    if (item.onClick) {
+      item.onClick();
+      return;
+    }
+
     // If menu item has navigateTo, navigate instead of changing tab
     if (item.navigateTo) {
       navigate(item.navigateTo);
@@ -746,12 +762,16 @@ useEffect(() => {
                 onClick={acceptCall}
                 className="bg-green-500 text-white px-8 py-4 rounded-2xl font-bold hover:bg-green-600 transform hover:scale-105 transition-all shadow-lg animate-pulse"
               >
+```
                 Accept
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Chart Modal */}
+      <ChartModal isOpen={showChartModal} onClose={() => setShowChartModal(false)} />
 
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white p-6">
@@ -1245,11 +1265,12 @@ useEffect(() => {
       </div>
 
       {/* Hidden audio element for notification sound */}
- <audio ref={notificationSoundRef} src="/notification.mp3" preload="auto"></audio>
-
+      <audio ref={notificationSoundRef} preload="auto">
+        <source src="/notification.mp3" type="audio/mpeg" />
+      </audio>
 
       {/* Add custom CSS animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
