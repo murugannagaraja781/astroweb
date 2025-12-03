@@ -94,11 +94,28 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
 
             pc.current.onconnectionstatechange = () => {
                 console.log("[VideoCall] Connection state:", pc.current.connectionState);
-                if (pc.current.connectionState === 'connected') {
-                    setCallStatus("connected");
-                } else if (pc.current.connectionState === 'failed') {
-                    setCallStatus("failed");
-                    setError("Connection failed. Please try again.");
+                switch (pc.current.connectionState) {
+                    case 'connected':
+                        setCallStatus("connected");
+                        setError(null);
+                        break;
+                    case 'disconnected':
+                        setError("⚠️ Connection lost. Reconnecting...");
+                        break;
+                    case 'failed':
+                        setCallStatus("failed");
+                        setError("❌ Connection failed. Please check your internet and try again.");
+                        break;
+                    case 'closed':
+                        setCallStatus("ended");
+                        break;
+                }
+            };
+
+            pc.current.oniceconnectionstatechange = () => {
+                console.log("[VideoCall] ICE state:", pc.current.iceConnectionState);
+                if (pc.current.iceConnectionState === "failed") {
+                    setError("❌ Network connection failed. This may be due to firewall restrictions. TURN server may be needed.");
                 }
             };
 
@@ -114,7 +131,19 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
 
         } catch (err) {
             console.error("[VideoCall] Error initializing call:", err);
-            setError("Failed to access camera/microphone: " + err.message);
+            let errorMessage = "Failed to access camera/microphone. ";
+            if (err.name === "NotAllowedError") {
+                errorMessage = "❌ Camera/Microphone permission denied. Please allow access in browser settings.";
+            } else if (err.name === "NotFoundError") {
+                errorMessage = "❌ No camera or microphone found. Please connect a device.";
+            } else if (err.name === "NotReadableError") {
+                errorMessage = "❌ Camera/Microphone is already in use by another application.";
+            } else if (err.name === "OverconstrainedError") {
+                errorMessage = "❌ Camera/Microphone constraints not supported by your device.";
+            } else {
+                errorMessage = `❌ ${err.message}`;
+            }
+            setError(errorMessage);
         }
     };
 

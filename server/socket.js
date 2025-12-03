@@ -57,18 +57,8 @@ module.exports = function (io) {
         // ----------------------------
         // WEBRTC SIGNALING
         // ----------------------------
-
-        socket.on("call:offer", ({ toSocketId, offer }) => {
-            io.to(toSocketId).emit("call:offer", { fromSocketId: socket.id, offer });
-        });
-
-        socket.on("call:answer", ({ toSocketId, answer }) => {
-            io.to(toSocketId).emit("call:answer", { fromSocketId: socket.id, answer });
-        });
-
-        socket.on("call:candidate", ({ toSocketId, candidate }) => {
-            io.to(toSocketId).emit("call:candidate", { fromSocketId: socket.id, candidate });
-        });
+        // NOTE: WebRTC signaling is handled in socket/handlers/signaling.js
+        // Duplicate handlers removed to prevent double-processing
 
         // =====================================================
         // AUDIO CALL SIGNALING

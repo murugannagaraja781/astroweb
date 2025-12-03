@@ -29,6 +29,7 @@
     const [isLocalAudioEnabled, setIsLocalAudioEnabled] = useState(true);
     const [error, setError] = useState(null);
     const [peerSocketId, setPeerSocketId] = useState(null);
+    const candidateQueue = useRef([]);
 
     useEffect(() => {
         console.log("[AstroVideoCall] Props:", { roomId });
@@ -65,14 +66,45 @@
                 };
 
                 pc.current.onconnectionstatechange = () => {
-                    if (pc.current.connectionState === 'connected') {
-                        setCallStatus("connected");
+                    console.log("[ClientVideoCall] Connection state:", pc.current.connectionState);
+                    switch (pc.current.connectionState) {
+                        case 'connected':
+                            setCallStatus("connected");
+                            setError(null);
+                            break;
+                        case 'disconnected':
+                            setError("⚠️ Connection lost. Reconnecting...");
+                            break;
+                        case 'failed':
+                            setCallStatus("failed");
+                            setError("❌ Connection failed. Please check your internet and try again.");
+                            break;
+                        case 'closed':
+                            setCallStatus("ended");
+                            break;
+                    }
+                };
+
+                pc.current.oniceconnectionstatechange = () => {
+                    console.log("[ClientVideoCall] ICE state:", pc.current.iceConnectionState);
+                    if (pc.current.iceConnectionState === "failed") {
+                        setError("❌ Network connection failed. This may be due to firewall restrictions.");
                     }
                 };
 
             } catch (err) {
                 console.error("Error initializing call:", err);
-                setError("Failed to access camera/microphone");
+                let errorMessage = "Failed to access camera/microphone. ";
+                if (err.name === "NotAllowedError") {
+                    errorMessage = "❌ Camera/Microphone permission denied. Please allow access in browser settings.";
+                } else if (err.name === "NotFoundError") {
+                    errorMessage = "❌ No camera or microphone found. Please connect a device.";
+                } else if (err.name === "NotReadableError") {
+                    errorMessage = "❌ Camera/Microphone is already in use by another application.";
+                } else {
+                    errorMessage = `❌ ${err.message}`;
+                }
+                setError(errorMessage);
             }
         };
 
@@ -81,21 +113,42 @@
         const handleOffer = async ({ fromSocketId, offer }) => {
             setPeerSocketId(fromSocketId);
             if (pc.current) {
-                await pc.current.setRemoteDescription(new RTCSessionDescription(offer));
-                const answer = await pc.current.createAnswer();
-                await pc.current.setLocalDescription(answer);
+                try {
+                    await pc.current.setRemoteDescription(new RTCSessionDescription(offer));
 
-                socket.current.emit("call:answer", {
-                    toSocketId: fromSocketId,
-                    answer
-                });
-                setCallStatus("connected");
+                    // Process queued candidates
+                    while (candidateQueue.current.length > 0) {
+                        const candidate = candidateQueue.current.shift();
+                        await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                    }
+
+                    const answer = await pc.current.createAnswer();
+                    await pc.current.setLocalDescription(answer);
+
+                    socket.current.emit("call:answer", {
+                        toSocketId: fromSocketId,
+                        answer
+                    });
+                    setCallStatus("connected");
+                } catch (err) {
+                    console.error("[ClientVideoCall] Error handling offer:", err);
+                    setError("Failed to establish connection: " + err.message);
+                }
             }
         };
 
         const handleCandidate = async ({ candidate }) => {
             if (pc.current) {
-                await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                try {
+                    if (pc.current.remoteDescription) {
+                        await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                    } else {
+                        // Queue candidates until remote description is set
+                        candidateQueue.current.push(candidate);
+                    }
+                } catch (err) {
+                    console.error("[ClientVideoCall] Error handling candidate:", err);
+                }
             }
         };
 
