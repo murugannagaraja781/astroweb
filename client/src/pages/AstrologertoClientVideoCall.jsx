@@ -47,6 +47,8 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
         socket.current = io(SIGNALING_SERVER);
     }
 
+    const candidateQueue = useRef([]);
+
     const initCall = async () => {
         try {
             console.log("[VideoCall] Requesting media access...");
@@ -79,6 +81,9 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
                 console.log("[VideoCall] Connection state:", pc.current.connectionState);
                 if (pc.current.connectionState === 'connected') {
                     setCallStatus("connected");
+                } else if (pc.current.connectionState === 'failed') {
+                    setCallStatus("failed");
+                    setError("Connection failed. Please try again.");
                 }
             };
 
@@ -102,13 +107,31 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
 
     const handleAnswer = async ({ answer }) => {
         if (pc.current) {
-            await pc.current.setRemoteDescription(new RTCSessionDescription(answer));
+            try {
+                await pc.current.setRemoteDescription(new RTCSessionDescription(answer));
+                // Process queued candidates
+                while (candidateQueue.current.length > 0) {
+                    const candidate = candidateQueue.current.shift();
+                    await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+            } catch (err) {
+                console.error("[VideoCall] Error handling answer:", err);
+                setError("Connection error: " + err.message);
+            }
         }
     };
 
     const handleCandidate = async ({ candidate }) => {
         if (pc.current) {
-            await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+            try {
+                if (pc.current.remoteDescription) {
+                    await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                } else {
+                    candidateQueue.current.push(candidate);
+                }
+            } catch (err) {
+                console.error("[VideoCall] Error handling candidate:", err);
+            }
         }
     };
 
@@ -137,13 +160,73 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
       if (pc.current) pc.current.close();
   };
 
-  const toggleVideo = () => {
-      if (localStream.current) {
-          const track = localStream.current.getVideoTracks()[0];
-          track.enabled = !track.enabled;
-          setIsLocalVideoEnabled(track.enabled);
-      }
-  };
+    const [stats, setStats] = useState(null);
+    const [showStats, setShowStats] = useState(false);
+
+    const [callDuration, setCallDuration] = useState(0);
+
+    useEffect(() => {
+        if (callStatus === "connected") {
+            const interval = setInterval(() => {
+                setCallDuration(prev => prev + 1);
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [callStatus]);
+
+    useEffect(() => {
+        if (!pc.current || callStatus !== 'connected') return;
+
+        // Initial check delay
+        const checkDelay = setTimeout(() => {
+            // Check if stats is null OR bitrate is 0
+            if (!stats || stats.bitrate === 0) {
+                setError("⚠️ No data received! Possible firewall issue. (Missing TURN server?)");
+                setShowStats(true); // Auto-open stats to show 0 bitrate
+            }
+        }, 5000);
+
+        const interval = setInterval(async () => {
+            if (pc.current) {
+                const statsReport = await pc.current.getStats();
+                let activeCandidatePair = null;
+                let remoteVideo = null;
+                let inboundVideo = null;
+
+                statsReport.forEach(report => {
+                    if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                        activeCandidatePair = report;
+                    }
+                    if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                        inboundVideo = report;
+                    }
+                });
+
+                const currentBitrate = inboundVideo ? (inboundVideo.bytesReceived * 8) / 1000 : 0;
+
+                setStats({
+                    connectionState: pc.current.connectionState,
+                    iceState: pc.current.iceConnectionState,
+                    currentRoundTripTime: activeCandidatePair?.currentRoundTripTime,
+                    packetsLost: inboundVideo?.packetsLost,
+                    bitrate: currentBitrate
+                });
+            }
+        }, 1000);
+
+        return () => {
+            clearInterval(interval);
+            clearTimeout(checkDelay);
+        };
+    }, [callStatus]);
+
+    const toggleVideo = () => {
+        if (localStream.current) {
+            const track = localStream.current.getVideoTracks()[0];
+            track.enabled = !track.enabled;
+            setIsLocalVideoEnabled(track.enabled);
+        }
+    };
 
   const toggleAudio = () => {
       if (localStream.current) {
@@ -162,10 +245,45 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
       cleanup();
   };
 
+    const formatDuration = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white p-4 rounded-xl">
-        <h2 className="text-xl mb-4">Video Call</h2>
-        {error && <div className="text-red-500 mb-4">{error}</div>}
+    <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white p-4 rounded-xl relative">
+        <h2 className="text-xl mb-2">Video Call</h2>
+        {callStatus === "connected" && (
+            <div className="text-2xl font-mono mb-4 text-green-400">
+                {formatDuration(callDuration)}
+            </div>
+        )}
+
+        {/* Error Popup */}
+        {error && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-bounce">
+                <span>⚠️ {error}</span>
+                <button onClick={() => setError(null)} className="hover:bg-red-700 rounded-full p-1">
+                    <span className="text-xl">×</span>
+                </button>
+            </div>
+        )}
+
+        {/* Stats Overlay */}
+        {showStats && stats && (
+            <div className="absolute top-16 left-4 z-40 bg-black/80 backdrop-blur-md p-4 rounded-xl text-xs font-mono border border-white/10 shadow-2xl">
+                <h3 className="font-bold text-green-400 mb-2">📡 Network Stats</h3>
+                <div className="space-y-1">
+                    <p>Status: <span className={stats.connectionState === 'connected' ? 'text-green-400' : 'text-yellow-400'}>{stats.connectionState}</span></p>
+                    <p>ICE: {stats.iceState}</p>
+                    <p>Bitrate: {stats.bitrate.toFixed(0)} kbps</p>
+                    <p>Packet Loss: {stats.packetsLost || 0}</p>
+                    <p>RTT: {stats.currentRoundTripTime ? (stats.currentRoundTripTime * 1000).toFixed(0) + 'ms' : 'N/A'}</p>
+                </div>
+            </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
             <div className="relative bg-gray-800 rounded-lg overflow-hidden aspect-video">
                 <video ref={localRef} autoPlay muted playsInline className="w-full h-full object-cover" />
@@ -204,14 +322,21 @@ export default function AstrologertoClientVideoCall({ roomId, socket: propSocket
         )}
 
         <div className="flex gap-4 mt-6">
-            <button onClick={toggleVideo} className={`p-4 rounded-full ${isLocalVideoEnabled ? 'bg-gray-700' : 'bg-red-600'}`}>
-                {isLocalVideoEnabled ? <FiVideo /> : <FiVideoOff />}
-            </button>
             <button onClick={toggleAudio} className={`p-4 rounded-full ${isLocalAudioEnabled ? 'bg-gray-700' : 'bg-red-600'}`}>
                 {isLocalAudioEnabled ? <FiMic /> : <FiMicOff />}
             </button>
+            <button onClick={toggleVideo} className={`p-4 rounded-full ${isLocalVideoEnabled ? 'bg-gray-700' : 'bg-red-600'}`}>
+                {isLocalVideoEnabled ? <FiVideo /> : <FiVideoOff />}
+            </button>
             <button onClick={endCall} className="p-4 rounded-full bg-red-600 hover:bg-red-700">
                 <FiPhone className="transform rotate-135" />
+            </button>
+            <button
+                onClick={() => setShowStats(!showStats)}
+                className={`p-4 rounded-full ${showStats ? 'bg-blue-600' : 'bg-gray-700'} hover:bg-blue-700`}
+                title="Network Stats"
+            >
+                <span className="text-xs font-bold">NET</span>
             </button>
         </div>
     </div>

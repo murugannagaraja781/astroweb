@@ -86,6 +86,8 @@ export const useWebRTCCall = ({ socket, roomId, peerSocketId, isInitiator, onCal
         }
     }, [createPeerConnection, isInitiator, peerSocketId, socket]);
 
+    const candidateQueue = useRef([]);
+
     useEffect(() => {
         if (!socket || !roomId) return;
 
@@ -95,6 +97,11 @@ export const useWebRTCCall = ({ socket, roomId, peerSocketId, isInitiator, onCal
             if (!pc.current) return;
             try {
                 await pc.current.setRemoteDescription(new RTCSessionDescription(offer));
+                // Process queued candidates
+                while (candidateQueue.current.length > 0) {
+                    const candidate = candidateQueue.current.shift();
+                    await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                }
                 const answer = await pc.current.createAnswer();
                 await pc.current.setLocalDescription(answer);
                 socket.emit("audio:answer", {
@@ -111,6 +118,11 @@ export const useWebRTCCall = ({ socket, roomId, peerSocketId, isInitiator, onCal
             if (!pc.current) return;
             try {
                 await pc.current.setRemoteDescription(new RTCSessionDescription(answer));
+                // Process queued candidates
+                while (candidateQueue.current.length > 0) {
+                    const candidate = candidateQueue.current.shift();
+                    await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                }
             } catch (err) {
                 console.error("Error handling answer:", err);
             }
@@ -119,7 +131,11 @@ export const useWebRTCCall = ({ socket, roomId, peerSocketId, isInitiator, onCal
         const handleCandidate = async ({ candidate }) => {
             if (!pc.current) return;
             try {
-                await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                if (pc.current.remoteDescription) {
+                    await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                } else {
+                    candidateQueue.current.push(candidate);
+                }
             } catch (err) {
                 console.error("Error handling candidate:", err);
             }
@@ -169,6 +185,7 @@ export const useWebRTCCall = ({ socket, roomId, peerSocketId, isInitiator, onCal
         remoteStream,
         error,
         endCall,
-        toggleMute
+        toggleMute,
+        pc // Expose PeerConnection for stats
     };
 };

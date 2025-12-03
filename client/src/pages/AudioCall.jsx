@@ -13,13 +13,17 @@ export default function AudioCall({ roomId, socket, peerSocketId, isInitiator = 
   const analyser = useRef(null);
   const animationFrame = useRef(null);
 
-  const { callStatus, localStream, remoteStream, error, endCall, toggleMute } = useWebRTCCall({
+  const { callStatus, localStream, remoteStream, error, endCall, toggleMute, pc } = useWebRTCCall({
       socket,
       roomId,
       peerSocketId,
       isInitiator,
       onCallEnd: () => setShowAIOption(true)
   });
+
+  const [stats, setStats] = useState(null);
+  const [showStats, setShowStats] = useState(false);
+  const [connectionError, setConnectionError] = useState(null);
 
   useEffect(() => {
       if (callStatus === "connected") {
@@ -29,6 +33,50 @@ export default function AudioCall({ roomId, socket, peerSocketId, isInitiator = 
           return () => clearInterval(interval);
       }
   }, [callStatus]);
+
+  useEffect(() => {
+      if (!pc.current || callStatus !== 'connected') return;
+
+      // Initial check delay
+      const checkDelay = setTimeout(() => {
+          if (stats && stats.bitrate === 0) {
+              setConnectionError("⚠️ No audio data! Possible firewall issue. (Missing TURN server?)");
+              setShowStats(true);
+          }
+      }, 5000);
+
+      const interval = setInterval(async () => {
+          if (pc.current) {
+              const statsReport = await pc.current.getStats();
+              let activeCandidatePair = null;
+              let inboundAudio = null;
+
+              statsReport.forEach(report => {
+                  if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                      activeCandidatePair = report;
+                  }
+                  if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+                      inboundAudio = report;
+                  }
+              });
+
+              const currentBitrate = inboundAudio ? (inboundAudio.bytesReceived * 8) / 1000 : 0;
+
+              setStats({
+                  connectionState: pc.current.connectionState,
+                  iceState: pc.current.iceConnectionState,
+                  currentRoundTripTime: activeCandidatePair?.currentRoundTripTime,
+                  packetsLost: inboundAudio?.packetsLost,
+                  bitrate: currentBitrate
+              });
+          }
+      }, 1000);
+
+      return () => {
+          clearInterval(interval);
+          clearTimeout(checkDelay);
+      };
+  }, [callStatus, pc]);
 
   useEffect(() => {
       if (localStream) {
@@ -95,6 +143,30 @@ export default function AudioCall({ roomId, socket, peerSocketId, isInitiator = 
 
         {error && <div className="text-red-400 mb-4 bg-red-900/30 px-4 py-2 rounded-lg">{error}</div>}
 
+        {/* Connection Error Popup */}
+        {connectionError && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 animate-bounce">
+                <span>⚠️ {connectionError}</span>
+                <button onClick={() => setConnectionError(null)} className="hover:bg-red-700 rounded-full p-1">
+                    <span className="text-xl">×</span>
+                </button>
+            </div>
+        )}
+
+        {/* Stats Overlay */}
+        {showStats && stats && (
+            <div className="absolute top-16 left-4 z-40 bg-black/80 backdrop-blur-md p-4 rounded-xl text-xs font-mono border border-white/10 shadow-2xl">
+                <h3 className="font-bold text-green-400 mb-2">📡 Network Stats</h3>
+                <div className="space-y-1">
+                    <p>Status: <span className={stats.connectionState === 'connected' ? 'text-green-400' : 'text-yellow-400'}>{stats.connectionState}</span></p>
+                    <p>ICE: {stats.iceState}</p>
+                    <p>Bitrate: {stats.bitrate.toFixed(0)} kbps</p>
+                    <p>Packet Loss: {stats.packetsLost || 0}</p>
+                    <p>RTT: {stats.currentRoundTripTime ? (stats.currentRoundTripTime * 1000).toFixed(0) + 'ms' : 'N/A'}</p>
+                </div>
+            </div>
+        )}
+
         {/* Audio Visualization */}
         <div className="mb-8">
             <div className="w-64 h-64 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center relative overflow-hidden">
@@ -156,6 +228,13 @@ export default function AudioCall({ roomId, socket, peerSocketId, isInitiator = 
                 title="End Call"
             >
                 <FiPhone className="w-6 h-6 transform rotate-135" />
+            </button>
+            <button
+                onClick={() => setShowStats(!showStats)}
+                className={`p-6 rounded-full ${showStats ? 'bg-blue-600' : 'bg-gray-700'} hover:bg-blue-700`}
+                title="Network Stats"
+            >
+                <span className="text-xs font-bold">NET</span>
             </button>
         </div>
     </div>
