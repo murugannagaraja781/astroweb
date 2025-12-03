@@ -14,30 +14,54 @@ exports.sendOtp = async (req, res) => {
         // Clean phone number (remove any spaces, dashes, etc.)
         const cleanPhone = phoneNumber.replace(/\D/g, '');
 
-        // MSG91 API v5 - Correct format
-        const response = await axios.post(
-            `https://control.msg91.com/api/v5/otp?template_id=${process.env.MSG91_TEMPLATE_ID}&mobile=91${cleanPhone}`,
-            {},
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'authkey': process.env.MSG91_AUTHKEY,
-                },
-            }
-        );
+        // Validate phone number format
+        if (cleanPhone.length !== 10) {
+            return res.status(400).json({ msg: 'Phone number must be 10 digits' });
+        }
+
+        console.log('Sending OTP to:', cleanPhone);
+        console.log('Using Template ID:', process.env.MSG91_TEMPLATE_ID);
+        console.log('Using Sender ID:', process.env.MSG91_SENDER_ID);
+
+        // MSG91 API v5 - Send OTP with Template ID and Sender ID
+        const url = `https://control.msg91.com/api/v5/otp`;
+        const params = {
+            template_id: process.env.MSG91_TEMPLATE_ID,
+            mobile: `91${cleanPhone}`,
+            authkey: process.env.MSG91_AUTHKEY,
+            sender: process.env.MSG91_SENDER_ID || 'ASTRO9',
+            otp_expiry: 5, // OTP expires in 5 minutes
+            otp_length: 6 // 6 digit OTP
+        };
+
+        const response = await axios.post(url, null, {
+            params: params,
+            headers: {
+                'Content-Type': 'application/json',
+                'authkey': process.env.MSG91_AUTHKEY,
+            },
+        });
 
         console.log('MSG91 Send OTP Response:', response.data);
 
         if (response.data.type === 'success') {
-            res.json({ type: 'success', message: 'OTP sent successfully' });
+            res.json({
+                type: 'success',
+                message: 'OTP sent successfully',
+                phone: cleanPhone
+            });
         } else {
-            res.status(400).json({ msg: 'Failed to send OTP', details: response.data });
+            res.status(400).json({
+                msg: 'Failed to send OTP',
+                details: response.data
+            });
         }
     } catch (error) {
         console.error('Error sending OTP:', error.response?.data || error.message);
         res.status(500).json({
             msg: 'Error sending OTP',
-            error: error.response?.data?.message || error.message
+            error: error.response?.data?.message || error.message,
+            details: error.response?.data
         });
     }
 };
@@ -53,7 +77,7 @@ exports.verifyOtp = async (req, res) => {
         // Clean phone number
         const cleanPhone = phoneNumber.replace(/\D/g, '');
 
-        // MSG91 API v5 - Correct format
+        // MSG91 API v5 - Verify OTP
         const response = await axios.get(
             `https://control.msg91.com/api/v5/otp/verify?otp=${otp}&mobile=91${cleanPhone}`,
             {

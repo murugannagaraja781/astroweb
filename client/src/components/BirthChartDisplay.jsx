@@ -228,41 +228,31 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
     const planetsInSign = isNavamsa
       ? planetsByNavamsaSign[signIndex]
       : planetsBySign[signIndex];
-    const signName = rashiNamesList[signIndex]?.[language] || '';
 
     return (
-      <div className={`relative border-2 border-teal-600 bg-yellow-50 min-h-[80px] sm:min-h-[100px] p-2 flex flex-col justify-between text-center ${isAscendant ? 'ring-2 ring-red-500 ring-inset bg-red-50' : ''}`}>
-        {/* Sign Name at Top */}
-        <div className="text-[9px] sm:text-[10px] font-bold text-gray-700 leading-tight">
-          {signName}
-        </div>
-
-        {/* Ascendant Marker */}
+      <div className={`relative bg-[#FFFEF0] min-h-[100px] sm:min-h-[120px] p-2 sm:p-3 flex flex-col justify-start ${isAscendant ? 'bg-yellow-100' : ''}`}>
+        {/* Ascendant Marker - Top Right */}
         {isAscendant && (
-          <div className="absolute top-1 right-1 text-red-600 font-bold text-[10px] bg-white px-1 rounded">
+          <div className="absolute top-1 right-1 text-red-600 font-bold text-sm">
             {language === 'tamil' ? 'ல' : language === 'hindi' ? 'ल' : 'L'}
           </div>
         )}
 
-        {/* Planets in the middle */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-0.5">
+        {/* Planets - Each on separate line with degree below */}
+        <div className="space-y-1.5">
           {planetsInSign.length > 0 ? (
             planetsInSign.map((planet, idx) => (
-              <div key={idx} className="flex flex-col items-center">
-                <div className="flex items-center gap-1">
-                  <span className="text-sm sm:text-base">{planetSymbols[planet]}</span>
-                  <span className="text-[9px] sm:text-[10px] font-semibold text-blue-800">
-                    {getPlanetName(planet)}
-                  </span>
+              <div key={idx} className="leading-tight">
+                <div className="text-blue-700 font-semibold text-xs sm:text-sm flex items-center gap-1">
+                  <span>{planetSymbols[planet]}</span>
+                  <span>{getPlanetName(planet)}</span>
                 </div>
-                <span className="text-[8px] text-gray-600">
+                <div className="text-blue-600 text-[10px] sm:text-xs font-medium ml-4">
                   {formatDegree(positions[planet].longitude)}
-                </span>
+                </div>
               </div>
             ))
-          ) : (
-            <div className="text-gray-400 text-xs">-</div>
-          )}
+          ) : null}
         </div>
       </div>
     );
@@ -355,8 +345,8 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
             {language === 'tamil' ? 'ராசி கட்டம்' : language === 'hindi' ? 'राशि चक्र' : 'Rasi Chart (D1)'}
           </h3>
 
-          <div className="max-w-2xl mx-auto border-2 border-teal-600 bg-yellow-50 shadow-inner">
-            <div className="grid grid-cols-4">
+          <div className="max-w-2xl mx-auto border-[3px] border-teal-600 bg-[#FFFEF0] shadow-lg">
+            <div className="grid grid-cols-4 divide-x divide-y divide-teal-600">
               {/* Row 1 */}
               {renderSouthIndianCell(11, false)} {/* Pisces */}
               {renderSouthIndianCell(0, false)}  {/* Aries */}
@@ -365,9 +355,9 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
 
               {/* Row 2 */}
               {renderSouthIndianCell(10, false)} {/* Aquarius */}
-              <div className="col-span-2 row-span-2 border-2 border-teal-600 bg-white flex flex-col items-center justify-center relative overflow-hidden">
+              <div className="col-span-2 row-span-2 bg-white flex flex-col items-center justify-center relative overflow-hidden border-teal-600">
                 <div className="relative z-10 text-center space-y-2">
-                  <div className="text-teal-800 font-bold text-xl">{language === 'tamil' ? 'ராசி' : language === 'hindi' ? 'राशि' : 'Rasi'}</div>
+                  <div className="text-teal-800 font-bold text-2xl">{language === 'tamil' ? 'ராசி' : language === 'hindi' ? 'राशि' : 'Rasi'}</div>
                   <div className="text-sm font-semibold text-gray-600">{birthData?.date}</div>
                   <div className="text-sm font-semibold text-gray-600">{birthData?.time}</div>
                 </div>
@@ -396,8 +386,8 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
             {language === 'tamil' ? 'நவாம்சம் கட்டம்' : language === 'hindi' ? 'नवांश चक्र' : 'Navamsa Chart (D9)'}
           </h3>
 
-          <div className="max-w-2xl mx-auto border-2 border-teal-600 bg-yellow-50 shadow-inner">
-            <div className="grid grid-cols-4">
+          <div className="max-w-2xl mx-auto border-[3px] border-teal-600 bg-[#FFFEF0] shadow-lg">
+            <div className="grid grid-cols-4 divide-x divide-y divide-teal-600">
               {/* Row 1 */}
               {renderSouthIndianCell(11, true)} {/* Pisces */}
               {renderSouthIndianCell(0, true)}  {/* Aries */}
@@ -406,9 +396,9 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
 
               {/* Row 2 */}
               {renderSouthIndianCell(10, true)} {/* Aquarius */}
-              <div className="col-span-2 row-span-2 border-2 border-teal-600 bg-white flex flex-col items-center justify-center relative overflow-hidden">
+              <div className="col-span-2 row-span-2 bg-white flex flex-col items-center justify-center relative overflow-hidden border-teal-600">
                 <div className="relative z-10 text-center space-y-2">
-                  <div className="text-purple-800 font-bold text-xl">{language === 'tamil' ? 'நவாம்சம்' : language === 'hindi' ? 'नवांश' : 'Navamsa'}</div>
+                  <div className="text-teal-800 font-bold text-2xl">{language === 'tamil' ? 'நவாம்சம்' : language === 'hindi' ? 'नवांश' : 'Navamsa'}</div>
                   <div className="text-sm font-semibold text-gray-600">{birthData?.date}</div>
                   <div className="text-sm font-semibold text-gray-600">{birthData?.time}</div>
                 </div>
