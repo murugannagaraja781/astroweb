@@ -398,7 +398,7 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
               {renderSouthIndianCell(10, true)} {/* Aquarius */}
               <div className="col-span-2 row-span-2 bg-white flex flex-col items-center justify-center relative overflow-hidden border-teal-600">
                 <div className="relative z-10 text-center space-y-2">
-                  <div className="text-teal-800 font-bold text-2xl">{language === 'tamil' ? 'நவாம்சம்' : language === 'hindi' ? 'नवांश' : 'Navamsa'}</div>
+                  <div className="text-teal-800 font-bold text-2xl">{language === 'tamil' ? 'அம்சம்' : language === 'hindi' ? 'अंश' : 'Amsam'}</div>
                   <div className="text-sm font-semibold text-gray-600">{birthData?.date}</div>
                   <div className="text-sm font-semibold text-gray-600">{birthData?.time}</div>
                 </div>
