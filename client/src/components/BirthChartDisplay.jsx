@@ -539,41 +539,73 @@ const BirthChartDisplay = ({ data, formData, onBack, onClose }) => {
              <h4 className="text-lg font-bold text-gray-700 mb-3 border-b pb-2">
               {language === "tamil" ? "முழு விவரங்கள்" : "Full Details"}
             </h4>
-            <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
-              {/* Header */}
-              <div className="grid grid-cols-3 bg-red-50 p-3 text-xs font-bold text-red-700 uppercase tracking-wider">
-                <div>{t.planet}</div>
-                <div>{t.date} (Start)</div>
-                <div>{t.date} (End)</div>
-              </div>
+            {/* Full List / Debug View */}
+            <div className="mt-6 border-t border-gray-100 pt-4">
+               <h4 className="text-sm font-bold text-gray-700 mb-3">
+                {language === "tamil" ? "முழு விவரங்கள்" : "Full Details"}
+              </h4>
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {dashaData?.dashaSystem ? (
+                  <div className="divide-y divide-gray-100">
+                    {dashaData.dashaSystem.map((mahaDasha, idx) => (
+                      <details key={idx} className="group">
+                        <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors select-none">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-lg">
+                              {planetSymbols[mahaDasha.lord] || "•"}
+                            </div>
+                            <div>
+                              <div className="font-bold text-gray-800">
+                                {getPlanetName(mahaDasha.lord)} {t.mahaDasha}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {formatDate(mahaDasha.start)} - {formatDate(mahaDasha.end)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded text-gray-600">
+                              {mahaDasha.years} {language === "tamil" ? "ஆண்டுகள்" : "Years"}
+                            </span>
+                            <span className="transform group-open:rotate-180 transition-transform text-gray-400">
+                              ▼
+                            </span>
+                          </div>
+                        </summary>
 
-              {/* List Content */}
-              <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
-                {Array.isArray(dashaData) ? (
-                  dashaData.map((item, idx) => (
-                    <div key={idx} className="grid grid-cols-3 p-3 text-sm hover:bg-white transition-colors items-center">
-                      <div className="font-semibold text-gray-800 flex items-center gap-2">
-                        <span className="text-blue-600">{planetSymbols[item.lord] || "•"}</span>
-                        {getPlanetName(item.lord)}
-                      </div>
-                      <div className="text-gray-600 text-xs sm:text-sm">{formatDate(item.start)}</div>
-                      <div className="text-gray-600 text-xs sm:text-sm">{formatDate(item.end)}</div>
-                    </div>
-                  ))
-                ) : dashaData.dashas || dashaData.list ? (
-                  (dashaData.dashas || dashaData.list).map((item, idx) => (
-                    <div key={idx} className="grid grid-cols-3 p-3 text-sm hover:bg-white transition-colors items-center">
-                      <div className="font-semibold text-gray-800 flex items-center gap-2">
-                        <span className="text-blue-600">{planetSymbols[item.lord] || "•"}</span>
-                        {getPlanetName(item.lord)}
-                      </div>
-                      <div className="text-gray-600 text-xs sm:text-sm">{formatDate(item.start)}</div>
-                      <div className="text-gray-600 text-xs sm:text-sm">{formatDate(item.end)}</div>
-                    </div>
-                  ))
+                        {/* Bhuktis List */}
+                        <div className="bg-gray-50 px-4 pb-4 pt-2 border-t border-gray-100">
+                          <div className="text-xs font-bold text-gray-500 uppercase mb-2 pl-2">
+                            {t.bhukti} ({language === "tamil" ? "உட்பிரிவு" : "Sub-periods"})
+                          </div>
+                          <div className="grid gap-2">
+                            {mahaDasha.bhuktis.map((bhukti, bIdx) => (
+                              <div key={bIdx} className="flex items-center justify-between bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-blue-600 font-medium w-5 text-center">
+                                    {planetSymbols[bhukti.lord]}
+                                  </span>
+                                  <span className="text-sm font-medium text-gray-700">
+                                    {getPlanetName(bhukti.lord)}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-600 font-mono">
+                                  {formatDate(bhukti.start)} - {formatDate(bhukti.end)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </details>
+                    ))}
+                  </div>
                 ) : (
                   <div className="p-4 text-center text-gray-500 text-sm">
                     {language === "tamil" ? "தகவல் இல்லை" : "No detailed list available"}
+                    {/* Fallback for debugging if structure doesn't match */}
+                    <pre className="text-left text-xs mt-2 overflow-auto max-h-40 bg-gray-100 p-2 rounded">
+                      {JSON.stringify(dashaData, null, 2)}
+                    </pre>
                   </div>
                 )}
               </div>
