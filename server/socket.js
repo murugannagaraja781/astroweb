@@ -104,15 +104,36 @@ module.exports = function (io) {
 
         // Audio WebRTC Signaling
         socket.on("audio:offer", ({ toSocketId, offer }) => {
+            console.log(`[SIGNAL] audio:offer from=${socket.id} to=${toSocketId}`);
             io.to(toSocketId).emit("audio:offer", { fromSocketId: socket.id, offer });
         });
 
         socket.on("audio:answer", ({ toSocketId, answer }) => {
+            console.log(`[SIGNAL] audio:answer from=${socket.id} to=${toSocketId}`);
             io.to(toSocketId).emit("audio:answer", { fromSocketId: socket.id, answer });
         });
 
         socket.on("audio:candidate", ({ toSocketId, candidate }) => {
+            console.log(`[SIGNAL] audio:candidate from=${socket.id} to=${toSocketId}`);
             io.to(toSocketId).emit("audio:candidate", { fromSocketId: socket.id, candidate });
+        });
+
+        // Video WebRTC Signaling (if separate)
+        socket.on("call:offer", ({ roomId, offer }) => {
+            // Note: Original code broadcast to room, but user guide suggests direct messaging.
+            // Keeping original logic but adding logs.
+            console.log(`[SIGNAL] call:offer from=${socket.id} to=room:${roomId}`);
+            socket.to(roomId).emit("call:offer", { from: socket.id, offer });
+        });
+
+        socket.on("call:answer", ({ roomId, answer, to }) => {
+            console.log(`[SIGNAL] call:answer from=${socket.id} to=${to}`);
+            io.to(to).emit("call:answer", { from: socket.id, answer });
+        });
+
+        socket.on("call:candidate", ({ roomId, candidate, to }) => {
+            console.log(`[SIGNAL] call:candidate from=${socket.id} to=${to}`);
+            io.to(to).emit("call:candidate", { from: socket.id, candidate });
         });
 
         // =====================================================

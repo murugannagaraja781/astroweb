@@ -163,11 +163,30 @@ export default function VideoCall({name}) {
     }
   };
 
+  // Debug helper
+  function attachPcDebug(pc, label) {
+    console.log(`[${label}] pc created`);
+    pc.addEventListener('icegatheringstatechange', () => console.log(`[${label}] iceGatheringState`, pc.iceGatheringState));
+    pc.addEventListener('icecandidate', e => console.log(`[${label}] icecandidate`, e.candidate && e.candidate.candidate));
+    pc.addEventListener('iceconnectionstatechange', () => console.log(`[${label}] iceConnectionState`, pc.iceConnectionState));
+    pc.addEventListener('connectionstatechange', () => console.log(`[${label}] connectionState`, pc.connectionState));
+    pc.addEventListener('signalingstatechange', () => console.log(`[${label}] signalingState`, pc.signalingState));
+    pc.ontrack = e => {
+      console.log(`[${label}] ontrack`, e.streams && e.streams[0] && e.streams[0].id);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = e.streams[0];
+      }
+    };
+  }
+
   const createPeerConnection = async (remoteSocketId) => {
     if (pcRef.current) return pcRef.current;
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
     pcRef.current = pc;
+
+    // Attach debug logging
+    attachPcDebug(pc, 'Client');
 
     // Add local tracks
     const localStream = localStreamRef.current;
@@ -176,13 +195,8 @@ export default function VideoCall({name}) {
     }
 
     // Remote tracks -> attach to remoteVideo
-    pc.ontrack = (evt) => {
-      // When multiple tracks come, use the first stream
-      const [stream] = evt.streams;
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = stream;
-      }
-    };
+    // Handled in attachPcDebug now, but keeping listener for safety/redundancy if needed,
+    // though attachPcDebug overwrites ontrack. Let's rely on attachPcDebug.
 
     // ICE candidates -> send via socket
     pc.onicecandidate = (event) => {

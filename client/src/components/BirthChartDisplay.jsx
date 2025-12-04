@@ -25,7 +25,7 @@ const BirthChartDisplay = ({ data, formData, onBack, onClose }) => {
         };
 
         const response = await axios.post(
-          "https://apidash-production.up.railway.app/api/vimshottari",
+          "https://apidash-production.up.railway.app/api/vimshottari/mahadashas",
           payload
         );
 
@@ -535,74 +535,46 @@ const BirthChartDisplay = ({ data, formData, onBack, onClose }) => {
             <div className="w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full animate-spin"></div>
           </div>
         ) : dashaData ? (
-          <div className="space-y-6">
-            {/* Current Dasha Highlights */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Maha Dasha */}
-              <div className="p-4 rounded-xl border bg-red-50 border-red-100">
-                <div className="text-xs font-semibold text-red-600 mb-1">
-                  {t.mahaDasha}
-                </div>
-                <div className="font-semibold text-gray-800">
-                  {getPlanetName(dashaData.mahaDasha?.lord || "-")}
-                </div>
-                <div className="text-xs text-gray-600 mt-1">
-                  {formatDate(dashaData.mahaDasha?.start)} - {formatDate(dashaData.mahaDasha?.end)}
-                </div>
+          <div className="space-y-4">
+             <h4 className="text-lg font-bold text-gray-700 mb-3 border-b pb-2">
+              {language === "tamil" ? "முழு விவரங்கள்" : "Full Details"}
+            </h4>
+            <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+              {/* Header */}
+              <div className="grid grid-cols-3 bg-red-50 p-3 text-xs font-bold text-red-700 uppercase tracking-wider">
+                <div>{t.planet}</div>
+                <div>{t.date} (Start)</div>
+                <div>{t.date} (End)</div>
               </div>
 
-              {/* Bhukti */}
-              <div className="p-4 rounded-xl border bg-red-50 border-red-100">
-                <div className="text-xs font-semibold text-red-600 mb-1">
-                  {t.bhukti}
-                </div>
-                <div className="font-semibold text-gray-800">
-                  {getPlanetName(dashaData.antarDasha?.lord || "-")}
-                </div>
-                <div className="text-xs text-gray-600 mt-1">
-                  {formatDate(dashaData.antarDasha?.start)} - {formatDate(dashaData.antarDasha?.end)}
-                </div>
-              </div>
-
-              {/* Pratyantar */}
-              <div className="p-4 rounded-xl border bg-red-50 border-red-100">
-                <div className="text-xs font-semibold text-red-600 mb-1">
-                  {t.pratyantar}
-                </div>
-                <div className="font-semibold text-gray-800">
-                  {getPlanetName(dashaData.pratyantarDasha?.lord || "-")}
-                </div>
-                <div className="text-xs text-gray-600 mt-1">
-                  {formatDate(dashaData.pratyantarDasha?.start)} - {formatDate(dashaData.pratyantarDasha?.end)}
-                </div>
-              </div>
-            </div>
-
-            {/* Full List / Debug View */}
-            <div className="mt-6 border-t border-gray-100 pt-4">
-               <h4 className="text-sm font-bold text-gray-700 mb-3">
-                {language === "tamil" ? "முழு விவரங்கள்" : "Full Details"}
-              </h4>
-              <div className="bg-gray-50 p-4 rounded-xl text-xs font-mono overflow-x-auto">
-                {/* Try to render list if exists, otherwise dump JSON for verification */}
+              {/* List Content */}
+              <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
                 {Array.isArray(dashaData) ? (
-                  <div className="space-y-2">
-                    {dashaData.map((item, idx) => (
-                      <div key={idx} className="border-b border-gray-200 pb-2">
-                        {JSON.stringify(item)}
+                  dashaData.map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-3 p-3 text-sm hover:bg-white transition-colors items-center">
+                      <div className="font-semibold text-gray-800 flex items-center gap-2">
+                        <span className="text-blue-600">{planetSymbols[item.lord] || "•"}</span>
+                        {getPlanetName(item.lord)}
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-gray-600 text-xs sm:text-sm">{formatDate(item.start)}</div>
+                      <div className="text-gray-600 text-xs sm:text-sm">{formatDate(item.end)}</div>
+                    </div>
+                  ))
                 ) : dashaData.dashas || dashaData.list ? (
-                   <div className="space-y-2">
-                    {(dashaData.dashas || dashaData.list).map((item, idx) => (
-                      <div key={idx} className="border-b border-gray-200 pb-2">
-                        <span className="font-semibold text-blue-600">{getPlanetName(item.lord)}</span>: {formatDate(item.start)} - {formatDate(item.end)}
+                  (dashaData.dashas || dashaData.list).map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-3 p-3 text-sm hover:bg-white transition-colors items-center">
+                      <div className="font-semibold text-gray-800 flex items-center gap-2">
+                        <span className="text-blue-600">{planetSymbols[item.lord] || "•"}</span>
+                        {getPlanetName(item.lord)}
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-gray-600 text-xs sm:text-sm">{formatDate(item.start)}</div>
+                      <div className="text-gray-600 text-xs sm:text-sm">{formatDate(item.end)}</div>
+                    </div>
+                  ))
                 ) : (
-                  <pre>{JSON.stringify(dashaData, null, 2)}</pre>
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    {language === "tamil" ? "தகவல் இல்லை" : "No detailed list available"}
+                  </div>
                 )}
               </div>
             </div>
