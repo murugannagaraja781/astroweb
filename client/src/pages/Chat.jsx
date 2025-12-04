@@ -5,7 +5,7 @@ import axios from "axios";
 
 import AuthContext from "../context/AuthContext";
 import ChartModal from "../components/ChartModal";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock } from "lucide-react";
 
 // Single shared socket instance
 const socket = io(
@@ -396,7 +396,7 @@ const Chat = () => {
 
   // ---------- UI ----------
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-yellow-900 text-yellow-50 relative overflow-hidden">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-gray-300 relative overflow-hidden">
       {/* Error Popup */}
       {error && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
@@ -420,7 +420,7 @@ const Chat = () => {
         input,
         textarea,
         select {
-          color: #f9f4f4 !important;
+          color: #1f2937 !important; /* gray-800 */
           font-size: large;
         }
         .message-container {
@@ -446,30 +446,30 @@ const Chat = () => {
 
       {/* Background stars */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-10 w-2 h-2 bg-yellow-400 rounded-full opacity-60 animate-pulse"></div>
-        <div className="absolute top-20 right-20 w-1 h-1 bg-yellow-300 rounded-full opacity-40"></div>
-        <div className="absolute bottom-32 left-1/4 w-1 h-1 bg-yellow-500 rounded-full opacity-50 animate-pulse delay-700"></div>
-        <div className="absolute top-1/2 right-16 w-1 h-1 bg-yellow-400 rounded-full opacity-30"></div>
-        <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-yellow-600 rounded-full opacity-40 animate-pulse delay-300"></div>
+        <div className="absolute top-10 left-10 w-2 h-2 bg-purple-400 rounded-full opacity-60 animate-pulse"></div>
+        <div className="absolute top-20 right-20 w-1 h-1 bg-blue-300 rounded-full opacity-40"></div>
+        <div className="absolute bottom-32 left-1/4 w-1 h-1 bg-indigo-500 rounded-full opacity-50 animate-pulse delay-700"></div>
+        <div className="absolute top-1/2 right-16 w-1 h-1 bg-purple-300 rounded-full opacity-30"></div>
+        <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-blue-400 rounded-full opacity-40 animate-pulse delay-300"></div>
       </div>
 
       {/* Header */}
-      <div className="relative flex items-center justify-between p-4 bg-black/80 backdrop-blur-lg border-b border-yellow-600/30 z-10">
+      <div className="relative flex items-center justify-between p-4 bg-slate-900/90 backdrop-blur-lg border-b border-purple-500/30 z-10">
         <div className="flex items-center gap-3">
           <button
             onClick={() => window.history.back()}
-            className="p-2 hover:bg-yellow-600/20 rounded-full transition-colors"
+            className="p-2 hover:bg-purple-500/20 rounded-full transition-colors"
             title="Go back"
           >
-            <ArrowLeft size={20} className="text-yellow-200" />
+            <ArrowLeft size={20} className="text-purple-200" />
           </button>
 
-          <div className="p-2 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full">
-            <Crown size={20} className="text-yellow-200" />
+          <div className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full">
+            <Crown size={20} className="text-white" />
           </div>
 
           <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-400 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold text-gray-100">
               {user?.role === "client"
                 ? sessionInfo?.astrologer?.name || "Astrologer"
                 : sessionInfo?.client?.name || "Client"}
@@ -477,13 +477,13 @@ const Chat = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-yellow-300">
-            <Star size={16} className="fill-yellow-400" />
+          <div className="flex items-center gap-2 text-sm text-purple-300">
+            <Star size={16} className="fill-purple-400 text-purple-400" />
             <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
           </div>
 
           {/* Timer Display */}
-          <div className="bg-black/40 px-3 py-1.5 rounded-lg border border-yellow-600/30 text-yellow-300 font-mono text-sm">
+          <div className="bg-slate-800/60 px-3 py-1.5 rounded-lg border border-purple-500/30 text-purple-200 font-mono text-sm">
             {sessionDuration > 0 ? formatDuration(sessionDuration) : "00:00"}
           </div>
 
@@ -567,8 +567,8 @@ const Chat = () => {
                     <div
                       className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                         isMe
-                          ? "bg-gradient-to-br from-yellow-500 to-yellow-700 text-white"
-                          : "bg-gradient-to-br from-purple-500 to-purple-700 text-white"
+                          ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white"
+                          : "bg-gradient-to-br from-slate-600 to-slate-800 text-white"
                       }`}
                     >
                       {getInitials(senderName)}
@@ -581,7 +581,7 @@ const Chat = () => {
                     >
                       <span
                         className={`text-[10px] mb-1 font-medium flex items-center gap-1 ${
-                          isMe ? "text-yellow-400" : "text-purple-400"
+                          isMe ? "text-purple-300" : "text-gray-400"
                         }`}
                       >
                         {isAstrologerMsg && <Crown size={10} />}
@@ -591,16 +591,16 @@ const Chat = () => {
                       <div
                         className={`p-4 rounded-2xl shadow-lg relative ${
                           isMe
-                            ? "bg-gradient-to-br from-yellow-600 to-yellow-800 text-yellow-50 border border-yellow-500/30 rounded-tr-none"
-                            : "bg-gradient-to-br from-purple-600 to-purple-800 text-white border border-purple-500/30 rounded-tl-none"
+                            ? "bg-gradient-to-br from-purple-600 to-indigo-700 text-white border border-purple-500/30 rounded-tr-none"
+                            : "bg-gradient-to-br from-slate-700 to-slate-800 text-gray-100 border border-slate-600/30 rounded-tl-none"
                         }`}
                       >
                         {isMe && (
-                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full opacity-80 shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full opacity-80 shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
                         )}
 
                         {msg.text && (
-                          <p className="text-sm leading-relaxed text-white font-medium">
+                          <p className="text-sm leading-relaxed font-medium">
                             {msg.text}
                           </p>
                         )}
@@ -609,7 +609,7 @@ const Chat = () => {
                           <div className="mt-2">
                             <audio
                               controls
-                              className="w-48 h-8 rounded-lg bg-black/40 border border-yellow-600/30"
+                              className="w-48 h-8 rounded-lg bg-black/20 border border-white/10"
                             >
                               <source src={msg.audioUrl} type="audio/mp3" />
                             </audio>
@@ -619,8 +619,8 @@ const Chat = () => {
                         <div
                           className={`text-[10px] mt-2 flex items-center gap-1 ${
                             isMe
-                              ? "text-yellow-100 justify-end"
-                              : "text-purple-100 justify-start"
+                              ? "text-purple-200 justify-end"
+                              : "text-gray-400 justify-start"
                           }`}
                         >
                           {msg.timestamp &&
@@ -639,13 +639,13 @@ const Chat = () => {
 
             {isTyping && (
               <div className="flex justify-start">
-                <div className="max-w-[70%] p-4 rounded-2xl bg-black/60 backdrop-blur-sm border border-yellow-600/30">
+                <div className="max-w-[70%] p-4 rounded-2xl bg-slate-800/80 backdrop-blur-sm border border-slate-700/50">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-150"></div>
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce delay-300"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></div>
                   </div>
-                  <p className="text-xs text-yellow-400 mt-1">
+                  <p className="text-xs text-gray-400 mt-1">
                     {user?.role === "astrologer" ? "Client" : "Astrologer"} is
                     typing...
                   </p>
@@ -659,7 +659,7 @@ const Chat = () => {
       </div>
 
       {/* Input */}
-      <div className="chat-footer relative z-10 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-4 pb-safe-or-6">
+      <div className="chat-footer relative z-10 bg-slate-900 pt-4 pb-safe-or-6 border-t border-slate-800">
         <div className="max-w-4xl mx-auto px-4">
           {isRecording && (
             <div className="text-center mb-3">
@@ -674,14 +674,14 @@ const Chat = () => {
 
           <form onSubmit={sendMessage} className="relative group">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
+              <div className="absolute inset-0 bg-purple-500/20 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
 
-              <div className="relative bg-black/70 backdrop-blur-xl border border-yellow-600/40 rounded-2xl shadow-2xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3">
+              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3">
                 {!isRecording ? (
                   <button
                     type="button"
                     onClick={startRecording}
-                    className="p-2 text-yellow-400 hover:text-yellow-200 hover:bg-yellow-600/20 rounded-full transition-all duration-200 flex-shrink-0"
+                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-all duration-200 flex-shrink-0"
                     title="Record Audio"
                   >
                     <Mic size={20} />
@@ -702,9 +702,9 @@ const Chat = () => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onInput={handleTyping}
-                  placeholder="Send your message..."
-                  className="flex-1 bg-transparent placeholder-yellow-400/70 focus:outline-none text-lg min-w-0"
-                  style={{ color: "#f9f4f4" }}
+                  placeholder="Type your message..."
+                  className="flex-1 bg-transparent placeholder-gray-400 focus:outline-none text-lg min-w-0 text-gray-800"
+                  style={{ color: "#1f2937" }}
                 />
 
                 <button
@@ -712,8 +712,8 @@ const Chat = () => {
                   disabled={!message.trim()}
                   className={`p-2 rounded-full transition-all duration-200 flex-shrink-0 ${
                     message.trim()
-                      ? "bg-gradient-to-r from-yellow-600 to-yellow-800 text-yellow-50 shadow-lg hover:shadow-yellow-500/25 hover:scale-110 border border-yellow-500/30"
-                      : "text-yellow-600 opacity-50"
+                      ? "bg-purple-600 text-white shadow-lg hover:bg-purple-700 hover:scale-110"
+                      : "text-gray-400 bg-gray-100"
                   }`}
                 >
                   <Send size={18} className="md:w-5 md:h-5" />
@@ -768,13 +768,24 @@ const Chat = () => {
                 <Brain size={14} />
                 Behavior
               </button>
+
+              <button
+                onClick={() => {
+                  setSelectedChart('dasha');
+                  setShowChartModal(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              >
+                <Clock size={14} />
+                Dasha
+              </button>
             </div>
           )}
 
           {/* Show only for astrologers/admins */}
           {(user?.role === 'astrologer' || user?.role === 'admin') && (
             <div className="text-center mt-2">
-              <p className="text-yellow-600/60 text-xs">🔮 Secure cosmic connection</p>
+              <p className="text-gray-500 text-xs">🔮 Secure cosmic connection</p>
             </div>
           )}
         </div>

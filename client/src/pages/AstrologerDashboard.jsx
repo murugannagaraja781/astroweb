@@ -527,25 +527,34 @@ useEffect(() => {
   };
 
   // Reject incoming request from popup
+  // Reject incoming request from popup
   const rejectIncomingRequest = (request) => {
-    if (!socket) return;
+    console.log("❌ Rejecting request:", request);
 
-    // Stop notification sound
+    // 1. Optimistic UI Update: Close popup immediately
+    setShowIncomingPopup(false);
+    setIncomingRequest(null);
+
+    // 2. Stop Sound
     if (notificationSoundRef.current) {
       notificationSoundRef.current.pause();
       notificationSoundRef.current.currentTime = 0;
     }
 
-    // Emit reject event
-    if (request.type === "chat") {
-      socket.emit("chat:reject", { sessionId: request.sessionId });
-    } else if (request.type === "video") {
-      socket.emit("call:reject", { toSocketId: request.fromSocketId });
-    } else if (request.type === "audio") {
-      socket.emit("audio:reject", { toSocketId: request.fromSocketId });
+    // 3. Emit Socket Event
+    if (socket && socket.connected) {
+      if (request.type === "chat") {
+        socket.emit("chat:reject", { sessionId: request.sessionId });
+      } else if (request.type === "video") {
+        socket.emit("call:reject", { toSocketId: request.fromSocketId });
+      } else if (request.type === "audio") {
+        socket.emit("audio:reject", { toSocketId: request.fromSocketId });
+      }
+    } else {
+      console.warn("⚠️ Socket not connected, cannot send reject event to server");
     }
 
-    // Remove from pending lists
+    // 4. Cleanup Local State
     if (request.type === "chat") {
       setPendingSessions(prev => prev.filter(s => s.sessionId !== request.sessionId));
     } else if (request.type === "video") {
@@ -554,8 +563,13 @@ useEffect(() => {
       setPendingAudioCalls(prev => prev.filter(a => a.id !== request.id));
     }
 
-    // Show next request in queue
-    handleNextRequest();
+    // 5. Process Next Request
+    setTimeout(() => {
+      setRequestQueue((prev) => {
+        const [, ...remaining] = prev;
+        return remaining;
+      });
+    }, 100); // Small delay to ensure state updates settle
   };
 
   // Close popup without action
@@ -998,16 +1012,18 @@ useEffect(() => {
                   </span>
                 )}
               </div>
-              <button
+              <div
                 onClick={toggleStatus}
-                className={`px-6 py-2 rounded-xl font-bold text-white transition-all transform hover:scale-105 ${
-                  profile.isOnline
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-green-500 hover:bg-green-600"
+                className={`relative w-16 h-8 rounded-full cursor-pointer transition-colors duration-300 ease-in-out ${
+                  profile.isOnline ? "bg-green-500" : "bg-gray-400"
                 }`}
               >
-                {profile.isOnline ? "Go Offline" : "Go Online"}
-              </button>
+                <div
+                  className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
+                    profile.isOnline ? "translate-x-8" : "translate-x-0"
+                  }`}
+                />
+              </div>
             </div>
           </div>
         </div>

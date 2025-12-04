@@ -291,51 +291,14 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
           >
             {showNavamsa ? (language === 'tamil' ? 'ராசி' : language === 'hindi' ? 'राशि' : 'Rasi') : (language === 'tamil' ? 'நவாம்சம்' : language === 'hindi' ? 'नवांश' : 'Navamsa')}
           </button>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm shadow-md hover:shadow-lg"
-          >
-            <Download className="w-4 h-4" />
-            {t.download}
-          </button>
+
           <button onClick={onClose} className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg font-medium transition-colors text-sm">
             {t.done}
           </button>
         </div>
       </div>
 
-      {/* Birth Details Card */}
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl p-6 shadow-lg">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <span>📜</span> {t.details}
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-8 text-sm">
-          <div>
-            <div className="text-orange-100 text-xs uppercase tracking-wider">{t.date}</div>
-            <div className="font-bold text-lg">{birthData?.date}</div>
-          </div>
-          <div>
-            <div className="text-orange-100 text-xs uppercase tracking-wider">{t.time}</div>
-            <div className="font-bold text-lg">{birthData?.time}</div>
-          </div>
-          <div>
-            <div className="text-orange-100 text-xs uppercase tracking-wider">{t.lagna}</div>
-            <div className="font-bold text-lg">{lagna?.name || 'N/A'}</div>
-          </div>
-          <div>
-            <div className="text-orange-100 text-xs uppercase tracking-wider">{t.moonSign}</div>
-            <div className="font-bold text-lg">{moonSign?.name || 'N/A'}</div>
-          </div>
-          <div>
-            <div className="text-orange-100 text-xs uppercase tracking-wider">{t.nakshatra}</div>
-            <div className="font-bold text-lg">{moonNakshatra?.name || 'N/A'}</div>
-          </div>
-          <div>
-            <div className="text-orange-100 text-xs uppercase tracking-wider">{t.ayanamsa}</div>
-            <div className="font-bold text-lg">{ayanamsa ? `${ayanamsa.toFixed(2)}°` : 'N/A'}</div>
-          </div>
-        </div>
-      </div>
+
 
       {/* Rasi Chart (South Indian Style) */}
       {!showNavamsa && (
@@ -419,6 +382,49 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
         </div>
       )}
 
+      {/* Panchangam Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
+        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <span className="text-2xl">📅</span>
+          {language === 'tamil' ? 'பஞ்சாங்கம்' : 'Panchangam'}
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+            <div className="text-xs text-orange-600 font-semibold uppercase mb-1">
+              {language === 'tamil' ? 'திதி' : 'Tithi'}
+            </div>
+            <div className="font-bold text-gray-800">
+              {/* Placeholder logic - in real app, calculate based on Moon/Sun longitude */}
+              {language === 'tamil' ? 'சுக்ல பக்ஷ பஞ்சமி' : 'Shukla Paksha Panchami'}
+            </div>
+          </div>
+          <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+            <div className="text-xs text-purple-600 font-semibold uppercase mb-1">
+              {language === 'tamil' ? 'நட்சத்திரம்' : 'Nakshatra'}
+            </div>
+            <div className="font-bold text-gray-800">
+              {moonNakshatra?.name || (language === 'tamil' ? 'திருவோணம்' : 'Shravana')}
+            </div>
+          </div>
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <div className="text-xs text-blue-600 font-semibold uppercase mb-1">
+              {language === 'tamil' ? 'யோகம்' : 'Yoga'}
+            </div>
+            <div className="font-bold text-gray-800">
+              {language === 'tamil' ? 'சித்த யோகம்' : 'Siddha Yoga'}
+            </div>
+          </div>
+          <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+            <div className="text-xs text-green-600 font-semibold uppercase mb-1">
+              {language === 'tamil' ? 'கரணம்' : 'Karana'}
+            </div>
+            <div className="font-bold text-gray-800">
+              {language === 'tamil' ? 'பவம்' : 'Bava'}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Planetary Positions Table */}
       <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -463,117 +469,9 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
         </div>
       </div>
 
-      {/* Houses */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-100">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <span className="text-2xl">🏠</span>
-          {t.house} {t.details}
-        </h3>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {houses && Object.entries(houses).map(([houseNum, rashiData]) => (
-            <div key={houseNum} className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-3 border border-blue-200">
-              <div className="text-xs text-blue-600 font-semibold mb-1">{t.house} {houseNum}</div>
-              <div className="font-bold text-gray-800">{rashiData?.name || 'N/A'}</div>
-              <div className="text-xs text-gray-600 mt-1">{rashiData?.lord || ''}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Chart Visualization - North Indian Style */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-100">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <span className="text-2xl">📊</span>
-          {t.northIndian}
-        </h3>
 
-        <div className="grid grid-cols-4 gap-2 max-w-2xl mx-auto">
-          {/* Row 1: Houses 12, 1, 2, 3 */}
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">12</div>
-            <div className="text-xs">{Array.isArray(planets?.[12]) ? planets[12].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[12]?.name || ''}</div>
-          </div>
-          <div className="aspect-square border-2 border-pink-400 rounded-lg p-1 bg-gradient-to-br from-pink-100 to-purple-100 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-pink-700">1 (ASC)</div>
-            <div className="text-xs font-bold">{Array.isArray(planets?.[1]) ? planets[1].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-700 font-semibold">{lagna?.name || houses?.[1]?.name || ''}</div>
-          </div>
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">2</div>
-            <div className="text-xs">{Array.isArray(planets?.[2]) ? planets[2].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[2]?.name || ''}</div>
-          </div>
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">3</div>
-            <div className="text-xs">{Array.isArray(planets?.[3]) ? planets[3].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[3]?.name || ''}</div>
-          </div>
-
-          {/* Row 2: Houses 11, empty, empty, 4 */}
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">11</div>
-            <div className="text-xs">{Array.isArray(planets?.[11]) ? planets[11].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[11]?.name || ''}</div>
-          </div>
-          <div className="aspect-square border border-gray-300 bg-gray-50 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-xs font-bold text-purple-700">Rasi</div>
-              <div className="text-xs text-gray-600">Chart</div>
-            </div>
-          </div>
-          <div className="aspect-square border border-gray-300 bg-gray-50"></div>
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">4</div>
-            <div className="text-xs">{Array.isArray(planets?.[4]) ? planets[4].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[4]?.name || ''}</div>
-          </div>
-
-          {/* Row 3: Houses 10, empty, empty, 5 */}
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">10</div>
-            <div className="text-xs">{Array.isArray(planets?.[10]) ? planets[10].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[10]?.name || ''}</div>
-          </div>
-          <div className="aspect-square border border-gray-300 bg-gray-50"></div>
-          <div className="aspect-square border border-gray-300 bg-gray-50"></div>
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">5</div>
-            <div className="text-xs">{Array.isArray(planets?.[5]) ? planets[5].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[5]?.name || ''}</div>
-          </div>
-
-          {/* Row 4: Houses 9, 8, 7, 6 */}
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">9</div>
-            <div className="text-xs">{Array.isArray(planets?.[9]) ? planets[9].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[9]?.name || ''}</div>
-          </div>
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">8</div>
-            <div className="text-xs">{Array.isArray(planets?.[8]) ? planets[8].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[8]?.name || ''}</div>
-          </div>
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">7</div>
-            <div className="text-xs">{Array.isArray(planets?.[7]) ? planets[7].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[7]?.name || ''}</div>
-          </div>
-          <div className="aspect-square border-2 border-purple-400 rounded-lg p-1 bg-purple-50 flex flex-col justify-between text-center">
-            <div className="text-[10px] font-bold text-purple-700">6</div>
-            <div className="text-xs">{Array.isArray(planets?.[6]) ? planets[6].map(p => planetSymbols[p] || p).join(' ') : ''}</div>
-            <div className="text-[9px] text-gray-600">{houses?.[6]?.name || ''}</div>
-          </div>
-        </div>
-
-        <div className="mt-4 text-xs text-gray-500 text-center space-y-1">
-          <div>💡 North Indian Chart Style (Diamond Layout)</div>
-          <div className="text-[10px]">
-            <span className="font-semibold">Legend:</span> House Number | Planets | Sign Name
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

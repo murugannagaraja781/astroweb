@@ -37,6 +37,8 @@ app.use("/api/call", require("./routes/callRoutes"));
 app.use("/api/chat", require("./routes/chatRoutes")); // NEW: Chat routes
 app.use("/api/public", require("./routes/publicRoutes"));
 app.use("/api/horoscope", require("./routes/horoscopeRoutes"));
+app.use("/api/dasha", require("./routes/dashaRoutes")); // Dasha calculation routes
+app.use("/api/vimshottari", require("./routes/vimshottariRoutes")); // New Vimshottari routes
 app.use("/api/charts", require("./routes/chartRoutes")); // Chart generation routes
 app.use("/api/behavior", require("./routes/behaviorRoutes")); // Behavior analysis routes
 // Agora token endpoint

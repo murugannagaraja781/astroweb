@@ -120,6 +120,37 @@ const HoroscopeDetail = () => {
               </p>
             </div>
 
+            {/* Daily Ratings */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100 text-center">
+                <div className="text-xs text-pink-600 font-bold uppercase mb-2">Love</div>
+                <div className="text-2xl font-bold text-pink-700">
+                  {Math.floor(Math.random() * (95 - 70) + 70)}%
+                </div>
+                <div className="w-full bg-pink-200 h-1.5 rounded-full mt-2">
+                  <div className="bg-pink-500 h-1.5 rounded-full" style={{ width: '85%' }}></div>
+                </div>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
+                <div className="text-xs text-blue-600 font-bold uppercase mb-2">Work</div>
+                <div className="text-2xl font-bold text-blue-700">
+                  {Math.floor(Math.random() * (98 - 75) + 75)}%
+                </div>
+                <div className="w-full bg-blue-200 h-1.5 rounded-full mt-2">
+                  <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: '90%' }}></div>
+                </div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100 text-center">
+                <div className="text-xs text-purple-600 font-bold uppercase mb-2">Lifestyle</div>
+                <div className="text-2xl font-bold text-purple-700">
+                  {Math.floor(Math.random() * (5 - 3) + 3)}/5
+                </div>
+                <div className="flex justify-center gap-0.5 mt-1 text-purple-500">
+                  {'★'.repeat(4)}{'☆'.repeat(1)}
+                </div>
+              </div>
+            </div>
+
             {/* Horoscope Sections */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Overall */}

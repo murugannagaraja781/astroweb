@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { City } from 'country-state-city';
 import BirthChartDisplay from './BirthChartDisplay';
 
 const BirthChartForm = ({ onClose }) => {
@@ -16,6 +17,41 @@ const BirthChartForm = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [chartData, setChartData] = useState(null);
+
+  // City Search State
+  const [citySearch, setCitySearch] = useState('');
+  const [citySuggestions, setCitySuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Handle City Search
+  const handleCitySearch = (e) => {
+    const value = e.target.value;
+    setCitySearch(value);
+
+    if (value.length > 2) {
+      // Filter Indian cities
+      const cities = City.getCitiesOfCountry('IN');
+      const filtered = cities.filter(city =>
+        city.name.toLowerCase().startsWith(value.toLowerCase())
+      ).slice(0, 5); // Limit to 5 results for speed
+      setCitySuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setCitySuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  // Select City
+  const selectCity = (city) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: parseFloat(city.latitude),
+      longitude: parseFloat(city.longitude)
+    }));
+    setCitySearch(city.name);
+    setShowSuggestions(false);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -160,11 +196,42 @@ const BirthChartForm = ({ onClose }) => {
             Birth Location
           </h3>
 
+          {/* City Search */}
+          <div className="mb-4 relative">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Search City (India)
+            </label>
+            <input
+              type="text"
+              value={citySearch}
+              onChange={handleCitySearch}
+              placeholder="Type city name (e.g., Chennai)"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
+            />
+
+            {/* Suggestions Dropdown */}
+            {showSuggestions && citySuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                {citySuggestions.map((city, index) => (
+                  <div
+                    key={`${city.name}-${index}`}
+                    onClick={() => selectCity(city)}
+                    className="px-4 py-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-0 transition-colors"
+                  >
+                    <div className="font-semibold text-gray-800">{city.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {city.stateCode}, India • Lat: {city.latitude}, Long: {city.longitude}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Latitude
-                <span className="text-xs text-gray-500 ml-1">(e.g., 13.0827 for Chennai)</span>
               </label>
               <input
                 type="number"
@@ -172,7 +239,7 @@ const BirthChartForm = ({ onClose }) => {
                 value={formData.latitude}
                 onChange={handleChange}
                 step="0.0001"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
                 required
               />
             </div>
@@ -180,7 +247,6 @@ const BirthChartForm = ({ onClose }) => {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Longitude
-                <span className="text-xs text-gray-500 ml-1">(e.g., 80.2707 for Chennai)</span>
               </label>
               <input
                 type="number"
@@ -188,14 +254,10 @@ const BirthChartForm = ({ onClose }) => {
                 value={formData.longitude}
                 onChange={handleChange}
                 step="0.0001"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
                 required
               />
             </div>
-          </div>
-
-          <div className="mt-3 text-xs text-gray-500 bg-purple-50 p-3 rounded-lg">
-            💡 Use <a href="https://www.latlong.net/" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline">latlong.net</a> to find coordinates
           </div>
         </div>
 
