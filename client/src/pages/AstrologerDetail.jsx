@@ -1,4 +1,4 @@
- // AstrologerDetail.jsx
+// AstrologerDetail.jsx
 import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -203,8 +203,8 @@ const AstrologerDetail = () => {
     }
 
     if (!socket || !socket.connected) {
-        alert("Connection not ready. Please refresh.");
-        return;
+      alert("Connection not ready. Please refresh.");
+      return;
     }
 
     setWaiting(true);
@@ -213,14 +213,14 @@ const AstrologerDetail = () => {
     console.log("[VideoCall] Sending call request to astrologer:", {
       fromId: user.id,
       toId: astrologer.userId,
-      astrologerProfileId: id
+      astrologerProfileId: id,
     });
 
     socket.emit("call:request", {
-        fromId: user.id,
-        toId: astrologer.userId, // Use userId, not profile ID
-        fromName: user.name,
-        fromImage: user.avatar || ""
+      fromId: user.id,
+      toId: astrologer.userId, // Use userId, not profile ID
+      fromName: user.name,
+      fromImage: user.avatar || "",
     });
   };
 
@@ -251,8 +251,8 @@ const AstrologerDetail = () => {
     }
 
     if (!socket || !socket.connected) {
-        alert("Connection not ready. Please refresh.");
-        return;
+      alert("Connection not ready. Please refresh.");
+      return;
     }
 
     setWaiting(true);
@@ -261,14 +261,14 @@ const AstrologerDetail = () => {
     console.log("[AudioCall] Sending audio call request to astrologer:", {
       fromId: user.id,
       toId: astrologer.userId,
-      astrologerProfileId: id
+      astrologerProfileId: id,
     });
 
     socket.emit("audio:request", {
-        fromId: user.id,
-        toId: astrologer.userId,
-        fromName: user.name,
-        fromImage: user.avatar || ""
+      fromId: user.id,
+      toId: astrologer.userId,
+      fromName: user.name,
+      fromImage: user.avatar || "",
     });
   };
 
@@ -351,7 +351,9 @@ const AstrologerDetail = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto mb-4"></div>
-          <p className="text-purple-200 text-lg">Connecting to cosmic energies...</p>
+          <p className="text-purple-200 text-lg">
+            Connecting to cosmic energies...
+          </p>
         </div>
       </div>
     );
@@ -389,14 +391,14 @@ const AstrologerDetail = () => {
             <div className="text-6xl mb-4">📹</div>
             <h3 className="text-2xl font-bold mb-4">Video Call Feature</h3>
             <div className="text-purple-200 mb-6">
-            <div className="text-purple-200 mb-6">
-              <ClienttoAstrologyvideocall
-                roomId={videoRoomId}
-                socket={socket}
-                astrologerId={id}
-                peerSocketId={peerSocketId}
-              />
-            </div>
+              <div className="text-purple-200 mb-6">
+                <ClienttoAstrologyvideocall
+                  roomId={videoRoomId}
+                  socket={socket}
+                  astrologerId={id}
+                  peerSocketId={peerSocketId}
+                />
+              </div>
             </div>
             {/* Audio Call Component */}
             {showAudioCall && audioRoomId && (
@@ -487,15 +489,38 @@ const AstrologerDetail = () => {
 
                 {/* Rate */}
                 <div className="flex items-center justify-center md:justify-start gap-2 text-2xl font-bold text-yellow-300 mb-6">
-                  <Star className="w-6 h-6 fill-yellow-300" />
-                  ₹{astrologer.profile?.ratePerMinute || 0}/min
+                  <Star className="w-6 h-6 fill-yellow-300" />₹
+                  {astrologer.profile?.ratePerMinute || 0}/min
                   <span className="text-sm text-purple-200 ml-2">
                     Cosmic Consultation
                   </span>
                 </div>
 
-                {/* Action Buttons (hidden as requested) */}
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start"></div>
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                  <button
+                    onClick={handleVideoCall}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <Camera className="w-5 h-5" />
+                    Video Call
+                  </button>
+                  <button
+                    onClick={handleAudioCall}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <Phone className="w-5 h-5" />
+                    Audio Call
+                  </button>
+
+                  <button
+                    onClick={requestChat}
+                    className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
+                  >
+                    <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    Text Chat
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -612,7 +637,10 @@ const AstrologerDetail = () => {
                     <div
                       className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full"
                       style={{
-                        width: `${Math.min(astrologer.profile.experience * 10, 100)}%`,
+                        width: `${Math.min(
+                          astrologer.profile.experience * 10,
+                          100
+                        )}%`,
                       }}
                     ></div>
                   </div>
@@ -691,7 +719,8 @@ const AstrologerDetail = () => {
               Request Missed
             </h4>
             <p className="text-gray-600 mb-6">
-              The astrologer seems to be busy and missed your request. Please try again later.
+              The astrologer seems to be busy and missed your request. Please
+              try again later.
             </p>
 
             <button
