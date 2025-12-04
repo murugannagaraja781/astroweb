@@ -25,7 +25,7 @@ const BirthChartDisplay = ({ data, formData, onBack, onClose }) => {
         };
 
         const response = await axios.post(
-          "https://apidash-production.up.railway.app/api/vimshottari/mahadashas",
+          "https://apidash-production.up.railway.app/api/vimshottari",
           payload
         );
 
