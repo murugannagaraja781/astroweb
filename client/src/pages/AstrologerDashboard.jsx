@@ -1,5 +1,5 @@
  // AstrologerDashboard.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Modal from "../components/Modal";
 import axios from "axios";
 import { io } from "socket.io-client";
@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
 import AudioCall from "./AudioCall";
 import ChartModal from "../components/ChartModal";
+import AstrologyQuickMenu from "../components/AstrologyQuickMenu";
 import {
   Home,
   MessageCircle,
@@ -42,6 +43,8 @@ const AstrologerDashboard = () => {
   const [showOfflinePopup, setShowOfflinePopup] = useState(false);
   const [earnings, setEarnings] = useState(0);
   const [showChartModal, setShowChartModal] = useState(false);
+  const [selectedChart, setSelectedChart] = useState(null);
+  const [showChatPanel, setShowChatPanel] = useState(false); // New: For sliding chat panel
 
   const audioRef = useRef(null);
   const notificationSoundRef = useRef(null);
@@ -105,6 +108,27 @@ useEffect(() => {
     return () => {
       newSocket.disconnect();
     };
+  }, []);
+
+  // Fetch pending sessions (Moved up & wrapped in useCallback)
+  const fetchPendingSessions = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (res.data && Array.isArray(res.data)) {
+        setPendingSessions(res.data);
+      } else {
+        setPendingSessions([]);
+      }
+    } catch (err) {
+      console.error("Error fetching sessions:", err);
+      setPendingSessions([]);
+    }
   }, []);
 
   useEffect(() => {
@@ -176,6 +200,9 @@ useEffect(() => {
 
       setNotifications((n) => n + 1);
       playNotificationSound();
+
+      // Refresh list from server to be safe
+      fetchPendingSessions();
     });
 
     // Audio call request
@@ -208,7 +235,7 @@ useEffect(() => {
       socket.off("chat:request");
       socket.off("audio:request");
     };
-  }, [socket]);
+  }, [socket, fetchPendingSessions]);
 useEffect(() => {
   window.testNotificationSound = () => {
     if (notificationSoundRef.current) {
@@ -227,7 +254,7 @@ useEffect(() => {
       socket.emit("user_online", { userId: profile.userId });
       fetchPendingSessions();
     }
-  }, [profile?.userId, socket]);
+  }, [profile?.userId, socket, fetchPendingSessions]);
 
   // Play notification sound
   // SUPER RELIABLE Notification Sound (works always when tab is open)
@@ -318,27 +345,9 @@ useEffect(() => {
     if (activeTab === "inbox") {
       fetchPendingSessions();
     }
-  }, [activeTab]);
+  }, [activeTab, fetchPendingSessions]);
 
-  const fetchPendingSessions = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (res.data && Array.isArray(res.data)) {
-        setPendingSessions(res.data);
-      } else {
-        setPendingSessions([]);
-      }
-    } catch (err) {
-      console.error("Error fetching sessions:", err);
-      setPendingSessions([]);
-    }
-  };
+
 
   const acceptCall = () => {
     if (!incomingCall || !socket) return;
@@ -614,6 +623,38 @@ useEffect(() => {
     setActiveTab(item.id);
   };
 
+  // Handle chart selection from FAB menu
+  const handleChartSelect = (chartId) => {
+    console.log('Selected chart:', chartId);
+
+    switch(chartId) {
+      case 'chat':
+        // Toggle chat panel (slide in from right)
+        if (!profile?.isOnline) {
+          setShowOfflinePopup(true);
+        } else {
+          setShowChatPanel(prev => !prev);
+        }
+        break;
+      case 'birth-chart':
+        setSelectedChart('birth-chart');
+        setShowChartModal(true);
+        break;
+      case 'porutham':
+        setSelectedChart('porutham');
+        setShowChartModal(true);
+        break;
+      case 'navamsa':
+        setSelectedChart('navamsa');
+        setShowChartModal(true);
+        break;
+      case 'behavior':
+        setSelectedChart('behavior');
+        setShowChartModal(true);
+        break;
+    }
+  };
+
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
@@ -788,7 +829,11 @@ useEffect(() => {
       )}
 
       {/* Chart Modal */}
-      <ChartModal isOpen={showChartModal} onClose={() => setShowChartModal(false)} />
+      <ChartModal
+        isOpen={showChartModal}
+        onClose={() => setShowChartModal(false)}
+        initialChart={selectedChart}
+      />
 
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white p-6">
@@ -929,10 +974,20 @@ useEffect(() => {
                   )}
                 </div>
 
-                {/* Sound Controls */}
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span>🔔</span>
-                  <span>Notifications enabled</span>
+                {/* Sound Controls & Refresh */}
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <button
+                    onClick={fetchPendingSessions}
+                    className="flex items-center gap-1 hover:text-purple-600 transition-colors"
+                    title="Refresh List"
+                  >
+                    <Sparkles size={16} />
+                    <span>Refresh</span>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <span>🔔</span>
+                    <span>Notifications enabled</span>
+                  </div>
                 </div>
               </div>
 
@@ -1321,7 +1376,138 @@ useEffect(() => {
         .animate-scale-in {
           animation: scaleIn 0.3s ease-out;
         }
+        @keyframes slideInFromRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slideInRight {
+          animation: slideInFromRight 0.3s ease-out;
+        }
       `}</style>
+
+      {/* Sliding Chat Panel from Right */}
+      {showChatPanel && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] transition-opacity duration-300"
+            onClick={() => setShowChatPanel(false)}
+          />
+
+          {/* Chat Panel */}
+          <div className="fixed top-0 right-0 h-full w-full md:w-96 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 shadow-2xl z-[95] transform transition-transform duration-300 ease-out flex flex-col animate-slideInRight">
+            {/* Panel Header */}
+            <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MessageCircle className="w-6 h-6" />
+                <div>
+                  <h3 className="text-lg font-bold">Chat Inbox</h3>
+                  <p className="text-xs text-white/80">Pending Requests</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowChatPanel(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Pending Sessions List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {pendingSessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mb-4">
+                    <MessageCircle className="w-10 h-10 text-white" />
+                  </div>
+                  <p className="text-gray-600 font-medium">No pending chat requests</p>
+                  <p className="text-gray-400 text-sm mt-2">New requests will appear here</p>
+                </div>
+              ) : (
+                pendingSessions.map((session) => {
+                  const timeAgo = () => {
+                    const now = new Date();
+                    const created = new Date(session.createdAt);
+                    const diffMs = now - created;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    if (diffMins < 1) return "Just now";
+                    if (diffMins < 60) return `${diffMins}m ago`;
+                    const diffHours = Math.floor(diffMins / 60);
+                    if (diffHours < 24) return `${diffHours}h ago`;
+                    return `${Math.floor(diffHours / 24)}d ago`;
+                  };
+
+                  return (
+                    <div
+                      key={session.sessionId || session._id}
+                      className="bg-white rounded-xl p-4 shadow-md border border-purple-200 hover:border-purple-400 transition-all"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                            {(session.client?.name || session.userId?.name || "User")
+                              .charAt(0)
+                              .toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-800">
+                              {session.client?.name || session.userId?.name || "Client"}
+                            </h4>
+                            <p className="text-xs text-gray-500">{timeAgo()}</p>
+                          </div>
+                        </div>
+                        <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
+                          New
+                        </span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => rejectChat(session.sessionId)}
+                          className="flex-1 bg-red-100 text-red-600 py-2 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm"
+                        >
+                          Decline
+                        </button>
+                        <button
+                          onClick={() => acceptChat(session.sessionId)}
+                          className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all font-medium text-sm flex items-center justify-center gap-1"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          Accept
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer with action button */}
+            <div className="p-4 bg-white border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowChatPanel(false);
+                  setActiveTab('inbox');
+                  setInboxTab('chat');
+                }}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" />
+                View Full Inbox
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Floating Action Button Menu */}
+      <AstrologyQuickMenu onSelectChart={handleChartSelect} />
     </div>
   );
 };

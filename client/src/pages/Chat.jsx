@@ -4,7 +4,8 @@ import { io } from "socket.io-client";
 import axios from "axios";
 
 import AuthContext from "../context/AuthContext";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft } from "lucide-react";
+import ChartModal from "../components/ChartModal";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart } from "lucide-react";
 
 // Single shared socket instance
 const socket = io(
@@ -24,6 +25,8 @@ const Chat = () => {
   const [sessionInfo, setSessionInfo] = useState(null);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [error, setError] = useState(null);
+  const [showChartModal, setShowChartModal] = useState(false);
+  const [selectedChart, setSelectedChart] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -719,11 +722,69 @@ const Chat = () => {
             </div>
           </form>
 
-          <div className="text-center mt-2">
-            <p className="text-yellow-600/60 text-xs">🔮 Secure cosmic connection</p>
-          </div>
+          {/* Astrology Chart Quick Access - Only for Astrologers */}
+          {user?.role === 'astrologer' && (
+            <div className="mt-3 flex flex-wrap gap-2 justify-center">
+              <button
+                onClick={() => {
+                  setSelectedChart('birth-chart');
+                  setShowChartModal(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              >
+                <Star size={14} />
+                Birth Chart
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedChart('porutham');
+                  setShowChartModal(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              >
+                <Heart size={14} />
+                Porutham
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedChart('navamsa');
+                  setShowChartModal(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              >
+                <Sparkles size={14} />
+                Navamsa
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedChart('behavior');
+                  setShowChartModal(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              >
+                <Brain size={14} />
+                Behavior
+              </button>
+            </div>
+          )}
+
+          {/* Show only for astrologers/admins */}
+          {(user?.role === 'astrologer' || user?.role === 'admin') && (
+            <div className="text-center mt-2">
+              <p className="text-yellow-600/60 text-xs">🔮 Secure cosmic connection</p>
+            </div>
+          )}
         </div>
       </div>
+      {/* Chart Modal */}
+      <ChartModal
+        isOpen={showChartModal}
+        onClose={() => setShowChartModal(false)}
+        initialChart={selectedChart}
+      />
     </div>
   );
 };

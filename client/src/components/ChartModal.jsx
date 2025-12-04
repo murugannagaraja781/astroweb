@@ -5,8 +5,13 @@ import NavamsaChartForm from './NavamsaChartForm';
 import PoruthamForm from './PoruthamForm';
 import BehaviorPredictionForm from './BehaviorPredictionForm';
 
-const ChartModal = ({ isOpen, onClose }) => {
-  const [selectedChart, setSelectedChart] = useState(null);
+const ChartModal = ({ isOpen, onClose, initialChart = null }) => {
+  const [selectedChart, setSelectedChart] = useState(initialChart);
+
+  // Update selectedChart when initialChart changes or modal opens
+  if (isOpen && initialChart && selectedChart !== initialChart) {
+    setSelectedChart(initialChart);
+  }
 
   if (!isOpen) return null;
 

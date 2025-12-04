@@ -8,10 +8,14 @@ import {
   Heart,
   Star,
   Activity,
-  ArrowRight
+  ArrowRight,
+  Sparkles,
+  Users,
+  Brain
 } from "lucide-react";
 import SouthIndianChart from "../components/SouthIndianChart";
 import NorthIndianChart from "../components/NorthIndianChart";
+import AstrologyQuickMenu from "../components/AstrologyQuickMenu";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app";
 
@@ -229,8 +233,38 @@ const AstrologyDashboard = () => {
     }
   };
 
+  const [showFooterMenu, setShowFooterMenu] = useState(false);
+
+  // Handle chart selection from FAB menu
+  const handleChartSelect = (chartId) => {
+    console.log('Selected chart:', chartId);
+
+    switch(chartId) {
+      case 'chat':
+        // Navigate to chat/astrologer listing page
+        window.location.href = '/client/astrologers';
+        break;
+      case 'birth-chart':
+        setActiveTab('chart');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      case 'porutham':
+        setActiveTab('match');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      case 'navamsa':
+        // You can add navamsa tab or modal here
+        alert('Navamsa Chart - Coming soon!');
+        break;
+      case 'behavior':
+        // You can add behavior tab or modal here
+        alert('Behavior Analysis - Coming soon!');
+        break;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-900 py-8 text-gray-100">
+    <div className="min-h-screen bg-slate-900 py-8 pb-24 text-gray-100">
       <div className="container mx-auto px-4 max-w-5xl">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
           <Star className="text-purple-500 fill-purple-500" /> Astrology Engine
@@ -355,46 +389,324 @@ const AstrologyDashboard = () => {
             </div>
 
             {matchResult && (
-              <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-pink-500/30 text-center max-w-2xl mx-auto">
-                <Heart className="w-16 h-16 text-pink-500 mx-auto mb-4 animate-pulse" />
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  Compatibility Score
-                </h3>
-                <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 mb-4">
-                  {matchResult.score} <span className="text-2xl text-gray-500">/ 36</span>
-                </div>
-                <p className="text-xl font-medium text-gray-300 mb-8">
-                  {matchResult.recommendation}
-                </p>
-
-                <div className="grid grid-cols-2 gap-4 text-left">
-                  <div className="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
-                    <span className="text-gray-400 text-sm block mb-1">
-                      Dina Porutham
-                    </span>
-                    <span
-                      className={`font-bold text-lg ${
-                        matchResult.porutham.din
-                          ? "text-green-400"
-                          : "text-red-400"
-                      }`}
-                    >
-                      {matchResult.porutham.din ? "Good" : "Bad"}
-                    </span>
+              <div className="space-y-6 animate-fadeIn">
+                {/* Hero Score Card */}
+                <div className="bg-gradient-to-br from-pink-600 via-purple-600 to-indigo-600 p-8 rounded-2xl shadow-2xl text-center relative overflow-hidden">
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 left-0 w-full h-full" style={{
+                      backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+                      backgroundSize: '20px 20px'
+                    }}></div>
                   </div>
-                  <div className="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
-                    <span className="text-gray-400 text-sm block mb-1">
-                      Gana Porutham
-                    </span>
-                    <span
-                      className={`font-bold text-lg ${
+
+                  <div className="relative z-10">
+                    <Heart className="w-20 h-20 text-white mx-auto mb-4 animate-pulse drop-shadow-lg" />
+                    <h3 className="text-3xl font-bold text-white mb-2">
+                      Compatibility Analysis
+                    </h3>
+
+                    {/* Score Display */}
+                    <div className="my-8">
+                      <div className="text-8xl font-black text-white mb-2 drop-shadow-lg">
+                        {matchResult.score}
+                        <span className="text-3xl text-white/70"> / 36</span>
+                      </div>
+                      <div className="text-2xl font-bold text-white/90">
+                        {((matchResult.score / 36) * 100).toFixed(1)}% Match
+                      </div>
+                    </div>
+
+                    {/* Recommendation Badge */}
+                    <div className={`inline-block px-8 py-3 rounded-full text-xl font-bold ${
+                      matchResult.score >= 28 ? 'bg-green-500' :
+                      matchResult.score >= 18 ? 'bg-yellow-500' :
+                      'bg-red-500'
+                    } text-white shadow-lg`}>
+                      {matchResult.recommendation || (
+                        matchResult.score >= 28 ? '✨ Excellent Match' :
+                        matchResult.score >= 18 ? '⚠️ Average Match' :
+                        '❌ Poor Match'
+                      )}
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-3 gap-4 mt-8">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                        <div className="text-3xl font-bold text-white">
+                          {Object.values(matchResult.porutham || {}).filter(v => v === true).length}
+                        </div>
+                        <div className="text-sm text-white/80">Good Matches</div>
+                      </div>
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                        <div className="text-3xl font-bold text-white">
+                          {Object.values(matchResult.porutham || {}).filter(v => v === false).length}
+                        </div>
+                        <div className="text-sm text-white/80">Challenges</div>
+                      </div>
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                        <div className="text-3xl font-bold text-white">
+                          {Object.keys(matchResult.porutham || {}).length}
+                        </div>
+                        <div className="text-sm text-white/80">Total Factors</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detailed Porutham Analysis */}
+                <div className="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700">
+                  <h4 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                    <span>📊</span> Detailed Porutham Analysis
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Dina Porutham */}
+                    {matchResult.porutham?.din !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
+                        matchResult.porutham.din
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Dina Porutham</span>
+                          <span className={`text-2xl ${matchResult.porutham.din ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.din ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.din ? 'text-green-300' : 'text-red-300'}`}>
+                          Daily Compatibility
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Health & Well-being
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Gana Porutham */}
+                    {matchResult.porutham?.gana !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
                         matchResult.porutham.gana
-                          ? "text-green-400"
-                          : "text-red-400"
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Gana Porutham</span>
+                          <span className={`text-2xl ${matchResult.porutham.gana ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.gana ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.gana ? 'text-green-300' : 'text-red-300'}`}>
+                          Temperament Match
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Nature & Behavior
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mahendra Porutham */}
+                    {matchResult.porutham?.mahendra !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
+                        matchResult.porutham.mahendra
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Mahendra Porutham</span>
+                          <span className={`text-2xl ${matchResult.porutham.mahendra ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.mahendra ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.mahendra ? 'text-green-300' : 'text-red-300'}`}>
+                          Prosperity Match
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Wealth & Progeny
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Stree Deergha Porutham */}
+                    {matchResult.porutham?.streeDeergha !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
+                        matchResult.porutham.streeDeergha
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Stree Deergha</span>
+                          <span className={`text-2xl ${matchResult.porutham.streeDeergha ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.streeDeergha ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.streeDeergha ? 'text-green-300' : 'text-red-300'}`}>
+                          Longevity Match
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Long Life & Health
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Yoni Porutham */}
+                    {matchResult.porutham?.yoni !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
+                        matchResult.porutham.yoni
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Yoni Porutham</span>
+                          <span className={`text-2xl ${matchResult.porutham.yoni ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.yoni ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.yoni ? 'text-green-300' : 'text-red-300'}`}>
+                          Physical Compatibility
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Intimacy & Attraction
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rasi Porutham */}
+                    {matchResult.porutham?.rasi !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
+                        matchResult.porutham.rasi
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Rasi Porutham</span>
+                          <span className={`text-2xl ${matchResult.porutham.rasi ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.rasi ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.rasi ? 'text-green-300' : 'text-red-300'}`}>
+                          Zodiac Compatibility
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Mental Harmony
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rasyadhipati Porutham */}
+                    {matchResult.porutham?.rasyadhipati !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
+                        matchResult.porutham.rasyadhipati
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Rasyadhipati</span>
+                          <span className={`text-2xl ${matchResult.porutham.rasyadhipati ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.rasyadhipati ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.rasyadhipati ? 'text-green-300' : 'text-red-300'}`}>
+                          Lord Compatibility
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Mutual Understanding
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rajju Porutham */}
+                    {matchResult.porutham?.rajju !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
+                        matchResult.porutham.rajju
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Rajju Porutham</span>
+                          <span className={`text-2xl ${matchResult.porutham.rajju ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.rajju ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.rajju ? 'text-green-300' : 'text-red-300'}`}>
+                          Longevity Factor
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Life Span Harmony
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Vedha Porutham */}
+                    {matchResult.porutham?.vedha !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
+                        matchResult.porutham.vedha
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Vedha Porutham</span>
+                          <span className={`text-2xl ${matchResult.porutham.vedha ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.vedha ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.vedha ? 'text-green-300' : 'text-red-300'}`}>
+                          Affliction Check
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Obstacle Analysis
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Nadi Porutham */}
+                    {matchResult.porutham?.nadi !== undefined && (
+                      <div className={`rounded-xl p-5 border-2 ${
+                        matchResult.porutham.nadi
+                          ? 'bg-green-900/30 border-green-500/50'
+                          : 'bg-red-900/30 border-red-500/50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-semibold">Nadi Porutham</span>
+                          <span className={`text-2xl ${matchResult.porutham.nadi ? 'text-green-400' : 'text-red-400'}`}>
+                            {matchResult.porutham.nadi ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-sm ${matchResult.porutham.nadi ? 'text-green-300' : 'text-red-300'}`}>
+                          Health Compatibility
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">
+                          Genetic Harmony
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Compatibility Meter */}
+                <div className="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700">
+                  <h4 className="text-xl font-bold text-white mb-4">Compatibility Meter</h4>
+                  <div className="relative h-8 bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className={`absolute top-0 left-0 h-full transition-all duration-1000 ${
+                        matchResult.score >= 28 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                        matchResult.score >= 18 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                        'bg-gradient-to-r from-red-500 to-pink-500'
                       }`}
+                      style={{ width: `${(matchResult.score / 36) * 100}%` }}
                     >
-                      {matchResult.porutham.gana ? "Good" : "Bad"}
-                    </span>
+                      <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-white font-bold text-sm drop-shadow-lg">
+                        {((matchResult.score / 36) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between mt-2 text-xs text-gray-400">
+                    <span>Poor (0-50%)</span>
+                    <span>Average (50-75%)</span>
+                    <span>Excellent (75-100%)</span>
                   </div>
                 </div>
               </div>
@@ -402,6 +714,9 @@ const AstrologyDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button Menu */}
+      <AstrologyQuickMenu onSelectChart={handleChartSelect} />
     </div>
   );
 };
