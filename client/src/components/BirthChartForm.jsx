@@ -90,7 +90,7 @@ const BirthChartForm = ({ onClose }) => {
   };
 
   if (chartData) {
-    return <BirthChartDisplay data={chartData} onBack={() => setChartData(null)} onClose={onClose} />;
+    return <BirthChartDisplay data={chartData} formData={formData} onBack={() => setChartData(null)} onClose={onClose} />;
   }
 
   return (

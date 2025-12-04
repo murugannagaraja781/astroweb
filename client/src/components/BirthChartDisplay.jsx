@@ -1,8 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, Share2, Globe } from "lucide-react";
+import axios from "axios";
 
-const BirthChartDisplay = ({ data, onBack, onClose }) => {
+const BirthChartDisplay = ({ data, formData, onBack, onClose }) => {
   const [language, setLanguage] = useState("tamil");
+  const [dashaData, setDashaData] = useState(null);
+  const [loadingDasha, setLoadingDasha] = useState(false);
+
+  useEffect(() => {
+    const fetchDasha = async () => {
+      if (!formData) return;
+
+      setLoadingDasha(true);
+      try {
+        const payload = {
+          year: parseInt(formData.year),
+          month: parseInt(formData.month),
+          day: parseInt(formData.day),
+          hour: parseInt(formData.hour),
+          minute: parseInt(formData.minute),
+          lat: parseFloat(formData.latitude),
+          lon: parseFloat(formData.longitude),
+          tz: parseFloat(formData.timezone)
+        };
+
+        const response = await axios.post(
+          "https://apidash-production.up.railway.app/api/vimshottari",
+          payload
+        );
+
+        if (response.data) {
+          setDashaData(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching dasha:", error);
+      } finally {
+        setLoadingDasha(false);
+      }
+    };
+
+    fetchDasha();
+  }, [formData]);
 
   // Safety check
   if (!data) {
@@ -51,7 +89,7 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
       moonSign: "Moon Sign",
       nakshatra: "Nakshatra",
       ayanamsa: "Ayanamsa",
-      planetaryPositions: "Planetary Positions",
+      planetaryPositions: "Pl anetary Positions",
       planet: "Planet",
       sign: "Sign",
       degree: "Degree",
@@ -63,6 +101,10 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
       done: "Done",
       rasi: "Rasi",
       amsam: "Amsam",
+      currentDasha: "Current Dasha",
+      mahaDasha: "Maha Dasha",
+      bhukti: "Bhukti",
+      pratyantar: "Pratyantar",
     },
     tamil: {
       title: "ஜாதக கட்டம்",
@@ -85,6 +127,10 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
       done: "முடிந்தது",
       rasi: "ராசி",
       amsam: "அம்சம்",
+      currentDasha: "இப்போது நடக்கும் தசா",
+      mahaDasha: "மகா தசா",
+      bhukti: "புக்தி",
+      pratyantar: "பிரத்யந்தர",
     },
     hindi: {
       title: "जन्म कुंडली",
@@ -107,6 +153,10 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
       done: "हो गया",
       rasi: "राशि",
       amsam: "अंश",
+      currentDasha: "वर्तमान दशा",
+      mahaDasha: "महादशा",
+      bhukti: "अंतरदशा",
+      pratyantar: "प्रत्यान्तर",
     },
   };
 
@@ -317,6 +367,29 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
     );
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    if (language === "tamil") {
+      const months = [
+        "ஜனவரி", "பிப்ரவரி", "மார்ச்", "ஏப்ரல்", "மே", "ஜூன்",
+        "ஜூலை", "ஆகஸ்ட்", "செப்டம்பர்", "அக்டோபர்", "நவம்பர்", "டிசம்பர்"
+      ];
+      return `${date.getDate()} ${months[date.getMonth()]}, ${date.getFullYear()}`;
+    } else if (language === "hindi") {
+      const months = [
+        "जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून",
+        "जुलाई", "अगस्त", "सितम्बर", "अक्टूबर", "नवम्बर", "दिसम्बर"
+      ];
+      return `${date.getDate()} ${months[date.getMonth()]}, ${date.getFullYear()}`;
+    }
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    });
+  };
+
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Header & Controls */}
@@ -454,73 +527,91 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
       <div className="bg-white rounded-2xl p-6 shadow-lg border border-red-100">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
           <span className="text-2xl">⏱️</span>
-          {language === "tamil"
-            ? "இப்போது நடக்கும் தசா"
-            : language === "hindi"
-            ? "वर्तमान दशा"
-            : "Current Dasha"}
+          {t.currentDasha}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl border bg-red-50 border-red-100">
-            <div className="text-xs font-semibold text-red-600 mb-1">
-              {language === "tamil"
-                ? "மகா தசா"
-                : language === "hindi"
-                ? "महादशा"
-                : "Maha Dasha"}
-            </div>
-            <div className="font-semibold text-gray-800">
-              {getPlanetName("Sun")}
-            </div>
-            <div className="text-xs text-gray-600 mt-1">
-              {language === "tamil"
-                ? "20 செப்டம்பர், 2025 - 20 ஆகஸ்ட், 2031"
-                : language === "hindi"
-                ? "20 सितम्बर, 2025 - 20 अगस्त, 2031"
-                : "20 Sep, 2025 - 20 Aug, 2031"}
-            </div>
-          </div>
 
-          <div className="p-4 rounded-xl border bg-red-50 border-red-100">
-            <div className="text-xs font-semibold text-red-600 mb-1">
-              {language === "tamil"
-                ? "புக்தி"
-                : language === "hindi"
-                ? "अंतरदशा"
-                : "Bhukti"}
-            </div>
-            <div className="font-semibold text-gray-800">
-              {getPlanetName("Sun")}
-            </div>
-            <div className="text-xs text-gray-600 mt-1">
-              {language === "tamil"
-                ? "20 செப்டம்பர், 2025 - 6 ஜனவரி, 2026"
-                : language === "hindi"
-                ? "20 सितम्बर, 2025 - 6 जनवरी, 2026"
-                : "20 Sep, 2025 - 6 Jan, 2026"}
-            </div>
+        {loadingDasha ? (
+          <div className="flex justify-center py-8">
+            <div className="w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full animate-spin"></div>
           </div>
+        ) : dashaData ? (
+          <div className="space-y-6">
+            {/* Current Dasha Highlights */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Maha Dasha */}
+              <div className="p-4 rounded-xl border bg-red-50 border-red-100">
+                <div className="text-xs font-semibold text-red-600 mb-1">
+                  {t.mahaDasha}
+                </div>
+                <div className="font-semibold text-gray-800">
+                  {getPlanetName(dashaData.mahaDasha?.lord || "-")}
+                </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  {formatDate(dashaData.mahaDasha?.start)} - {formatDate(dashaData.mahaDasha?.end)}
+                </div>
+              </div>
 
-          <div className="p-4 rounded-xl border bg-red-50 border-red-100">
-            <div className="text-xs font-semibold text-red-600 mb-1">
-              {language === "tamil"
-                ? "பிரத்யந்தர"
-                : language === "hindi"
-                ? "प्रत्यान्तर"
-                : "Pratyantar"}
+              {/* Bhukti */}
+              <div className="p-4 rounded-xl border bg-red-50 border-red-100">
+                <div className="text-xs font-semibold text-red-600 mb-1">
+                  {t.bhukti}
+                </div>
+                <div className="font-semibold text-gray-800">
+                  {getPlanetName(dashaData.antarDasha?.lord || "-")}
+                </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  {formatDate(dashaData.antarDasha?.start)} - {formatDate(dashaData.antarDasha?.end)}
+                </div>
+              </div>
+
+              {/* Pratyantar */}
+              <div className="p-4 rounded-xl border bg-red-50 border-red-100">
+                <div className="text-xs font-semibold text-red-600 mb-1">
+                  {t.pratyantar}
+                </div>
+                <div className="font-semibold text-gray-800">
+                  {getPlanetName(dashaData.pratyantarDasha?.lord || "-")}
+                </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  {formatDate(dashaData.pratyantarDasha?.start)} - {formatDate(dashaData.pratyantarDasha?.end)}
+                </div>
+              </div>
             </div>
-            <div className="font-semibold text-gray-800">
-              {getPlanetName("Mercury")}
-            </div>
-            <div className="text-xs text-gray-600 mt-1">
-              {language === "tamil"
-                ? "28 நவம்பர், 2025 - 13 டிசம்பர், 2025"
-                : language === "hindi"
-                ? "28 नवम्बर, 2025 - 13 दिसम्बर, 2025"
-                : "28 Nov, 2025 - 13 Dec, 2025"}
+
+            {/* Full List / Debug View */}
+            <div className="mt-6 border-t border-gray-100 pt-4">
+               <h4 className="text-sm font-bold text-gray-700 mb-3">
+                {language === "tamil" ? "முழு விவரங்கள்" : "Full Details"}
+              </h4>
+              <div className="bg-gray-50 p-4 rounded-xl text-xs font-mono overflow-x-auto">
+                {/* Try to render list if exists, otherwise dump JSON for verification */}
+                {Array.isArray(dashaData) ? (
+                  <div className="space-y-2">
+                    {dashaData.map((item, idx) => (
+                      <div key={idx} className="border-b border-gray-200 pb-2">
+                        {JSON.stringify(item)}
+                      </div>
+                    ))}
+                  </div>
+                ) : dashaData.dashas || dashaData.list ? (
+                   <div className="space-y-2">
+                    {(dashaData.dashas || dashaData.list).map((item, idx) => (
+                      <div key={idx} className="border-b border-gray-200 pb-2">
+                        <span className="font-semibold text-blue-600">{getPlanetName(item.lord)}</span>: {formatDate(item.start)} - {formatDate(item.end)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <pre>{JSON.stringify(dashaData, null, 2)}</pre>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="text-center text-gray-500 py-4">
+            {language === "tamil" ? "தகவல் கிடைக்கவில்லை" : "No dasha data available"}
+          </div>
+        )}
       </div>
 
       {/* Panchangam Section */}
