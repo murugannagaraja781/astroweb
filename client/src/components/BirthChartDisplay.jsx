@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Download, Share2, Globe } from 'lucide-react';
 
 const BirthChartDisplay = ({ data, onBack, onClose }) => {
-  const [language, setLanguage] = useState('tamil'); // Default to Tamil
-  const [showNavamsa, setShowNavamsa] = useState(false); // Toggle between Rasi and Navamsa
+  const [language, setLanguage] = useState('tamil');
 
   // Safety check
   if (!data) {
@@ -94,6 +93,14 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
   };
 
   const t = translations[language];
+
+  const weekdayNames = {
+    english: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    tamil: ['ஞாயிறு', 'திங்கள்', 'செவ்வாய்', 'புதன்', 'வியாழன்', 'வெள்ளி', 'சனி'],
+    hindi: ['रविवार', 'सोमवार', 'मंगलवार', 'बुधवार', 'गुरुवार', 'शुक्रवार', 'शनिवार']
+  };
+  const birthDateObj = birthData?.date ? new Date(birthData.date) : null;
+  const weekday = birthDateObj ? weekdayNames[language][birthDateObj.getDay()] : null;
 
   // Planet Symbols
   const planetSymbols = {
@@ -279,19 +286,7 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
             <Globe className="w-4 h-4 text-purple-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
-
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowNavamsa(!showNavamsa)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-              showNavamsa
-                ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
-            }`}
-          >
-            {showNavamsa ? (language === 'tamil' ? 'ராசி' : language === 'hindi' ? 'राशि' : 'Rasi') : (language === 'tamil' ? 'நவாம்சம்' : language === 'hindi' ? 'नवांश' : 'Navamsa')}
-          </button>
-
           <button onClick={onClose} className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg font-medium transition-colors text-sm">
             {t.done}
           </button>
@@ -301,7 +296,6 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
 
 
       {/* Rasi Chart (South Indian Style) */}
-      {!showNavamsa && (
         <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-orange-100">
           <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
             <span className="text-2xl">🕉️</span>
@@ -339,10 +333,8 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
             </div>
           </div>
         </div>
-      )}
 
       {/* Navamsa Chart (D9) - South Indian Style */}
-      {showNavamsa && (
         <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-purple-100">
           <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
             <span className="text-2xl">✨</span>
@@ -380,7 +372,30 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
             </div>
           </div>
         </div>
-      )}
+
+      {/* Dasha (Vimshottari) - Simplified View */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-red-100">
+        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <span className="text-2xl">⏱️</span>
+          {language === 'tamil' ? 'தசா' : language === 'hindi' ? 'दशा' : 'Dasha'}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {['Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'].map((lord, idx) => (
+            <div key={idx} className="p-4 rounded-xl border bg-red-50 border-red-100">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-gray-800">{getPlanetName(lord)}</span>
+                <span className="text-xs text-gray-500">{idx+1}/9</span>
+              </div>
+              <div className="text-xs text-gray-600 mt-1">
+                {language === 'tamil' ? 'கால பரிவு' : language === 'hindi' ? 'काल अवधि' : 'Period'}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="text-xs text-gray-500 mt-3">
+          {language === 'tamil' ? 'குறிப்பு: முழு தசா கணக்கீடு விரைவில்.' : language === 'hindi' ? 'टिप्पणी: पूर्ण दशा गणना शीघ्र।' : 'Note: Full dasha calculation coming soon.'}
+        </div>
+      </div>
 
       {/* Panchangam Section */}
       <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100">
@@ -388,7 +403,15 @@ const BirthChartDisplay = ({ data, onBack, onClose }) => {
           <span className="text-2xl">📅</span>
           {language === 'tamil' ? 'பஞ்சாங்கம்' : 'Panchangam'}
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+            <div className="text-xs text-yellow-700 font-semibold uppercase mb-1">
+              {language === 'tamil' ? 'கிழமை' : language === 'hindi' ? 'दिन' : 'Weekday'}
+            </div>
+            <div className="font-bold text-gray-800">
+              {weekday || (language === 'tamil' ? '—' : '-')}
+            </div>
+          </div>
           <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
             <div className="text-xs text-orange-600 font-semibold uppercase mb-1">
               {language === 'tamil' ? 'திதி' : 'Tithi'}

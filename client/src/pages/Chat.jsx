@@ -424,11 +424,11 @@ const Chat = () => {
           font-size: large;
         }
         .message-container {
-          padding-bottom: 180px;
+          padding-bottom: 220px;
         }
         @media (min-width: 768px) {
           .message-container {
-            padding-bottom: 120px;
+            padding-bottom: 140px;
           }
         }
         .chat-footer {
@@ -769,16 +769,7 @@ const Chat = () => {
                 Behavior
               </button>
 
-              <button
-                onClick={() => {
-                  setSelectedChart('dasha');
-                  setShowChartModal(true);
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
-              >
-                <Clock size={14} />
-                Dasha
-              </button>
+              {/* Dasha button removed per request */}
             </div>
           )}
 

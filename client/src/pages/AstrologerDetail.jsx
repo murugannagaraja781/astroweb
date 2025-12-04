@@ -494,31 +494,8 @@ const AstrologerDetail = () => {
                   </span>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                  <button
-                    onClick={handleVideoCall}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-                  >
-                    <Camera className="w-5 h-5" />
-                    Video Call
-                  </button>
-                  <button
-                    onClick={handleAudioCall}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-                  >
-                    <Phone className="w-5 h-5" />
-                    Audio Call
-                  </button>
-
-                  <button
-                    onClick={requestChat}
-                    className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
-                  >
-                    <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    Text Chat
-                  </button>
-                </div>
+                {/* Action Buttons (hidden as requested) */}
+                <div className="flex flex-wrap gap-4 justify-center md:justify-start"></div>
               </div>
             </div>
           </div>
