@@ -45,17 +45,46 @@ const AstrologerDashboard = () => {
   const [showChartModal, setShowChartModal] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
   const [showChatPanel, setShowChatPanel] = useState(false); // New: For sliding chat panel
+  const [isOnline, setIsOnline] = useState(true); // Online status for polling
 
   const audioRef = useRef(null);
   const notificationSoundRef = useRef(null);
   const navigate = useNavigate();
 
-  // Initialize notification sound
+  // Initialize notification sound with fallback
   useEffect(() => {
-    const audio = new Audio("/notification.mp3");
-    audio.preload = "auto";
-    audio.volume = 1.0;
-    notificationSoundRef.current = audio;
+    // Try local file first, fallback to online sound
+    const soundUrls = [
+      "/notification.mp3",
+      "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3", // Fallback online sound
+      "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OihUBELTKXh8bllHAU2jdXvzn0vBSh+zPDajzsKElyx6OyrWBUIQ5zd8sFuJAUuhM/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6Q=="
+    ];
+
+    const tryLoadSound = (index = 0) => {
+      if (index >= soundUrls.length) {
+        console.warn("⚠️ All notification sounds failed to load");
+        return;
+      }
+
+      const audio = new Audio(soundUrls[index]);
+      audio.preload = "auto";
+      audio.volume = 1.0;
+
+      audio.addEventListener('canplaythrough', () => {
+        console.log("✅ Notification sound loaded:", soundUrls[index]);
+        notificationSoundRef.current = audio;
+      });
+
+      audio.addEventListener('error', () => {
+        console.warn("❌ Failed to load:", soundUrls[index]);
+        tryLoadSound(index + 1);
+      });
+
+      // Try to load
+      audio.load();
+    };
+
+    tryLoadSound();
 
     // Cleanup on unmount
     return () => {
@@ -260,7 +289,20 @@ useEffect(() => {
   // SUPER RELIABLE Notification Sound (works always when tab is open)
   const playNotificationSound = () => {
     const audio = notificationSoundRef.current;
-    if (!audio) return;
+    if (!audio) {
+      console.warn("⚠️ Audio not initialized");
+      // Try browser notification sound as fallback
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('New Request', {
+          body: 'You have a new chat/call request',
+          icon: '/logo.png',
+          badge: '/logo.png',
+          tag: 'astrologer-request',
+          requireInteraction: true
+        });
+      }
+      return;
+    }
 
     // Reset audio to beginning
     audio.pause();
@@ -272,12 +314,24 @@ useEffect(() => {
     if (playPromise !== undefined) {
       playPromise
         .then(() => {
-          console.log("🔔 Sound played");
+          console.log("🔔 Notification sound played successfully");
+          // Vibrate on mobile if supported
+          if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200]);
+          }
         })
         .catch(err => {
           // Ignore AbortError (happens when audio is interrupted)
           if (err.name !== 'AbortError') {
-            console.warn("⚠️ Sound blocked:", err);
+            console.warn("⚠️ Sound blocked by browser:", err.message);
+            // Show visual notification as fallback
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('New Request', {
+                body: 'You have a new chat/call request',
+                icon: '/logo.png',
+                requireInteraction: true
+              });
+            }
           }
         });
     }
@@ -291,14 +345,43 @@ useEffect(() => {
     setRequestQueue((prev) => [...prev, request]);
   };
 
+  // Auto-decline timer state
+  const [autoDeclineTimer, setAutoDeclineTimer] = useState(30);
+
   // Process queue: Show popup if queue has items and no popup is showing
   useEffect(() => {
     if (!showIncomingPopup && requestQueue.length > 0) {
       setIncomingRequest(requestQueue[0]);
       setShowIncomingPopup(true);
+      setAutoDeclineTimer(30); // Reset timer
       playNotificationSound();
+
+      // Vibrate device - Strong pattern for incoming request
+      if ('vibrate' in navigator) {
+        // Pattern: [vibrate, pause, vibrate, pause, vibrate]
+        navigator.vibrate([400, 200, 400, 200, 400]);
+      }
     }
   }, [requestQueue, showIncomingPopup]);
+
+  // Auto-decline countdown timer
+  useEffect(() => {
+    if (!showIncomingPopup || !incomingRequest) return;
+
+    const timer = setInterval(() => {
+      setAutoDeclineTimer((prev) => {
+        if (prev <= 1) {
+          // Auto-decline when timer reaches 0
+          console.log("⏰ Auto-declining request due to timeout");
+          rejectIncomingRequest(incomingRequest);
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showIncomingPopup, incomingRequest]);
 
   // Handle next request in queue
   const handleNextRequest = () => {
@@ -346,6 +429,23 @@ useEffect(() => {
       fetchPendingSessions();
     }
   }, [activeTab, fetchPendingSessions]);
+
+  // Poll for new messages every second when online
+  useEffect(() => {
+    if (!isOnline) return;
+
+    console.log("📡 Starting message polling (every 1 second)");
+
+    const pollInterval = setInterval(() => {
+      // Silently fetch pending sessions
+      fetchPendingSessions();
+    }, 1000); // Check every 1 second
+
+    return () => {
+      console.log("🛑 Stopping message polling");
+      clearInterval(pollInterval);
+    };
+  }, [isOnline, fetchPendingSessions]);
 
 
 
@@ -725,7 +825,9 @@ useEffect(() => {
 
       {showIncomingPopup && incomingRequest && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
-          <div className="bg-gradient-to-br from-purple-700 via-pink-700 to-blue-700 text-white p-6 md:p-8 rounded-3xl shadow-2xl text-center max-w-md w-full animate-slideInUp border-2 border-white/30 relative">
+          <div className="bg-gradient-to-br from-purple-700 via-pink-700 to-blue-700 text-white p-6 md:p-8 rounded-3xl shadow-2xl text-center max-w-md w-full animate-bounce border-4 border-white/50 relative" style={{
+            animation: 'bounce 0.5s ease-in-out 3, pulse 2s ease-in-out infinite'
+          }}>
             {/* Close button */}
             <button
               onClick={closeIncomingPopup}
@@ -788,8 +890,20 @@ useEffect(() => {
               </button>
             </div>
 
-            <div className="mt-4 text-xs text-white/50">
-              Auto-decline in 30 seconds
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <div className={`text-sm font-bold ${autoDeclineTimer <= 10 ? 'text-red-300 animate-pulse' : 'text-white/70'}`}>
+                ⏰ Auto-decline in {autoDeclineTimer}s
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-2 w-full bg-white/20 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-1000 ${
+                  autoDeclineTimer <= 10 ? 'bg-red-500' : 'bg-green-500'
+                }`}
+                style={{ width: `${(autoDeclineTimer / 30) * 100}%` }}
+              />
             </div>
           </div>
         </div>
