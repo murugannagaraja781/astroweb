@@ -1,56 +1,74 @@
-const axios = require('axios');
+const https = require('https');
 const User = require('../models/User');
 const Wallet = require('../models/Wallet');
 const jwt = require('jsonwebtoken');
 
-exports.sendOtp = async (req, res) => {
-    try {
-        const { phoneNumber } = req.body;
+exports.sendOtp = (req, res) => {
+    const { phoneNumber } = req.body;
 
-        if (!phoneNumber || phoneNumber.length !== 10) {
-            return res.status(400).json({ msg: 'Invalid phone number' });
+    if (!phoneNumber || phoneNumber.length !== 10) {
+        return res.status(400).json({ msg: 'Invalid phone number' });
+    }
+
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    const mobile = `91${cleanPhone}`;
+    const authKey = '478312AgHesvjV691c86b3P1';
+    const templateId = '69247b237ae90826a21c51fa';
+
+    const options = {
+        method: 'POST',
+        hostname: 'control.msg91.com',
+        port: null,
+        path: `/api/v5/otp?otp_expiry=5&template_id=${templateId}&mobile=${mobile}&authkey=${authKey}&realTimeResponse=1`,
+        headers: {
+            'content-type': 'application/json',
+            'Content-Type': 'application/JSON'
         }
+    };
 
-        const cleanPhone = phoneNumber.replace(/\D/g, '');
+    const reqHttps = https.request(options, function (response) {
+        const chunks = [];
 
-        console.log('Sending OTP to:', cleanPhone);
-
-        // MSG91 OTP API (NO TEMPLATE ID USED)
-        const response = await axios.post(
-            `https://api.msg91.com/api/v5/otp`,
-            {
-                mobile: `91${cleanPhone}`,
-                otp_length: 6,
-                otp_expiry: 5
-            },
-            {
-                headers: {
-                    authkey: process.env.MSG91_AUTHKEY || '69247b237ae90826a21c51fa',
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
-
-        console.log('MSG91 OTP Send Response:', response.data);
-
-        if (response.data.type === 'success') {
-            return res.json({
-                type: 'success',
-                message: 'OTP sent successfully',
-            });
-        }
-
-        return res.status(400).json({
-            type: 'error',
-            msg: 'Failed to send OTP',
-            details: response.data
+        response.on('data', function (chunk) {
+            chunks.push(chunk);
         });
 
-    } catch (error) {
-        console.error('Error sending OTP:', error.response?.data || error.message);
+        response.on('end', function () {
+            const body = Buffer.concat(chunks).toString();
+            console.log('MSG91 Response:', body);
+
+            try {
+                const json = JSON.parse(body);
+                if (json.type === 'success') {
+                    return res.json({
+                        type: 'success',
+                        message: 'OTP sent successfully',
+                        details: json
+                    });
+                } else {
+                    return res.status(400).json({
+                        type: 'error',
+                        msg: 'Failed to send OTP',
+                        details: json
+                    });
+                }
+            } catch (error) {
+                return res.status(500).json({
+                    msg: 'Error parsing MSG91 response',
+                    raw: body
+                });
+            }
+        });
+    });
+
+    reqHttps.on('error', (e) => {
+        console.error('Error sending OTP:', e);
         return res.status(500).json({
             msg: 'Server Error While Sending OTP',
-            details: error.response?.data || error.message,
+            error: e.message
         });
-    }
+    });
+
+    reqHttps.write('{}');
+    reqHttps.end();
 };
