@@ -1,6 +1,6 @@
 // AstrologerDashboard.jsx
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import axios from 'axios';
+
 import Modal from "../components/Modal";
 import apiClient from "../utils/apiClient";
 import { io } from "socket.io-client";
@@ -638,12 +638,10 @@ const AstrologerDashboard = () => {
         // Let's use acceptIncomingRequest if possible but it expects a request object.
         // Or create a new handler.
 
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/chat/accept`, {
+        await apiClient.post(`/api/chat/accept`, {
             sessionId: session.sessionId,
             clientId: session.client.id,
             ratePerMinute: session.ratePerMinute
-        }, {
-            headers: { Authorization: `Bearer ${auth.token}` }
         });
 
         // Navigate to chat
@@ -653,7 +651,7 @@ const AstrologerDashboard = () => {
         console.error("Error accepting waitlist chat", err);
         alert("Failed to connect. Client may be offline.");
     }
-  }, [axios, auth.token, navigate]); // Added dependencies for useCallback
+  }, [navigate]); // Removed axios and auth dependencies
 
   const menuItems = useMemo(() => [
     {
