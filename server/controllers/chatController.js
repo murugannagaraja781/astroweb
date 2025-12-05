@@ -270,7 +270,7 @@ exports.saveMessage = async (req, res) => {
 exports.requestSession = async (req, res) => {
   try {
     const clientId = req.user.id;
-    const { astrologerId } = req.body;
+    const { astrologerId, intakeDetails } = req.body;
     console.log(`[DEBUG] requestSession: clientId=${clientId}, astrologerId=${astrologerId}`);
 
     if (!astrologerId) {
@@ -287,6 +287,7 @@ exports.requestSession = async (req, res) => {
       astrologerId,
       status: "requested",
       ratePerMinute: rate,
+      intakeDetails: intakeDetails || {}
     });
     console.log(`[DEBUG] Session created: ${JSON.stringify(newSession)}`);
 
@@ -391,6 +392,7 @@ exports.getPendingSessions = async (req, res) => {
         id: s.astrologerId.toString(),
         name: nameMap.get(s.astrologerId.toString()) || "",
       },
+      intakeDetails: s.intakeDetails
     }));
     console.log("[DEBUG] getPendingSessions result:", result);
     res.json(result);
@@ -616,7 +618,9 @@ exports.getSessionInfo = async (req, res) => {
       status: session.status,
       startedAt: session.startedAt,
       duration: session.duration,
-      totalCost: session.totalCost
+      duration: session.duration,
+      totalCost: session.totalCost,
+      intakeDetails: session.intakeDetails
     });
   } catch (err) {
     console.error('Error fetching session info:', err);

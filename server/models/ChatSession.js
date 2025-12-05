@@ -9,7 +9,17 @@ const chatSessionSchema = new mongoose.Schema({
   startedAt: { type: Date },
   endedAt: { type: Date },
   duration: { type: Number, default: 0 },
-  totalCost: { type: Number, default: 0 }
+  totalCost: { type: Number, default: 0 },
+  intakeDetails: {
+    name: { type: String },
+    gender: { type: String },
+    dateOfBirth: { type: String }, // YYYY-MM-DD
+    timeOfBirth: { type: String }, // HH:MM
+    placeOfBirth: { type: String },
+    latitude: { type: Number },
+    longitude: { type: Number },
+    timezone: { type: Number }
+  }
 }, { timestamps: true });
 
 chatSessionSchema.index({ clientId: 1, astrologerId: 1, createdAt: -1 });

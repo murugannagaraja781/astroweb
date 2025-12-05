@@ -3,7 +3,7 @@ import axios from 'axios';
 import { City } from 'country-state-city';
 import BirthChartDisplay from './BirthChartDisplay';
 
-const BirthChartForm = ({ onClose }) => {
+const BirthChartForm = ({ onClose, intakeData }) => {
   const [formData, setFormData] = useState({
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
@@ -14,6 +14,30 @@ const BirthChartForm = ({ onClose }) => {
     longitude: 80.2707,
     timezone: 5.5
   });
+
+  // Auto-fill from intakeData if available
+  useEffect(() => {
+    if (intakeData && intakeData.dateOfBirth) {
+      const date = new Date(intakeData.dateOfBirth);
+      const [hour, minute] = (intakeData.timeOfBirth || "12:00").split(':').map(Number);
+
+      setFormData(prev => ({
+        ...prev,
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate(),
+        hour: hour || 12,
+        minute: minute || 0,
+        latitude: intakeData.latitude || prev.latitude,
+        longitude: intakeData.longitude || prev.longitude,
+        timezone: intakeData.timezone || 5.5
+      }));
+
+      if (intakeData.placeOfBirth) {
+        setCitySearch(intakeData.placeOfBirth);
+      }
+    }
+  }, [intakeData]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [chartData, setChartData] = useState(null);

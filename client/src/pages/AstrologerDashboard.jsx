@@ -876,7 +876,16 @@ const AstrologerDashboard = () => {
                                      <p className="text-xs text-slate-500">Chat Request • 2 mins ago</p>
                                  </div>
                              </div>
-                             <div className="flex gap-2">
+                             <div className="flex gap-2 items-center">
+                                 {session.intakeDetails && (
+                                     <button
+                                         onClick={() => alert(JSON.stringify(session.intakeDetails, null, 2))}
+                                         className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition-colors"
+                                         title="View Details"
+                                     >
+                                        <MessageCircle size={16} />
+                                     </button>
+                                 )}
                                  <button onClick={() => acceptChat(session.sessionId)} className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md shadow-green-200">Accept</button>
                                  <button onClick={() => rejectChat(session.sessionId)} className="bg-red-50 text-red-500 px-3 py-1.5 rounded-lg text-xs font-bold">Reject</button>
                              </div>
