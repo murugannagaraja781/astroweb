@@ -120,6 +120,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleRoleChange = async (userId, newRole) => {
+    if (!confirm(`Are you sure you want to change this user's role to ${newRole}?`)) return;
+
+    try {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/admin/users/role`, {
+        userId,
+        role: newRole
+      });
+      showNotification('User role updated successfully');
+      fetchUsers(); // Refresh list
+    } catch (err) {
+      showNotification(err.response?.data?.msg || 'Failed to update role', 'error');
+    }
+  };
+
   const showNotification = (message, type = 'success') => {
     setNotification({ show: true, message, type });
     setTimeout(() => setNotification({ show: false, message: '', type: '' }), 4000);
@@ -695,6 +710,7 @@ const AdminDashboard = () => {
                         <th className="px-6 py-4">User</th>
                         <th className="px-6 py-4">Email</th>
                         <th className="px-6 py-4">Wallet Balance</th>
+                        <th className="px-6 py-4">Role</th>
                         <th className="px-6 py-4">Joined Date</th>
                         <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
@@ -712,6 +728,18 @@ const AdminDashboard = () => {
                           </td>
                           <td className="px-6 py-4 text-gray-400">{user.email}</td>
                           <td className="px-6 py-4 font-bold text-emerald-400">{settings.currency}{user.walletBalance}</td>
+                          <td className="px-6 py-4">
+                            <select
+                              value={user.role}
+                              onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                              className="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/30"
+                            >
+                              <option value="client">Client</option>
+                              <option value="astrologer">Astrologer</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </td>
+
                           <td className="px-6 py-4 text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</td>
                           <td className="px-6 py-4 text-right">
                             <button

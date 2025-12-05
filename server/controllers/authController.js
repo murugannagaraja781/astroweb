@@ -55,11 +55,11 @@ exports.register = async (req, res) => {
     // Create Wallet for every user
     const wallet = new Wallet({ userId: user._id });
 
-    // Add ₹100 welcome bonus for new clients
+    // Add ₹101 welcome bonus for new clients
     if (role === 'client') {
-      wallet.balance = 100;
+      wallet.balance = 101;
       wallet.transactions.push({
-        amount: 100,
+        amount: 101,
         type: 'credit',
         description: 'Welcome Bonus',
         date: new Date()
@@ -75,7 +75,7 @@ exports.register = async (req, res) => {
     }
 
     const payload = { user: { id: user._id, role: user.role } };
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }, (err, token) => {
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' }, (err, token) => {
       if (err) throw err;
       res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
     });
@@ -100,7 +100,7 @@ exports.login = async (req, res) => {
     await user.save();
 
     const payload = { user: { id: user._id, role: user.role } };
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }, (err, token) => {
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '60d' }, (err, token) => {
       if (err) throw err;
       res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
     });

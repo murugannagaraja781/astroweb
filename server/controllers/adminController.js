@@ -298,7 +298,7 @@ exports.getRecentLogins = async (req, res) => {
 // User Management
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: 'user' }).select('-password').sort({ createdAt: -1 });
+    const users = await User.find().select('-password').sort({ createdAt: -1 });
     // Fetch wallet balance for each user
     const result = await Promise.all(users.map(async (user) => {
       const wallet = await Wallet.findOne({ userId: user._id });
@@ -337,6 +337,37 @@ exports.addMoneyToUser = async (req, res) => {
     await wallet.save();
 
     res.json({ msg: 'Money added successfully', balance: wallet.balance });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.changeUserRole = async (req, res) => {
+  try {
+    const { userId, role } = req.body;
+    const validRoles = ['admin', 'astrologer', 'client'];
+
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ msg: 'Invalid role' });
+    }
+
+    const user = await User.findByIdAndUpdate(userId, { role }, { new: true }).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // If role is changed to astrologer, ensure profile exists
+    if (role === 'astrologer') {
+      let profile = await AstrologerProfile.findOne({ userId: user._id });
+      if (!profile) {
+        profile = new AstrologerProfile({ userId: user._id });
+        await profile.save();
+      }
+    }
+
+    res.json({ msg: 'User role updated successfully', user });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

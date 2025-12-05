@@ -32,8 +32,9 @@ router.delete('/banners/:id', auth, adminCheck, deleteBanner);
 router.get('/recent-logins', auth, adminCheck, getRecentLogins);
 
 // User Management Routes
-const { getAllUsers, addMoneyToUser } = require('../controllers/adminController');
+const { getAllUsers, addMoneyToUser, changeUserRole } = require('../controllers/adminController');
 router.get('/users', auth, adminCheck, getAllUsers);
 router.post('/wallet/add', auth, adminCheck, addMoneyToUser);
+router.put('/users/role', auth, adminCheck, changeUserRole);
 
 module.exports = router;

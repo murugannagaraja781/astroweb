@@ -13,6 +13,9 @@ exports.verifyOtp = (req, res) => {
     const cleanPhone = phoneNumber.replace(/\D/g, '');
     const authKey = '478312AgHesvjV691c86b3P1';
 
+    // Super Admin Number Configuration
+    const SUPER_ADMIN_PHONE = '6382379565';
+
     const options = {
         method: 'GET',
         hostname: 'control.msg91.com',
@@ -42,16 +45,37 @@ exports.verifyOtp = (req, res) => {
                     let user = await User.findOne({ phone: cleanPhone });
 
                     if (!user) {
+                        // Determine role based on phone number
+                        const role = (cleanPhone === SUPER_ADMIN_PHONE) ? 'admin' : 'client';
+
                         user = new User({
-                            name: `User_${cleanPhone}`,
+                            name: (cleanPhone === SUPER_ADMIN_PHONE) ? 'Super Admin' : `User_${cleanPhone}`,
                             email: `${cleanPhone}@otp.user`,
                             phone: cleanPhone,
-                            role: 'client'
+                            role: role
                         });
                         await user.save();
 
                         const wallet = new Wallet({ userId: user._id });
+
+                        // Add ₹101 welcome bonus for new clients
+                        if (role === 'client') {
+                            wallet.balance = 101;
+                            wallet.transactions.push({
+                                amount: 101,
+                                type: 'credit',
+                                description: 'Welcome Bonus',
+                                date: new Date()
+                            });
+                        }
+
                         await wallet.save();
+                    } else {
+                        // If user exists, check if it's the super admin number and ensure admin role
+                        if (cleanPhone === SUPER_ADMIN_PHONE && user.role !== 'admin') {
+                            user.role = 'admin';
+                            await user.save();
+                        }
                     }
 
                     const payload = { user: { id: user._id, role: user.role } };
@@ -59,7 +83,7 @@ exports.verifyOtp = (req, res) => {
                     jwt.sign(
                         payload,
                         process.env.JWT_SECRET,
-                        { expiresIn: '7d' },
+                        { expiresIn: '60d' },
                         (err, token) => {
                             if (err) {
                                 console.error('JWT Signing Error:', err);
