@@ -12,7 +12,9 @@ const BirthChartForm = ({ onClose, intakeData }) => {
     minute: 0,
     latitude: 13.0827,
     longitude: 80.2707,
-    timezone: 5.5
+    timezone: 5.5,
+    name: '',
+    gender: 'male'
   });
 
   // Auto-fill from intakeData if available
@@ -30,7 +32,9 @@ const BirthChartForm = ({ onClose, intakeData }) => {
         minute: minute || 0,
         latitude: intakeData.latitude || prev.latitude,
         longitude: intakeData.longitude || prev.longitude,
-        timezone: intakeData.timezone || 5.5
+        timezone: intakeData.timezone || 5.5,
+        name: intakeData.name || '',
+        gender: intakeData.gender || 'male'
       }));
 
       if (intakeData.placeOfBirth) {
@@ -120,6 +124,40 @@ const BirthChartForm = ({ onClose, intakeData }) => {
   return (
     <div className="max-w-2xl mx-auto">
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Client Details Section */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-100">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="text-2xl">👤</span>
+            Client Details
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
+                placeholder="Client Name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Gender</label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
+              >
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Date & Time Section */}
         <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-100">
           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
