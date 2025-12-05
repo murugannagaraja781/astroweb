@@ -39,3 +39,7 @@ jest.mock('framer-motion', () => ({
     useMotionValue: () => 0,
     useTransform: () => 0,
 }));
+
+// Mock TextEncoder/TextDecoder
+const { TextEncoder, TextDecoder } = require('util');
+Object.assign(global, { TextEncoder, TextDecoder });

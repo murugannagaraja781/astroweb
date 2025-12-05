@@ -1,0 +1,138 @@
+
+> client@0.0.0 test
+> jest client/src/pages/AstrologerDashboard.test.js --watchAll=false
+
+watchman warning: Recrawled this watch 11 times, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/Users/wohozo/astroweb' ; watchman watch-project '/Users/wohozo/astroweb'`
+
+FAIL src/pages/AstrologerDashboard.test.js
+  ● Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     • If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     • If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     • To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     • If you need a custom transformation, specify a "transform" option in your config.
+     • If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    SyntaxError: /Users/wohozo/astroweb/client/src/pages/AstrologerDashboard.jsx: Unexpected token (801:2)
+
+      799 |
+      800 |   return (
+    > 801 |   return (
+          |   ^
+      802 |     <div className="min-h-screen bg-[#F8F9FE] font-sans text-slate-800 pb-24">
+      803 |       {/* Top Header & Status Bar */}
+      804 |       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3">
+
+      2 | import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+      3 | import '@testing-library/jest-dom';
+    > 4 | import AstrologerDashboard from './AstrologerDashboard';
+        | ^
+      5 | import { BrowserRouter } from 'react-router-dom';
+      6 |
+      7 | // 1. Mock socket.io-client
+
+      at constructor (node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at JSXParserMixin.toParseError [as raise] (node_modules/@babel/parser/src/tokenizer/index.ts:1507:19)
+      at JSXParserMixin.raise [as unexpected] (node_modules/@babel/parser/src/tokenizer/index.ts:1547:16)
+      at JSXParserMixin.unexpected (node_modules/@babel/parser/src/parser/expression.ts:1355:22)
+      at JSXParserMixin.parseExprAtom (node_modules/@babel/parser/src/plugins/jsx/index.ts:583:22)
+      at JSXParserMixin.parseExprAtom [as parseExprSubscripts] (node_modules/@babel/parser/src/parser/expression.ts:742:23)
+      at JSXParserMixin.parseExprSubscripts [as parseUpdate] (node_modules/@babel/parser/src/parser/expression.ts:721:21)
+      at JSXParserMixin.parseUpdate [as parseMaybeUnary] (node_modules/@babel/parser/src/parser/expression.ts:683:23)
+      at JSXParserMixin.parseMaybeUnary [as parseMaybeUnaryOrPrivate] (node_modules/@babel/parser/src/parser/expression.ts:417:14)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate [as parseExprOps] (node_modules/@babel/parser/src/parser/expression.ts:429:23)
+      at JSXParserMixin.parseExprOps [as parseMaybeConditional] (node_modules/@babel/parser/src/parser/expression.ts:384:23)
+      at JSXParserMixin.parseMaybeConditional [as parseMaybeAssign] (node_modules/@babel/parser/src/parser/expression.ts:301:21)
+      at parseMaybeAssign (node_modules/@babel/parser/src/parser/expression.ts:257:12)
+      at JSXParserMixin.callback [as allowInAnd] (node_modules/@babel/parser/src/parser/expression.ts:3202:12)
+      at JSXParserMixin.allowInAnd [as parseMaybeAssignAllowIn] (node_modules/@babel/parser/src/parser/expression.ts:256:17)
+      at JSXParserMixin.parseMaybeAssignAllowIn [as parseMaybeAssignAllowInOrVoidPattern] (node_modules/@babel/parser/src/parser/expression.ts:3316:17)
+      at JSXParserMixin.parseMaybeAssignAllowInOrVoidPattern [as parseParenAndDistinguishExpression] (node_modules/@babel/parser/src/parser/expression.ts:1822:16)
+      at JSXParserMixin.parseParenAndDistinguishExpression (node_modules/@babel/parser/src/parser/expression.ts:1170:21)
+      at JSXParserMixin.parseExprAtom (node_modules/@babel/parser/src/plugins/jsx/index.ts:583:22)
+      at JSXParserMixin.parseExprAtom [as parseExprSubscripts] (node_modules/@babel/parser/src/parser/expression.ts:742:23)
+      at JSXParserMixin.parseExprSubscripts [as parseUpdate] (node_modules/@babel/parser/src/parser/expression.ts:721:21)
+      at JSXParserMixin.parseUpdate [as parseMaybeUnary] (node_modules/@babel/parser/src/parser/expression.ts:683:23)
+      at JSXParserMixin.parseMaybeUnary [as parseMaybeUnaryOrPrivate] (node_modules/@babel/parser/src/parser/expression.ts:417:14)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate [as parseExprOps] (node_modules/@babel/parser/src/parser/expression.ts:429:23)
+      at JSXParserMixin.parseExprOps [as parseMaybeConditional] (node_modules/@babel/parser/src/parser/expression.ts:384:23)
+      at JSXParserMixin.parseMaybeConditional [as parseMaybeAssign] (node_modules/@babel/parser/src/parser/expression.ts:301:21)
+      at JSXParserMixin.parseMaybeAssign [as parseExpressionBase] (node_modules/@babel/parser/src/parser/expression.ts:226:23)
+      at parseExpressionBase (node_modules/@babel/parser/src/parser/expression.ts:217:39)
+      at JSXParserMixin.callback [as allowInAnd] (node_modules/@babel/parser/src/parser/expression.ts:3197:16)
+      at JSXParserMixin.allowInAnd [as parseExpression] (node_modules/@babel/parser/src/parser/expression.ts:217:17)
+      at JSXParserMixin.parseExpression [as parseReturnStatement] (node_modules/@babel/parser/src/parser/statement.ts:1115:28)
+      at JSXParserMixin.parseReturnStatement [as parseStatementContent] (node_modules/@babel/parser/src/parser/statement.ts:543:21)
+      at JSXParserMixin.parseStatementContent [as parseStatementLike] (node_modules/@babel/parser/src/parser/statement.ts:482:17)
+      at JSXParserMixin.parseStatementLike [as parseStatementListItem] (node_modules/@babel/parser/src/parser/statement.ts:431:17)
+      at JSXParserMixin.parseStatementListItem [as parseBlockOrModuleBlockBody] (node_modules/@babel/parser/src/parser/statement.ts:1444:16)
+      at JSXParserMixin.parseBlockOrModuleBlockBody [as parseBlockBody] (node_modules/@babel/parser/src/parser/statement.ts:1417:10)
+      at JSXParserMixin.parseBlockBody [as parseBlock] (node_modules/@babel/parser/src/parser/statement.ts:1385:10)
+      at JSXParserMixin.parseBlock [as parseFunctionBody] (node_modules/@babel/parser/src/parser/expression.ts:2626:24)
+      at JSXParserMixin.parseFunctionBody [as parseArrowExpression] (node_modules/@babel/parser/src/parser/expression.ts:2563:10)
+      at JSXParserMixin.parseArrowExpression [as parseParenAndDistinguishExpression] (node_modules/@babel/parser/src/parser/expression.ts:1847:12)
+      at JSXParserMixin.parseParenAndDistinguishExpression (node_modules/@babel/parser/src/parser/expression.ts:1170:21)
+      at JSXParserMixin.parseExprAtom (node_modules/@babel/parser/src/plugins/jsx/index.ts:583:22)
+      at JSXParserMixin.parseExprAtom [as parseExprSubscripts] (node_modules/@babel/parser/src/parser/expression.ts:742:23)
+      at JSXParserMixin.parseExprSubscripts [as parseUpdate] (node_modules/@babel/parser/src/parser/expression.ts:721:21)
+      at JSXParserMixin.parseUpdate [as parseMaybeUnary] (node_modules/@babel/parser/src/parser/expression.ts:683:23)
+      at JSXParserMixin.parseMaybeUnary [as parseMaybeUnaryOrPrivate] (node_modules/@babel/parser/src/parser/expression.ts:417:14)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate [as parseExprOps] (node_modules/@babel/parser/src/parser/expression.ts:429:23)
+      at JSXParserMixin.parseExprOps [as parseMaybeConditional] (node_modules/@babel/parser/src/parser/expression.ts:384:23)
+      at JSXParserMixin.parseMaybeConditional [as parseMaybeAssign] (node_modules/@babel/parser/src/parser/expression.ts:301:21)
+      at parseMaybeAssign (node_modules/@babel/parser/src/parser/expression.ts:257:12)
+      at JSXParserMixin.callback [as allowInAnd] (node_modules/@babel/parser/src/parser/expression.ts:3197:16)
+      at JSXParserMixin.allowInAnd [as parseMaybeAssignAllowIn] (node_modules/@babel/parser/src/parser/expression.ts:256:17)
+      at JSXParserMixin.parseMaybeAssignAllowIn [as parseVar] (node_modules/@babel/parser/src/parser/statement.ts:1587:18)
+      at JSXParserMixin.parseVar [as parseVarStatement] (node_modules/@babel/parser/src/parser/statement.ts:1251:10)
+      at JSXParserMixin.parseVarStatement [as parseStatementContent] (node_modules/@babel/parser/src/parser/statement.ts:612:21)
+      at JSXParserMixin.parseStatementContent [as parseStatementLike] (node_modules/@babel/parser/src/parser/statement.ts:482:17)
+      at JSXParserMixin.parseStatementLike [as parseModuleItem] (node_modules/@babel/parser/src/parser/statement.ts:419:17)
+      at JSXParserMixin.parseModuleItem [as parseBlockOrModuleBlockBody] (node_modules/@babel/parser/src/parser/statement.ts:1443:16)
+      at JSXParserMixin.parseBlockOrModuleBlockBody [as parseBlockBody] (node_modules/@babel/parser/src/parser/statement.ts:1417:10)
+      at JSXParserMixin.parseBlockBody [as parseProgram] (node_modules/@babel/parser/src/parser/statement.ts:229:10)
+      at JSXParserMixin.parseProgram [as parseTopLevel] (node_modules/@babel/parser/src/parser/statement.ts:203:25)
+      at JSXParserMixin.parseTopLevel [as parse] (node_modules/@babel/parser/src/parser/index.ts:88:25)
+      at parse (node_modules/@babel/parser/src/index.ts:86:38)
+      at parser (node_modules/@babel/core/src/parser/index.ts:29:19)
+          at parser.next (<anonymous>)
+      at normalizeFile (node_modules/@babel/core/src/transformation/normalize-file.ts:50:24)
+          at normalizeFile.next (<anonymous>)
+      at run (node_modules/@babel/core/src/transformation/index.ts:41:36)
+          at run.next (<anonymous>)
+      at transform (node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync (node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-stack-trace.ts:99:14)
+      at transformSync (node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource (node_modules/@jest/transform/build/index.js:422:31)
+      at ScriptTransformer._transformAndBuildScript (node_modules/@jest/transform/build/index.js:519:40)
+      at ScriptTransformer.transform (node_modules/@jest/transform/build/index.js:558:19)
+      at Object.require (src/pages/AstrologerDashboard.test.js:4:1)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        1.349 s
+Ran all test suites matching client/src/pages/AstrologerDashboard.test.js.

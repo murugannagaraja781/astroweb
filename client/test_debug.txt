@@ -1,0 +1,716 @@
+
+> client@0.0.0 test
+> jest client/src/pages/AstrologerDashboard.test.js --watchAll=false
+
+watchman warning: Recrawled this watch 11 times, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/Users/wohozo/astroweb' ; watchman watch-project '/Users/wohozo/astroweb'`
+
+  console.log
+    ✅ Notification sound loaded: /notification.mp3
+
+      at log (src/pages/AstrologerDashboard.jsx:77:17)
+
+  console.log
+    📡 Starting message polling (every 1 second)
+
+      at log (src/pages/AstrologerDashboard.jsx:440:13)
+
+  console.log
+    🛑 Stopping message polling
+
+      at log (src/pages/AstrologerDashboard.jsx:448:15)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    ✅ Notification sound loaded: /notification.mp3
+
+      at log (src/pages/AstrologerDashboard.jsx:77:17)
+
+  console.log
+    📡 Starting message polling (every 1 second)
+
+      at log (src/pages/AstrologerDashboard.jsx:440:13)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"min-h-screen bg-[#F8F9FE] font-sans text-slate-800 pb-24"[39m
+        [36m>[39m
+          [36m<header[39m
+            [33mclass[39m=[32m"sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex justify-between items-center"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-3"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"relative"[39m
+                [36m>[39m
+                  [36m<img[39m
+                    [33malt[39m=[32m"Profile"[39m
+                    [33mclass[39m=[32m"w-10 h-10 rounded-full object-cover border-2 border-purple-100"[39m
+                    [33msrc[39m=[32m"https://ui-avatars.com/api/?name=undefined"[39m
+                  [36m/>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white bg-green-500"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div>[39m
+                  [36m<h1[39m
+                    [33mclass[39m=[32m"text-lg font-bold text-slate-800 leading-tight"[39m
+                  [36m>[39m
+                    [0mAstrologer[0m
+                  [36m</h1>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"flex items-center gap-1 text-xs text-slate-500"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-star text-yellow-400 fill-yellow-400"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"12"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"12"[39m
+                      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                    [36m<span>[39m
+                      [0m4.9 (1.2k Reviews)[0m
+                    [36m</span>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-3"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-green-100 text-green-700"[39m
+                [36m>[39m
+                  [0mONLINE[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"p-2 rounded-full bg-slate-50 text-slate-600 relative"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-bell"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"20"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"20"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M10.268 21a2 2 0 0 0 3.464 0"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</header>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"px-4 py-6 space-y-6"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"bg-white p-4 rounded-2xl shadow-sm border border-slate-100"[39m
+            [36m>[39m
+              [36m<h3[39m
+                [33mclass[39m=[32m"text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"[39m
+              [36m>[39m
+                [0mAvailability[0m
+              [36m</h3>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex gap-4"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex-1 flex flex-col items-center gap-2"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"w-full h-10 rounded-xl flex items-center justify-center transition-all bg-purple-50 text-purple-600"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-message-circle"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"20"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"20"[39m
+                      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                  [36m</div>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"text-xs font-medium text-slate-600"[39m
+                  [36m>[39m
+                    [0mChat[0m
+                  [36m</span>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"w-10 h-5 rounded-full relative transition-colors bg-green-500"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"absolute top-1 w-3 h-3 bg-white...
+    
+    /Users/wohozo/astroweb/client/src/pages/AstrologerDashboard.test.js:117:48
+      115 |             });
+      116 |         } catch (e) {
+    > 117 |             console.log("DOM content:", screen.debug());
+          |                                                ^
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:91:13)
+
+  console.log
+    DOM content: undefined
+
+      at Object.log (src/pages/AstrologerDashboard.test.js:117:21)
+
+  console.log
+    🛑 Stopping message polling
+
+      at log (src/pages/AstrologerDashboard.jsx:448:15)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    ✅ Notification sound loaded: /notification.mp3
+
+      at log (src/pages/AstrologerDashboard.jsx:77:17)
+
+  console.log
+    📡 Starting message polling (every 1 second)
+
+      at log (src/pages/AstrologerDashboard.jsx:440:13)
+
+  console.error
+    Error fetching profile: { response: { status: 403 } }
+
+      398 |       setProfile(res.data);
+      399 |     } catch (err) {
+    > 400 |       console.error("Error fetching profile:", err);
+          |               ^
+      401 |       setProfile(false); // Stop loading
+      402 |       // If unauthorized (401) or forbidden (403 - wrong role), redirect appropriately
+      403 |       if (err.response) {
+
+      at error (src/pages/AstrologerDashboard.jsx:400:15)
+
+  console.warn
+    Access denied: Redirecting to main dashboard
+
+      405 |              navigate('/login');
+      406 |         } else if (err.response.status === 403) {
+    > 407 |              console.warn("Access denied: Redirecting to main dashboard");
+          |                      ^
+      408 |              navigate('/dashboard');
+      409 |         }
+      410 |       }
+
+      at warn (src/pages/AstrologerDashboard.jsx:407:22)
+
+  console.error
+    Error fetching earnings: { response: { status: 403 } }
+
+      423 |       setEarnings(res.data.totalEarnings || 0);
+      424 |     } catch (err) {
+    > 425 |       console.error("Error fetching earnings:", err);
+          |               ^
+      426 |       setEarnings(0);
+      427 |     }
+      428 |   };
+
+      at error (src/pages/AstrologerDashboard.jsx:425:15)
+
+  console.error
+    Error fetching sessions: { response: { status: 403 } }
+
+      159 |       }
+      160 |     } catch (err) {
+    > 161 |       console.error("Error fetching sessions:", err);
+          |               ^
+      162 |       setPendingSessions([]);
+      163 |     }
+      164 |   }, []);
+
+      at error (src/pages/AstrologerDashboard.jsx:161:15)
+
+  console.log
+    🛑 Stopping message polling
+
+      at log (src/pages/AstrologerDashboard.jsx:448:15)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    ✅ Notification sound loaded: /notification.mp3
+
+      at log (src/pages/AstrologerDashboard.jsx:77:17)
+
+  console.log
+    📡 Starting message polling (every 1 second)
+
+      at log (src/pages/AstrologerDashboard.jsx:440:13)
+
+  console.error
+    Error fetching profile: { response: { status: 404 } }
+
+      398 |       setProfile(res.data);
+      399 |     } catch (err) {
+    > 400 |       console.error("Error fetching profile:", err);
+          |               ^
+      401 |       setProfile(false); // Stop loading
+      402 |       // If unauthorized (401) or forbidden (403 - wrong role), redirect appropriately
+      403 |       if (err.response) {
+
+      at error (src/pages/AstrologerDashboard.jsx:400:15)
+
+  console.error
+    Error fetching earnings: { response: { status: 404 } }
+
+      423 |       setEarnings(res.data.totalEarnings || 0);
+      424 |     } catch (err) {
+    > 425 |       console.error("Error fetching earnings:", err);
+          |               ^
+      426 |       setEarnings(0);
+      427 |     }
+      428 |   };
+
+      at error (src/pages/AstrologerDashboard.jsx:425:15)
+
+  console.error
+    Error fetching sessions: { response: { status: 404 } }
+
+      159 |       }
+      160 |     } catch (err) {
+    > 161 |       console.error("Error fetching sessions:", err);
+          |               ^
+      162 |       setPendingSessions([]);
+      163 |     }
+      164 |   }, []);
+
+      at error (src/pages/AstrologerDashboard.jsx:161:15)
+
+  console.error
+    Error fetching sessions: { response: { status: 404 } }
+
+      159 |       }
+      160 |     } catch (err) {
+    > 161 |       console.error("Error fetching sessions:", err);
+          |               ^
+      162 |       setPendingSessions([]);
+      163 |     }
+      164 |   }, []);
+
+      at error (src/pages/AstrologerDashboard.jsx:161:15)
+
+  console.log
+    🛑 Stopping message polling
+
+      at log (src/pages/AstrologerDashboard.jsx:448:15)
+          at Array.forEach (<anonymous>)
+
+  console.log
+    ✅ Notification sound loaded: /notification.mp3
+
+      at log (src/pages/AstrologerDashboard.jsx:77:17)
+
+  console.log
+    📡 Starting message polling (every 1 second)
+
+      at log (src/pages/AstrologerDashboard.jsx:440:13)
+
+  console.log
+    🛑 Stopping message polling
+
+      at log (src/pages/AstrologerDashboard.jsx:448:15)
+          at Array.forEach (<anonymous>)
+
+FAIL src/pages/AstrologerDashboard.test.js (5.355 s)
+  AstrologerDashboard Component
+    ✓ renders loading state initially (313 ms)
+    ✕ fetches and displays profile successfully (1048 ms)
+    ✓ handles 403 error by redirecting (63 ms)
+    ✕ handles 404/Profile Not Found (1017 ms)
+    ✕ navigates tabs correctly (1027 ms)
+
+  ● AstrologerDashboard Component › fetches and displays profile successfully
+
+    Unable to find an element with the text: /Welcome back/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"min-h-screen bg-[#F8F9FE] font-sans text-slate-800 pb-24"[39m
+        [36m>[39m
+          [36m<header[39m
+            [33mclass[39m=[32m"sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex justify-between items-center"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-3"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"relative"[39m
+                [36m>[39m
+                  [36m<img[39m
+                    [33malt[39m=[32m"Profile"[39m
+                    [33mclass[39m=[32m"w-10 h-10 rounded-full object-cover border-2 border-purple-100"[39m
+                    [33msrc[39m=[32m"https://ui-avatars.com/api/?name=undefined"[39m
+                  [36m/>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white bg-green-500"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div>[39m
+                  [36m<h1[39m
+                    [33mclass[39m=[32m"text-lg font-bold text-slate-800 leading-tight"[39m
+                  [36m>[39m
+                    [0mAstrologer[0m
+                  [36m</h1>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"flex items-center gap-1 text-xs text-slate-500"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-star text-yellow-400 fill-yellow-400"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"12"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"12"[39m
+                      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                    [36m<span>[39m
+                      [0m4.9 (1.2k Reviews)[0m
+                    [36m</span>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-3"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-green-100 text-green-700"[39m
+                [36m>[39m
+                  [0mONLINE[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"p-2 rounded-full bg-slate-50 text-slate-600 relative"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-bell"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"20"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"20"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M10.268 21a2 2 0 0 0 3.464 0"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</header>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"px-4 py-6 space-y-6"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"bg-white p-4 rounded-2xl shadow-sm border border-slate-100"[39m
+            [36m>[39m
+              [36m<h3[39m
+                [33mclass[39m=[32m"text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"[39m
+              [36m>[39m
+                [0mAvailability[0m
+              [36m</h3>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex gap-4"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex-1 flex flex-col items-center gap-2"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"w-full h-10 rounded-xl flex items-center justify-center transition-all bg-purple-50 text-purple-600"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-message-circle"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"20"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"20"[39m
+                      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                  [36m</div>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"text-xs font-medium text-slate-600"[39m
+                  [36m>[39m
+                    [0mChat[0m
+                  [36m</span>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"w-10 h-5 rounded-full relative transition-colors bg-green-500"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"absolute top-1 w-3 h-3 bg-white...
+
+      111 |
+      112 |         try {
+    > 113 |             await waitFor(() => {
+          |                          ^
+      114 |                 expect(screen.getByText(/Welcome back/i)).toBeInTheDocument();
+      115 |             });
+      116 |         } catch (e) {
+
+      at waitForWrapper (node_modules/@testing-library/dom/dist/wait-for.js:163:27)
+      at Object.<anonymous> (src/pages/AstrologerDashboard.test.js:113:26)
+
+  ● AstrologerDashboard Component › handles 404/Profile Not Found
+
+    Unable to find an element with the text: /Profile Not Found/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"text-center"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto mb-4"[39m
+            [36m/>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-purple-200 text-lg"[39m
+            [36m>[39m
+              [0mConnecting to cosmic energies...[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      149 |         renderComponent();
+      150 |
+    > 151 |         await waitFor(() => {
+          |                      ^
+      152 |             expect(screen.getByText(/Profile Not Found/i)).toBeInTheDocument();
+      153 |         });
+      154 |     });
+
+      at waitForWrapper (node_modules/@testing-library/dom/dist/wait-for.js:163:27)
+      at Object.<anonymous> (src/pages/AstrologerDashboard.test.js:151:22)
+
+  ● AstrologerDashboard Component › navigates tabs correctly
+
+    Unable to find an element with the text: /Welcome back/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"min-h-screen bg-[#F8F9FE] font-sans text-slate-800 pb-24"[39m
+        [36m>[39m
+          [36m<header[39m
+            [33mclass[39m=[32m"sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex justify-between items-center"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-3"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"relative"[39m
+                [36m>[39m
+                  [36m<img[39m
+                    [33malt[39m=[32m"Profile"[39m
+                    [33mclass[39m=[32m"w-10 h-10 rounded-full object-cover border-2 border-purple-100"[39m
+                    [33msrc[39m=[32m"https://ui-avatars.com/api/?name=undefined"[39m
+                  [36m/>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white bg-green-500"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div>[39m
+                  [36m<h1[39m
+                    [33mclass[39m=[32m"text-lg font-bold text-slate-800 leading-tight"[39m
+                  [36m>[39m
+                    [0mAstrologer[0m
+                  [36m</h1>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"flex items-center gap-1 text-xs text-slate-500"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-star text-yellow-400 fill-yellow-400"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"12"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"12"[39m
+                      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                    [36m<span>[39m
+                      [0m4.9 (1.2k Reviews)[0m
+                    [36m</span>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex items-center gap-3"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-green-100 text-green-700"[39m
+                [36m>[39m
+                  [0mONLINE[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"p-2 rounded-full bg-slate-50 text-slate-600 relative"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-bell"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"20"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"20"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M10.268 21a2 2 0 0 0 3.464 0"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</header>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"px-4 py-6 space-y-6"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"bg-white p-4 rounded-2xl shadow-sm border border-slate-100"[39m
+            [36m>[39m
+              [36m<h3[39m
+                [33mclass[39m=[32m"text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"[39m
+              [36m>[39m
+                [0mAvailability[0m
+              [36m</h3>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex gap-4"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex-1 flex flex-col items-center gap-2"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"w-full h-10 rounded-xl flex items-center justify-center transition-all bg-purple-50 text-purple-600"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-message-circle"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"20"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"20"[39m
+                      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                  [36m</div>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"text-xs font-medium text-slate-600"[39m
+                  [36m>[39m
+                    [0mChat[0m
+                  [36m</span>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"w-10 h-5 rounded-full relative transition-colors bg-green-500"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"absolute top-1 w-3 h-3 bg-white...
+
+      165 |
+      166 |         // Wait for load
+    > 167 |         await waitFor(() => screen.getByText(/Welcome back/i));
+          |                      ^
+      168 |
+      169 |         // Default tab is inbox
+      170 |         expect(screen.getByText(/Pending Requests/i)).toBeInTheDocument();
+
+      at waitForWrapper (node_modules/@testing-library/dom/dist/wait-for.js:163:27)
+      at Object.<anonymous> (src/pages/AstrologerDashboard.test.js:167:22)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 2 passed, 5 total
+Snapshots:   0 total
+Time:        5.858 s
+Ran all test suites matching client/src/pages/AstrologerDashboard.test.js.
