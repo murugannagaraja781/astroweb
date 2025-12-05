@@ -1,73 +1,104 @@
-exports.verifyOtp = async (req, res) => {
-    try {
-        const { phoneNumber, otp } = req.body;
+const https = require('https');
+const User = require('../models/User');
+const Wallet = require('../models/Wallet');
+const jwt = require('jsonwebtoken');
 
-        if (!phoneNumber || !otp) {
-            return res.status(400).json({ msg: 'Phone number and OTP are required' });
+exports.verifyOtp = (req, res) => {
+    const { phoneNumber, otp } = req.body;
+
+    if (!phoneNumber || !otp) {
+        return res.status(400).json({ msg: 'Phone number and OTP are required' });
+    }
+
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    const authKey = '478312AgHesvjV691c86b3P1';
+
+    const options = {
+        method: 'GET',
+        hostname: 'control.msg91.com',
+        port: null,
+        path: `/api/v5/otp/verify?otp=${otp}&mobile=91${cleanPhone}`,
+        headers: {
+            authkey: authKey
         }
+    };
 
-        const cleanPhone = phoneNumber.replace(/\D/g, '');
+    const reqHttps = https.request(options, function (response) {
+        const chunks = [];
 
-        // VERIFY OTP
-        const response = await axios.get(
-            `https://api.msg91.com/api/v5/otp/verify?mobile=91${cleanPhone}&otp=${otp}`,
-            {
-                headers: {
-                    authkey: process.env.MSG91_AUTHKEY,
-                }
-            }
-        );
+        response.on('data', function (chunk) {
+            chunks.push(chunk);
+        });
 
-        console.log('MSG91 Verify OTP Response:', response.data);
+        response.on('end', async function () {
+            const body = Buffer.concat(chunks).toString();
+            console.log('MSG91 Verify Response:', body);
 
-        if (response.data.type !== 'success') {
-            return res.status(400).json({ msg: 'Invalid OTP' });
-        }
+            try {
+                const json = JSON.parse(body);
 
-        // OTP Verified — Login or Create User
-        let user = await User.findOne({ phone: cleanPhone });
+                if (json.type === 'success') {
+                    // OTP Verified — Login or Create User
+                    let user = await User.findOne({ phone: cleanPhone });
 
-        if (!user) {
-            user = new User({
-                name: `User_${cleanPhone}`,
-                email: `${cleanPhone}@otp.user`,
-                phone: cleanPhone,
-                role: 'client'
-            });
-            await user.save();
+                    if (!user) {
+                        user = new User({
+                            name: `User_${cleanPhone}`,
+                            email: `${cleanPhone}@otp.user`,
+                            phone: cleanPhone,
+                            role: 'client'
+                        });
+                        await user.save();
 
-            const wallet = new Wallet({ userId: user._id });
-            await wallet.save();
-        }
-
-        const payload = { user: { id: user._id, role: user.role } };
-
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' },
-            (err, token) => {
-                if (err) throw err;
-
-                res.json({
-                    type: 'success',
-                    token,
-                    user: {
-                        id: user._id,
-                        name: user.name,
-                        email: user.email,
-                        phone: user.phone,
-                        role: user.role
+                        const wallet = new Wallet({ userId: user._id });
+                        await wallet.save();
                     }
+
+                    const payload = { user: { id: user._id, role: user.role } };
+
+                    jwt.sign(
+                        payload,
+                        process.env.JWT_SECRET,
+                        { expiresIn: '7d' },
+                        (err, token) => {
+                            if (err) {
+                                console.error('JWT Signing Error:', err);
+                                return res.status(500).json({ msg: 'Error generating token' });
+                            }
+
+                            res.json({
+                                type: 'success',
+                                token,
+                                user: {
+                                    id: user._id,
+                                    name: user.name,
+                                    email: user.email,
+                                    phone: user.phone,
+                                    role: user.role
+                                }
+                            });
+                        }
+                    );
+                } else {
+                    return res.status(400).json({ msg: 'Invalid OTP', details: json });
+                }
+            } catch (error) {
+                console.error('Error processing verification:', error);
+                return res.status(500).json({
+                    msg: 'Server Error While Verifying OTP',
+                    error: error.message
                 });
             }
-        );
+        });
+    });
 
-    } catch (error) {
-        console.error('Error verifying OTP:', error.response?.data || error.message);
+    reqHttps.on('error', (e) => {
+        console.error('Error verifying OTP:', e);
         return res.status(500).json({
             msg: 'Server Error While Verifying OTP',
-            details: error.response?.data || error.message,
+            error: e.message
         });
-    }
+    });
+
+    reqHttps.end();
 };
