@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 const Login = () => {
-  const [loginMode, setLoginMode] = useState('email');
+  const [loginMode, setLoginMode] = useState('otp');
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -158,73 +158,7 @@ const Login = () => {
               </p>
             </div>
 
-            {/* Login Mode Toggle */}
-            <div className="flex gap-2 mb-8 p-1 bg-white/10 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setLoginMode('email')}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm lg:text-base font-medium transition-all duration-300 ${
-                  loginMode === 'email'
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:text-white'
-                }`}
-              >
-                ✨ Email Login
-              </button>
-              <button
-                type="button"
-                onClick={() => setLoginMode('otp')}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm lg:text-base font-medium transition-all duration-300 ${
-                  loginMode === 'otp'
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:text-white'
-                }`}
-              >
-                🔮 OTP Login
-              </button>
-            </div>
 
-            {/* Email/Password Login Form */}
-            {loginMode === 'email' && (
-              <form onSubmit={onSubmit} className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-2">
-                      🌟 {t('email')}
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={email}
-                      onChange={onChange}
-                      className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
-                      placeholder="Enter your cosmic email"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-2">
-                      🔑 {t('password')}
-                    </label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={password}
-                      onChange={onChange}
-                      className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
-                      placeholder="Enter your secret key"
-                      required
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300"
-                >
-                  🚀 {t('login')}
-                </button>
-              </form>
-            )}
 
             {/* OTP Login Form */}
             {loginMode === 'otp' && (
@@ -310,7 +244,7 @@ const Login = () => {
 
             {/* Footer */}
             <div className="mt-8 text-center space-y-3">
-              <p className="text-gray-300 text-sm">
+              {/* <p className="text-gray-300 text-sm">
                 Don't have an account?{' '}
                 <button
                   onClick={() => navigate('/register')}
@@ -318,7 +252,7 @@ const Login = () => {
                 >
                   Create Account ✨
                 </button>
-              </p>
+              </p> */}
               <p className="text-gray-400 text-xs lg:text-sm">
                 By logging in, you agree to our{' '}
                 <a href="#" className="text-yellow-400 hover:text-yellow-300 underline">

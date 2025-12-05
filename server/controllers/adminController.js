@@ -5,6 +5,8 @@ const Horoscope = require('../models/Horoscope');
 const Settings = require('../models/Settings');
 const Offer = require('../models/Offer');
 const Banner = require('../models/Banner');
+const ChatSession = require('../models/ChatSession');
+const CallLog = require('../models/CallLog');
 const bcrypt = require('bcryptjs');
 
 exports.addAstrologer = async (req, res) => {
@@ -368,6 +370,59 @@ exports.changeUserRole = async (req, res) => {
     }
 
     res.json({ msg: 'User role updated successfully', user });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    // Prevent deleting the super admin or self (optional safety)
+    if (user.phone === '6382379565') {
+      return res.status(400).json({ msg: 'Cannot delete Super Admin' });
+    }
+
+    // Delete related data
+    await Wallet.findOneAndDelete({ userId: user._id });
+    if (user.role === 'astrologer') {
+      await AstrologerProfile.findOneAndDelete({ userId: user._id });
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({ msg: 'User deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.getUserHistory = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Fetch Chat History (where user is client or astrologer)
+    const chats = await ChatSession.find({
+      $or: [{ clientId: userId }, { astrologerId: userId }]
+    })
+      .populate('clientId', 'name email phone')
+      .populate('astrologerId', 'name email phone')
+      .sort({ createdAt: -1 });
+
+    // Fetch Call History (where user is caller or receiver)
+    const calls = await CallLog.find({
+      $or: [{ callerId: userId }, { receiverId: userId }]
+    })
+      .populate('callerId', 'name email phone')
+      .populate('receiverId', 'name email phone')
+      .sort({ startTime: -1 });
+
+    res.json({ chats, calls });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

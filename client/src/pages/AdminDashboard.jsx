@@ -732,7 +732,7 @@ const AdminDashboard = () => {
                             <select
                               value={user.role}
                               onChange={(e) => handleRoleChange(user._id, e.target.value)}
-                              className="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/30"
+                              className="bg-white/20 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-white/30"
                             >
                               <option value="client">Client</option>
                               <option value="astrologer">Astrologer</option>
