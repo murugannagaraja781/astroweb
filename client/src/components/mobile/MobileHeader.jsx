@@ -9,7 +9,7 @@ const MobileHeader = () => {
   const { theme } = useContext(ThemeContext);
 
   return (
-    <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-space-900 via-purple-900 to-space-900 border-b shadow-lg backdrop-blur-xl pt-[env(safe-area-inset-top)]"
+    <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-space-900 via-purple-900 to-space-900 border-b shadow-lg backdrop-blur-xl"
       style={{ borderColor: `${theme.hex}20` }}>
       {/* Mystical Glow Line */}
       <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${theme.hex}, transparent)` }}></div>

@@ -1,6 +1,5 @@
 // AstrologerDashboard.jsx
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-
 import Modal from "../components/Modal";
 import apiClient from "../utils/apiClient";
 import { io } from "socket.io-client";
@@ -605,7 +604,6 @@ const AstrologerDashboard = () => {
 
     console.log("[Astrologer] Accepting chat session:", sessionId);
     socket.emit("chat:accept", { sessionId });
-    socket.emit("chat:accept", { sessionId });
     navigate(`/chat/${sessionId}`);
   }, [socket, navigate]);
 
@@ -628,30 +626,6 @@ const AstrologerDashboard = () => {
       alert("Failed to reject chat. Please try again.");
     }
   }, [socket]);
-
-  const handleAcceptChat = useCallback(async (session) => {
-    try {
-        // Re-use request acceptance logic
-        // construct request object compatible with acceptChat or just call api
-        // acceptNotification is used for sockets.
-        // We need to call API /accept.
-        // Let's use acceptIncomingRequest if possible but it expects a request object.
-        // Or create a new handler.
-
-        await apiClient.post(`/api/chat/accept`, {
-            sessionId: session.sessionId,
-            clientId: session.client.id,
-            ratePerMinute: session.ratePerMinute
-        });
-
-        // Navigate to chat
-        navigate(`/chat/${session.sessionId}`);
-
-    } catch (err) {
-        console.error("Error accepting waitlist chat", err);
-        alert("Failed to connect. Client may be offline.");
-    }
-  }, [navigate]); // Removed axios and auth dependencies
 
   const menuItems = useMemo(() => [
     {
@@ -772,9 +746,9 @@ const AstrologerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FE] font-sans text-slate-800 pb-24 pt-safe-top">
-      {/* 1. Top Header & Status */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-purple-50 px-4 py-3 pt-safe-top">
+    <div className="min-h-screen bg-[#F8F9FE] font-sans text-slate-800 pb-24">
+      {/* Top Header & Status Bar */}
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3">
         <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
                 <div className="relative">
@@ -786,287 +760,196 @@ const AstrologerDashboard = () => {
                     <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${profile.isOnline ? 'bg-green-500' : 'bg-slate-300'}`}></div>
                 </div>
                 <div>
-                    <h1 className="text-sm font-bold text-slate-800 leading-tight">
+                    <h1 className="text-lg font-bold text-slate-800 leading-tight">
                         {profile.userId?.name || "Astrologer"}
                     </h1>
-                     <div className="flex items-center gap-1">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${profile.isOnline ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                           {profile.isOnline ? 'ONLINE' : 'OFFLINE'}
-                        </span>
-                     </div>
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <Star size={12} className="text-yellow-400 fill-yellow-400" />
+                        <span>4.9 (1.2k Reviews)</span>
+                    </div>
                 </div>
             </div>
 
             <div className="flex items-center gap-3">
-                 <button onClick={toggleStatus} className={`p-2 rounded-full transition-all ${profile.isOnline ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
-                    <Zap size={20} className={profile.isOnline ? 'fill-current' : ''} />
+                 <button onClick={toggleStatus} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${profile.isOnline ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {profile.isOnline ? 'ONLINE' : 'OFFLINE'}
                  </button>
                  <button className="p-2 rounded-full bg-slate-50 text-slate-600 relative">
                     <Bell size={20} />
-                    {notifications > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
+                    {notifications > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
                  </button>
             </div>
         </div>
-
-        {/* 2. Scrollable Tabs */}
-        <div className="mt-3 overflow-x-auto pb-1 scrollbar-hide flex gap-2">
-           {menuItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => handleTabChange(item)}
-                className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                   activeTab === item.id
-                   ? `bg-slate-800 text-white shadow-md`
-                   : 'bg-white text-slate-500 border border-slate-100'
-                }`}
-              >
-                  <item.icon size={14} />
-                  {item.label}
-                  {item.badge && <span className="bg-red-500 text-white px-1.5 rounded-full text-[10px]">{item.badge}</span>}
-              </button>
-           ))}
-        </div>
       </header>
 
-      {/* 3. Main Content Area */}
       <div className="px-4 py-6 space-y-6">
 
-        {activeTab === 'overview' && (
-           <div className="space-y-6 animate-fadeIn">
-              {/* Horizontal Stats Scroll */}
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
-                 {/* Earnings Card */}
-                 <div className="snap-center shrink-0 w-72 bg-gradient-to-br from-indigo-600 to-purple-700 p-5 rounded-3xl text-white shadow-xl shadow-indigo-200 relative overflow-hidden">
-                     <div className="absolute top-0 right-0 p-4 opacity-10"><DollarSign size={80} /></div>
-                     <p className="text-indigo-100 text-xs font-medium mb-1">Total Earnings</p>
-                     <h2 className="text-3xl font-bold mb-4">₹{earnings}</h2>
-                     <div className="flex gap-2">
-                        <span className="bg-white/20 px-2 py-1 rounded-lg text-[10px] backdrop-blur-sm">Today: +₹450</span>
-                        <span className="bg-white/20 px-2 py-1 rounded-lg text-[10px] backdrop-blur-sm">Calls: 12</span>
-                     </div>
-                 </div>
-
-                 {/* Waitlist Card */}
-                 <div
-                   onClick={() => setActiveTab('waitlist')}
-                   className="snap-center shrink-0 w-72 bg-white p-5 rounded-3xl border border-purple-100 shadow-lg relative overflow-hidden"
-                 >
-                     <div className="absolute top-0 right-0 p-4 opacity-5 text-purple-600"><Clock size={80} /></div>
-                     <div className="flex justify-between items-start mb-2">
-                        <p className="text-slate-400 text-xs font-bold uppercase">Waitlist</p>
-                        <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full text-xs font-bold">
-                           {pendingSessions.filter(s => s.status === 'waitlist').length} Queued
-                        </span>
-                     </div>
-                     <h2 className="text-3xl font-bold text-slate-800 mb-4">{pendingSessions.filter(s => s.status === 'waitlist').length}</h2>
-                     <button className="w-full py-2 bg-purple-50 text-purple-600 rounded-xl text-xs font-bold">View Queue</button>
-                 </div>
-              </div>
-
-              {/* Quick Actions Grid */}
-              <div>
-                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Quick Actions</h3>
-                 <div className="grid grid-cols-4 gap-3">
-                    {[
-                        { icon: MessageCircle, label: 'Chat', color: 'bg-blue-50 text-blue-600', onClick: () => setActiveTab('inbox') },
-                        { icon: FiVideo, label: 'Live', color: 'bg-red-50 text-red-600', action: () => alert('Go Live feature coming soon') },
-                        { icon: Sparkles, label: 'Chart', color: 'bg-purple-50 text-purple-600', action: () => setShowChartModal(true) },
-                        { icon: Calendar, label: 'Plan', color: 'bg-orange-50 text-orange-600', action: () => alert('Schedule feature coming soon') },
-                    ].map((item, idx) => (
-                        <div key={idx} onClick={item.onClick || item.action} className="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.color}`}>
-                                <item.icon size={20} />
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-600">{item.label}</span>
+        {/* Availability Toggles */}
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Availability</h3>
+            <div className="flex gap-4">
+                {['Chat', 'Call', 'Video'].map((type) => (
+                    <div key={type} className="flex-1 flex flex-col items-center gap-2">
+                        <div className={`w-full h-10 rounded-xl flex items-center justify-center transition-all ${profile.isOnline ? 'bg-purple-50 text-purple-600' : 'bg-slate-50 text-slate-400'}`}>
+                            {type === 'Chat' && <MessageCircle size={20} />}
+                            {type === 'Call' && <Phone size={20} />}
+                            {type === 'Video' && <FiVideo size={20} />}
                         </div>
-                    ))}
-                 </div>
-              </div>
+                        <span className="text-xs font-medium text-slate-600">{type}</span>
+                        <div className={`w-10 h-5 rounded-full relative transition-colors ${profile.isOnline ? 'bg-green-500' : 'bg-slate-300'}`}>
+                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${profile.isOnline ? 'left-6' : 'left-1'}`}></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
 
-              {/* Recent Activity / Pending Preview */}
-              <div>
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Recent Requests</h3>
-                  {pendingSessions.slice(0, 3).map(session => (
-                      <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 mb-3 flex justify-between items-center">
-                          <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500">
-                                  {session.client?.name?.[0]}
-                              </div>
-                              <div>
-                                  <h4 className="font-bold text-sm text-slate-800">{session.client?.name}</h4>
-                                  <p className="text-[10px] text-slate-400 capitalize">{session.status} • {new Date(session.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                              </div>
-                          </div>
-                          <button onClick={() => acceptChat(session.sessionId)} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold">Accept</button>
-                      </div>
-                  ))}
-                  {pendingSessions.length === 0 && <p className="text-center text-slate-400 text-xs py-4">No recent requests</p>}
-              </div>
-           </div>
-        )}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white shadow-lg shadow-indigo-200">
+                <div className="flex items-center gap-2 mb-2 opacity-80">
+                    <DollarSign size={16} />
+                    <span className="text-xs font-medium">Earnings (Today)</span>
+                </div>
+                <div className="text-2xl font-bold">₹{earnings}</div>
+                <div className="text-xs mt-1 text-indigo-100">+12% from yesterday</div>
+            </div>
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                 <div className="flex items-center gap-2 mb-2 text-slate-500">
+                    <Clock size={16} />
+                    <span className="text-xs font-medium">Talk Time</span>
+                </div>
+                <div className="text-2xl font-bold text-slate-800">4h 12m</div>
+                <div className="text-xs mt-1 text-green-500">Target reached! 🎯</div>
+            </div>
+        </div>
 
-        {/* Inbox Tab (Existing Logic, New UI) */}
+        {/* Feature Grid */}
+        <div>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-4 gap-4">
+                {[
+                    { icon: MessageCircle, label: 'Chat', color: 'bg-blue-100 text-blue-600', onClick: () => setActiveTab('inbox') },
+                    { icon: FiVideo, label: 'Go Live', color: 'bg-red-100 text-red-600' },
+                    { icon: Sparkles, label: 'Remedies', color: 'bg-yellow-100 text-yellow-600', action: () => setShowChartModal(true) }, // Using existing chart modal
+                    { icon: Users, label: 'Waitlist', color: 'bg-purple-100 text-purple-600' },
+                    { icon: BarChart3, label: 'Stats', color: 'bg-green-100 text-green-600' },
+                    { icon: Calendar, label: 'Schedule', color: 'bg-orange-100 text-orange-600' },
+                    { icon: Star, label: 'Reviews', color: 'bg-pink-100 text-pink-600' },
+                    { icon: Settings, label: 'Settings', color: 'bg-slate-100 text-slate-600' },
+                ].map((item, idx) => (
+                    <div key={idx} onClick={item.onClick || item.action} className="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${item.color} shadow-sm`}>
+                            <item.icon size={24} />
+                        </div>
+                        <span className="text-xs font-medium text-slate-600 text-center leading-tight">{item.label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* Suggested Users / Inbox Preview */}
         {activeTab === 'inbox' && (
-            <div className="space-y-4 animate-fadeIn">
-                 {pendingSessions.length === 0 && pendingVideoCalls.length === 0 ? (
-                    <div className="text-center py-20">
-                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <MessageCircle size={32} className="text-slate-300" />
+            <div>
+                 <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Requests</h3>
+                    <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded text-xs font-bold">{pendingSessions.length + pendingVideoCalls.length}</span>
+                 </div>
+
+                 <div className="space-y-3">
+                    {/* Combine pending lists or just show sessions for now */}
+                    {pendingSessions.length === 0 && pendingVideoCalls.length === 0 && (
+                        <div className="text-center py-8 bg-white rounded-2xl border border-slate-100 border-dashed">
+                             <p className="text-slate-400 text-sm">No pending requests</p>
+                             <p className="text-xs text-slate-300 mt-1">Updates live automatically</p>
                         </div>
-                        <p className="text-slate-400 font-medium">Inbox is empty</p>
-                    </div>
-                 ) : (
-                    <>
+                    )}
+
                     {pendingSessions.map(session => (
-                        <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                             <div className="flex justify-between items-start mb-3">
-                                 <div className="flex items-center gap-3">
-                                     <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
-                                         {session.client?.name?.[0]}
-                                     </div>
-                                     <div>
-                                         <h4 className="font-bold text-slate-800">{session.client?.name}</h4>
-                                         <span className="inline-block bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">Chat Request</span>
-                                     </div>
+                        <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+                             <div className="flex items-center gap-3">
+                                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                                     {session.client?.name?.[0] || 'C'}
                                  </div>
-                                 <span className="text-xs text-slate-400">{new Date(session.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                 <div>
+                                     <h4 className="font-bold text-sm text-slate-800">{session.client?.name || 'Client'}</h4>
+                                     <p className="text-xs text-slate-500">Chat Request • 2 mins ago</p>
+                                 </div>
                              </div>
-                             <div className="flex gap-2 mt-4">
-                                 <button onClick={() => acceptChat(session.sessionId)} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-200">Accept Chat</button>
-                                 <button onClick={() => rejectChat(session.sessionId)} className="flex-1 bg-red-50 text-red-500 py-3 rounded-xl font-bold text-sm">Decline</button>
+                             <div className="flex gap-2">
+                                 <button onClick={() => acceptChat(session.sessionId)} className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md shadow-green-200">Accept</button>
+                                 <button onClick={() => rejectChat(session.sessionId)} className="bg-red-50 text-red-500 px-3 py-1.5 rounded-lg text-xs font-bold">Reject</button>
                              </div>
                         </div>
                     ))}
-                    {/* Video Calls would map here similarly */}
-                    </>
-                 )}
-            </div>
-        )}
 
-        {/* Waitlist Tab (Reused Logic) */}
-        {activeTab === 'waitlist' && (
-            <div className="space-y-4 animate-fadeIn">
-                {pendingSessions.filter(s => s.status === 'waitlist').length === 0 ? (
-                    <div className="text-center py-20">
-                         <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                             <Clock size={32} className="text-purple-300" />
-                         </div>
-                         <p className="text-slate-400 font-medium">No waitlisted clients</p>
-                    </div>
-                ) : (
-                    pendingSessions.filter(s => s.status === 'waitlist').map(session => (
-                        <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-purple-50">
-                             <div className="flex items-center gap-3 mb-3">
-                                 <img
-                                     src={`https://ui-avatars.com/api/?name=${session.client.name}`}
-                                     className="w-12 h-12 rounded-full border-2 border-purple-100"
-                                     alt={session.client.name}
-                                 />
+                    {pendingVideoCalls.map(call => (
+                        <div key={call.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center animate-pulse border-purple-200">
+                             <div className="flex items-center gap-3">
+                                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold">
+                                     <FiVideo size={18} />
+                                 </div>
                                  <div>
-                                     <h4 className="font-bold text-slate-800">{session.client.name}</h4>
-                                     <p className="text-xs text-slate-500">Waited: {Math.floor((new Date() - new Date(session.createdAt)) / 60000)}m</p>
+                                     <h4 className="font-bold text-sm text-slate-800">{call.fromName || 'Client'}</h4>
+                                     <p className="text-xs text-slate-500">Video Call • Just now</p>
                                  </div>
                              </div>
-                             {session.client.intakeDetails?.name && (
-                                <div className="bg-purple-50 p-2 rounded-xl text-xs text-purple-700 mb-3 border border-purple-100">
-                                   <strong>Intake:</strong> {session.client.intakeDetails.name}, {session.client.intakeDetails.dateOfBirth}
-                                </div>
-                             )}
-                             <button onClick={() => handleAcceptChat(session)} className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-purple-200">
-                                Chat Now
-                             </button>
+                             <div className="flex gap-2">
+                                 <button onClick={() => acceptIncomingRequest(call)} className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md shadow-green-200">Accept</button>
+                             </div>
                         </div>
-                    ))
-                )}
-            </div>
-        )}
-
-        {/* Profile Tab */}
-        {activeTab === 'profile' && (
-            <div className="bg-white p-6 rounded-3xl shadow-sm animate-fadeIn">
-                 <h2 className="text-xl font-bold mb-6">Edit Profile</h2>
-                 <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    // ... existing logic ...
-                    try {
-                        const formData = new FormData(e.target);
-                        const updates = Object.fromEntries(formData.entries());
-                        const res = await apiClient.put('/api/astrologer/profile', updates);
-                        setProfile(prev => ({ ...prev, ...res.data }));
-                        alert('Profile updated!');
-                    } catch (err) { alert('Failed'); }
-                 }} className="space-y-4">
-                     <div>
-                        <label className="text-xs font-bold text-slate-400 uppercase">Nickname</label>
-                        <input name="nickName" defaultValue={profile?.nickName} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mt-1 font-bold text-slate-800" />
-                     </div>
-                     <div className="grid grid-cols-2 gap-4">
-                         <div>
-                            <label className="text-xs font-bold text-slate-400 uppercase">Rate (₹)</label>
-                            <input name="ratePerMinute" type="number" defaultValue={profile?.ratePerMinute} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mt-1 font-bold text-slate-800" />
-                         </div>
-                         <div>
-                            <label className="text-xs font-bold text-slate-400 uppercase">Exp (Yrs)</label>
-                            <input name="experience" defaultValue={profile?.experience} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mt-1 font-bold text-slate-800" />
-                         </div>
-                     </div>
-                     <button className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold mt-4">Save Changes</button>
-                 </form>
+                    ))}
+                 </div>
             </div>
         )}
 
       </div>
 
-      {/* Full Screen Incoming Request (Preserved) */}
+      {/* Popups and Modals */}
       {showIncomingPopup && incomingRequest && (
-        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md p-6 animate-fadeIn text-white">
-           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/10 rounded-full animate-ping-slow"></div>
-           </div>
-
-           <div className="relative z-10 w-full max-w-sm text-center">
-             <div className="mb-6 relative inline-block">
-                <div className="w-28 h-28 mx-auto rounded-full p-1 bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse">
-                    <img
-                        src={incomingRequest.fromImage || "https://ui-avatars.com/api/?name=" + incomingRequest.fromName}
-                        className="w-full h-full rounded-full object-cover border-4 border-slate-900"
-                    />
-                </div>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white text-slate-900 font-bold px-4 py-1 rounded-full text-xs uppercase tracking-wider shadow-lg whitespace-nowrap">
-                    {incomingRequest.type} Request
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative">
+             <div className="h-32 bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute w-20 h-20 bg-white/10 rounded-full -top-10 -left-10"></div>
+                <div className="absolute w-40 h-40 bg-white/10 rounded-full -bottom-20 -right-10"></div>
+                <div className="text-center relative z-10">
+                    <div className="w-20 h-20 mx-auto bg-white rounded-full p-1 shadow-lg mb-2">
+                        <img
+                            src={incomingRequest.fromImage || "https://ui-avatars.com/api/?name=" + incomingRequest.fromName}
+                            className="w-full h-full rounded-full object-cover"
+                        />
+                    </div>
+                    <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold backdrop-blur-md">Incoming {incomingRequest.type}</span>
                 </div>
              </div>
 
-             <h2 className="text-3xl font-bold mb-1">{incomingRequest.fromName}</h2>
-             <p className="text-slate-400 text-sm mb-8">is requesting to connect...</p>
+             <div className="p-6 text-center">
+                 <h2 className="text-xl font-bold text-slate-800 mb-1">{incomingRequest.fromName}</h2>
+                 <p className="text-slate-500 text-sm mb-6">is requesting a connection</p>
 
-             <div className="space-y-3">
-                 <button onClick={() => acceptIncomingRequest(incomingRequest)} className="w-full py-4 rounded-xl bg-green-500 text-white text-lg font-bold shadow-xl shadow-green-900/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
-                    <Phone size={20} className="fill-current" /> Accept
-                 </button>
-
-                 <button onClick={() => rejectIncomingRequest(incomingRequest)} className="w-full py-3 rounded-xl bg-slate-800 text-slate-400 font-bold active:scale-95 transition-transform flex items-center justify-center gap-2">
-                    <X size={18} /> Decline
-                 </button>
+                 <div className="flex gap-4">
+                     <button onClick={() => rejectIncomingRequest(incomingRequest)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold flex items-center justify-center gap-2">
+                        <X size={18} /> Decline
+                     </button>
+                     <button onClick={() => acceptIncomingRequest(incomingRequest)} className="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold shadow-lg shadow-green-200 flex items-center justify-center gap-2 animate-bounce-subtle">
+                        <Phone size={18} /> Accept
+                     </button>
+                 </div>
+                 <div className="mt-4 text-xs text-slate-400">Auto-decline in {autoDeclineTimer}s</div>
              </div>
-
-             <div className="mt-6 text-slate-600 text-xs">
-                Auto-decline in <span className="text-white font-mono">{autoDeclineTimer}s</span>
-             </div>
-           </div>
+          </div>
         </div>
       )}
 
-      {/* Offline Popup */}
       {showOfflinePopup && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 text-center">
-            <div className="bg-white p-6 rounded-3xl max-w-xs w-full animate-bounce-in">
+            <div className="bg-white p-6 rounded-3xl max-w-xs w-full">
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">🌙</div>
                 <h3 className="text-lg font-bold text-slate-800 mb-2">You are Offline</h3>
                 <p className="text-slate-500 text-sm mb-4">Go online to receive calls and chats.</p>
                 <div className="flex gap-2">
-                    <button onClick={() => setShowOfflinePopup(false)} className="flex-1 py-3 text-slate-500 font-bold text-sm">Cancel</button>
-                    <button onClick={toggleStatus} className="flex-1 py-3 bg-green-500 text-white rounded-xl font-bold text-sm shadow-md">Go Online</button>
+                    <button onClick={() => setShowOfflinePopup(false)} className="flex-1 py-2 text-slate-600 font-bold text-sm">Cancel</button>
+                    <button onClick={toggleStatus} className="flex-1 py-2 bg-green-500 text-white rounded-xl font-bold text-sm shadow-md">Go Online</button>
                 </div>
             </div>
         </div>
@@ -1078,6 +961,17 @@ const AstrologerDashboard = () => {
           onClose={() => setShowChartModal(false)}
           type={selectedChart}
         />
+      )}
+
+      {/* Side Chat Panel Placeholder - Optional if needed */}
+      {showChatPanel && (
+          <div className="fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-50 transform transition-transform translate-x-0">
+               <div className="p-4 border-b flex justify-between items-center">
+                   <h3 className="font-bold">Quick Chat</h3>
+                   <button onClick={() => setShowChatPanel(false)}><X size={20}/></button>
+               </div>
+               <div className="p-4 text-center text-slate-400 mt-10">Select a chat to view</div>
+          </div>
       )}
 
     </div>

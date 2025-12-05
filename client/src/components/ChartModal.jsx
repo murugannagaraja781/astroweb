@@ -5,7 +5,7 @@ import NavamsaChartForm from './NavamsaChartForm';
 import PoruthamForm from './PoruthamForm';
 import BehaviorPredictionForm from './BehaviorPredictionForm';
 
-const ChartModal = ({ isOpen, onClose, initialChart = null, initialData = null }) => {
+const ChartModal = ({ isOpen, onClose, initialChart = null }) => {
   const [selectedChart, setSelectedChart] = useState(initialChart);
 
   // Update selectedChart when initialChart changes or modal opens
@@ -154,7 +154,7 @@ const ChartModal = ({ isOpen, onClose, initialChart = null, initialData = null }
             ) : (
               /* Chart Form */
               <div className="animate-fadeIn">
-                {selectedChart === 'birth-chart' && <BirthChartForm onClose={handleClose} initialData={initialData} />}
+                {selectedChart === 'birth-chart' && <BirthChartForm onClose={handleClose} />}
                 {selectedChart === 'navamsa' && <NavamsaChartForm onClose={handleClose} />}
                 {selectedChart === 'porutham' && <PoruthamForm onClose={handleClose} />}
                 {selectedChart === 'behavior' && <BehaviorPredictionForm onClose={handleClose} />}

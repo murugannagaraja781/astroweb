@@ -626,13 +626,13 @@ const AdminDashboard = () => {
                   <table className="w-full text-sm text-left">
                     <thead className="bg-black/20 text-gray-400 font-medium border-b border-white/5">
                       <tr>
-                        <th className="px-6 py-4 whitespace-nowrap">Session</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Client</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Astrologer</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Rate</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Created</th>
-                        <th className="px-6 py-4 whitespace-nowrap text-right">Actions</th>
+                        <th className="px-6 py-4">Session</th>
+                        <th className="px-6 py-4">Client</th>
+                        <th className="px-6 py-4">Astrologer</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Rate</th>
+                        <th className="px-6 py-4">Created</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -707,12 +707,12 @@ const AdminDashboard = () => {
                   <table className="w-full text-sm text-left">
                     <thead className="bg-black/20 text-gray-400 font-medium border-b border-white/5">
                       <tr>
-                        <th className="px-6 py-4 whitespace-nowrap">User</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Email</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Wallet Balance</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Role</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Joined Date</th>
-                        <th className="px-6 py-4 whitespace-nowrap text-right">Actions</th>
+                        <th className="px-6 py-4">User</th>
+                        <th className="px-6 py-4">Email</th>
+                        <th className="px-6 py-4">Wallet Balance</th>
+                        <th className="px-6 py-4">Role</th>
+                        <th className="px-6 py-4">Joined Date</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -799,11 +799,11 @@ const AdminDashboard = () => {
                   <table className="w-full text-sm text-left">
                     <thead className="bg-black/20 text-gray-400 font-medium border-b border-white/5">
                       <tr>
-                        <th className="px-6 py-4 whitespace-nowrap">Astrologer</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Contact</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Rate</th>
-                        <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                        <th className="px-6 py-4 whitespace-nowrap text-right">Actions</th>
+                        <th className="px-6 py-4">Astrologer</th>
+                        <th className="px-6 py-4">Contact</th>
+                        <th className="px-6 py-4">Rate</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">

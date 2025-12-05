@@ -5,7 +5,6 @@ import axios from "axios";
 
 import AuthContext from "../context/AuthContext";
 import ChartModal from "../components/ChartModal";
-import IntakeModal from "../components/IntakeModal";
 import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock } from "lucide-react";
 
 // Single shared socket instance
@@ -28,7 +27,6 @@ const Chat = () => {
   const [error, setError] = useState(null);
   const [showChartModal, setShowChartModal] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
-  const [showIntakeModal, setShowIntakeModal] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -65,19 +63,10 @@ const Chat = () => {
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       setSessionInfo(res.data);
-
-      // Check for intake details if user is client
-      if (user?.role === 'client') {
-          if (!res.data.intakeDetails || !res.data.intakeDetails.name) {
-              setShowIntakeModal(true);
-          } else {
-              setShowIntakeModal(false);
-          }
-      }
     } catch (error) {
       console.error("Error fetching session info:", error);
     }
-  }, [id, user?.role]);
+  }, [id]);
 
   // Main socket + data setup
   useEffect(() => {
@@ -407,14 +396,16 @@ const Chat = () => {
 
   // ---------- UI ----------
   return (
-    <div className="flex flex-col h-[100dvh] bg-space-900 text-gray-300 relative overflow-hidden">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-gray-300 relative overflow-hidden">
       {/* Error Popup */}
       {error && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md mx-4 animate-bounce-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md mx-4">
             <div className="text-red-500 text-6xl mb-4 text-center">⚠️</div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2 text-center">Connection Error</h3>
-            <p className="text-gray-600 mb-6 text-center">{error}</p>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">
+              Connection Error
+            </h3>
+            <p className="text-gray-600 mb-6">{error}</p>
             <button
               onClick={() => setError(null)}
               className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition-colors"
@@ -425,227 +416,376 @@ const Chat = () => {
         </div>
       )}
 
-      {/* Global Mobile Styles */}
       <style>{`
-        input, textarea, select { color: #1f2937 !important; font-size: 16px; }
-        /* Hide scrollbar */
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        input,
+        textarea,
+        select {
+          color: #1f2937 !important; /* gray-800 */
+          font-size: large;
+        }
+        .message-container {
+          padding-bottom: 220px;
+        }
+        @media (min-width: 768px) {
+          .message-container {
+            padding-bottom: 140px;
+          }
+        }
+        .chat-footer {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+        }
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+          .chat-footer {
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+          }
+        }
       `}</style>
 
       {/* Background stars */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 left-10 w-2 h-2 bg-purple-400 rounded-full opacity-60 animate-pulse"></div>
         <div className="absolute top-20 right-20 w-1 h-1 bg-blue-300 rounded-full opacity-40"></div>
         <div className="absolute bottom-32 left-1/4 w-1 h-1 bg-indigo-500 rounded-full opacity-50 animate-pulse delay-700"></div>
+        <div className="absolute top-1/2 right-16 w-1 h-1 bg-purple-300 rounded-full opacity-30"></div>
+        <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-blue-400 rounded-full opacity-40 animate-pulse delay-300"></div>
       </div>
 
-      {/* 1. Header (Sticky Top + Safe Area) */}
-      <div className="shrink-0 relative z-30 bg-white/5 backdrop-blur-xl border-b border-white/5 pt-[env(safe-area-inset-top)]">
-         <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => window.history.back()}
-                className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
-              >
-                <ArrowLeft size={22} className="text-gray-200" />
-              </button>
+      {/* Header */}
+      <div className="relative flex items-center justify-between p-4 bg-slate-900/90 backdrop-blur-lg border-b border-purple-500/30 z-10">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.history.back()}
+            className="p-2 hover:bg-purple-500/20 rounded-full transition-colors"
+            title="Go back"
+          >
+            <ArrowLeft size={20} className="text-purple-200" />
+          </button>
 
-              <div className="flex items-center gap-3">
-                  <div className="relative">
-                      {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 p-[2px]">
-                          <div className="w-full h-full rounded-full bg-space-900 border-2 border-transparent flex items-center justify-center font-bold text-white text-sm">
-                             {(user?.role === "client" ? sessionInfo?.astrologer?.name : sessionInfo?.client?.name)?.[0] || 'U'}
-                          </div>
-                      </div>
-                      <div className="absolute -bottom-0 -right-0 w-3 h-3 bg-green-500 border-2 border-space-900 rounded-full"></div>
-                  </div>
+          <div className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full">
+            <Crown size={20} className="text-white" />
+          </div>
 
-                  <div>
-                    <h1 className="text-base font-bold text-white leading-tight">
-                      {user?.role === "client" ? sessionInfo?.astrologer?.name || "Astrologer" : sessionInfo?.client?.name || "Client"}
-                    </h1>
-                    {/* Timer / Rate */}
-                     <div className="flex items-center gap-2 text-xs text-purple-300">
-                        <span className="font-mono bg-purple-900/50 px-1.5 py-0.5 rounded border border-purple-500/20">
-                           {sessionDuration > 0 ? formatDuration(sessionDuration) : "00:00"}
-                        </span>
-                        <span>•</span>
-                        <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
-                     </div>
-                  </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-100">
+              {user?.role === "client"
+                ? sessionInfo?.astrologer?.name || "Astrologer"
+                : sessionInfo?.client?.name || "Client"}
+            </h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-purple-300">
+            <Star size={16} className="fill-purple-400 text-purple-400" />
+            <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
+          </div>
+
+          {/* Timer Display */}
+          <div className="bg-slate-800/60 px-3 py-1.5 rounded-lg border border-purple-500/30 text-purple-200 font-mono text-sm">
+            {sessionDuration > 0 ? formatDuration(sessionDuration) : "00:00"}
+          </div>
+
+          <button
+            onClick={() => {
+              if (
+                window.confirm("Are you sure you want to end this chat session?")
+              ) {
+                socket.emit("chat:end", { sessionId: id });
+                window.history.back();
+              }
+            }}
+            className="px-4 py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-all"
+          >
+            End Chat
+          </button>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto relative z-0">
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+          <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container">
+            {conversation.length === 0 ? (
+              <div className="text-center py-12">
+                {sessionInfo?.status === "requested" ? (
+                  <>
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-800 rounded-full mb-4 animate-pulse">
+                      <Sparkles className="text-purple-200" size={24} />
+                    </div>
+                    <h3 className="text-lg font-semibold text-purple-200 mb-2">
+                      Connecting to Cosmos...
+                    </h3>
+                    <p className="text-purple-300 text-sm max-w-md mx-auto">
+                      Waiting for astrologer to accept your chat request...
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full mb-4">
+                      <Gem className="text-yellow-200" size={24} />
+                    </div>
+                    <h3 className="text-lg font-semibold text-yellow-200 mb-2">
+                      Welcome to Royal Astrology
+                    </h3>
+                    <p className="text-yellow-300 text-sm max-w-md mx-auto">
+                      Begin your royal consultation with our expert astrologer.
+                      Share your birth details and questions for divine guidance.
+                    </p>
+                  </>
+                )}
               </div>
-            </div>
-
-            <button
-                onClick={() => {
-                  if (window.confirm("End chat session?")) {
-                    socket.emit("chat:end", { sessionId: id });
-                    window.history.back();
-                  }
-                }}
-                className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold active:scale-95 transition-transform"
-            >
-              End
-            </button>
-         </div>
-      </div>
-
-      {/* 2. Messages (Scrollable Area) */}
-      <div className="flex-1 overflow-y-auto relative z-10 scrollbar-hide bg-space-900" onClick={() => { if(window.innerWidth < 768) {/* hint to close keyboard */} }}>
-         <div className="min-h-full flex flex-col justify-end px-4 py-4 space-y-3 pb-4">
-
-            {/* Welcome / Loading State */}
-            {conversation.length === 0 && (
-               <div className="text-center py-10 opacity-70">
-                   <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/5">
-                      <Sparkles className="text-purple-300" size={32} />
-                   </div>
-                   <p className="text-sm text-purple-200 font-medium">
-                      {sessionInfo?.status === "requested" ? "Connecting to Astrologer..." : "Start your consultation"}
-                   </p>
-                   {sessionInfo?.status === "requested" && <p className="text-xs text-purple-400 mt-2">Please wait for acceptance</p>}
-               </div>
-            )}
-
-            {/* Message List */}
-            {conversation.map((msg, index) => {
+            ) : (
+              conversation.map((msg, index) => {
                 const isMe = msg.senderId === user.id || msg.sender === user.id;
-                // Group consecutive messages logic could go here
+                const isAstrologerMsg = user.role === "client" && !isMe;
+
+                const senderName = isMe
+                  ? user.name
+                  : (user.role === "client"
+                      ? sessionInfo?.astrologer?.name
+                      : sessionInfo?.client?.name) || "User";
+
+                const getInitials = (name) => {
+                  if (!name) return "?";
+                  return name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2);
+                };
 
                 return (
-                  <div key={index} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
-                     <div
-                        className={`max-w-[80%] px-4 py-3 rounded-2xl shadow-sm relative text-sm leading-relaxed ${
-                            isMe
-                            ? 'bg-purple-600 text-white rounded-br-none'
-                            : 'bg-space-800 border border-white/10 text-gray-200 rounded-bl-none'
+                  <div
+                    key={index}
+                    className={`flex gap-2 ${
+                      isMe ? "flex-row-reverse" : "flex-row"
+                    } items-end`}
+                  >
+                    <div
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                        isMe
+                          ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white"
+                          : "bg-gradient-to-br from-slate-600 to-slate-800 text-white"
+                      }`}
+                    >
+                      {getInitials(senderName)}
+                    </div>
+
+                    <div
+                      className={`flex flex-col ${
+                        isMe ? "items-end" : "items-start"
+                      } max-w-[75%] md:max-w-[65%]`}
+                    >
+                      <span
+                        className={`text-[10px] mb-1 font-medium flex items-center gap-1 ${
+                          isMe ? "text-purple-300" : "text-gray-400"
                         }`}
-                     >
-                        {msg.text && <span>{msg.text}</span>}
-                        {msg.mediaUrl && msg.type === 'image' && (
-                            <img src={msg.mediaUrl} alt="Shared" className="rounded-xl mt-1 max-w-full h-auto border border-white/10" />
-                        )}
-                        {msg.audioUrl && (
-                             <audio controls className="w-full mt-1 h-8 opacity-90 rounded custom-audio" src={msg.audioUrl} />
+                      >
+                        {isAstrologerMsg && <Crown size={10} />}
+                        {senderName}
+                      </span>
+
+                      <div
+                        className={`p-4 rounded-2xl shadow-lg relative ${
+                          isMe
+                            ? "bg-gradient-to-br from-purple-600 to-indigo-700 text-white border border-purple-500/30 rounded-tr-none"
+                            : "bg-gradient-to-br from-slate-700 to-slate-800 text-gray-100 border border-slate-600/30 rounded-tl-none"
+                        }`}
+                      >
+                        {isMe && (
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full opacity-80 shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
                         )}
 
-                        <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 opacity-70 ${isMe ? 'text-purple-200' : 'text-gray-500'}`}>
-                           {new Date(msg.timestamp || Date.now()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                           {isMe && <span className="text-[10px] ml-0.5">✓</span>}
+                        {msg.text && (
+                          <p className="text-sm leading-relaxed font-medium">
+                            {msg.text}
+                          </p>
+                        )}
+
+                        {msg.audioUrl && (
+                          <div className="mt-2">
+                            <audio
+                              controls
+                              className="w-48 h-8 rounded-lg bg-black/20 border border-white/10"
+                            >
+                              <source src={msg.audioUrl} type="audio/mp3" />
+                            </audio>
+                          </div>
+                        )}
+
+                        <div
+                          className={`text-[10px] mt-2 flex items-center gap-1 ${
+                            isMe
+                              ? "text-purple-200 justify-end"
+                              : "text-gray-400 justify-start"
+                          }`}
+                        >
+                          {msg.timestamp &&
+                            new Date(msg.timestamp).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          {isMe && <span>✓</span>}
                         </div>
-                     </div>
+                      </div>
+                    </div>
                   </div>
                 );
-            })}
-
-            {isTyping && (
-               <div className="flex justify-start">
-                   <div className="bg-space-800 border border-white/10 px-4 py-3 rounded-2xl rounded-bl-none">
-                       <div className="flex space-x-1">
-                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-150"></div>
-                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-300"></div>
-                       </div>
-                   </div>
-               </div>
+              })
             )}
 
-            <div ref={messagesEndRef} className="h-1" />
-         </div>
-      </div>
-
-      {/* 3. Input Area (Sticky Bottom + Safe Area) */}
-      <div className="shrink-0 bg-space-900 border-t border-white/5 pb-[env(safe-area-inset-bottom)] z-40 bg-opacity-95 backdrop-blur-md">
-         {isRecording && (
-             <div className="absolute -top-12 left-0 right-0 flex justify-center pointer-events-none">
-                 <div className="bg-red-500/90 text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse shadow-lg backdrop-blur-sm">
-                    <div className="w-2 h-2 bg-white rounded-full"></div> Recording...
-                 </div>
-             </div>
-         )}
-
-         <div className="p-3">
-             {/* Quick Actions for Astrologer */}
-             {user?.role === 'astrologer' && (
-                <div className="flex gap-2 overflow-x-auto pb-3 px-1 scrollbar-hide">
-                    {[
-                       { icon: Star, label: 'Chart', action: () => { setSelectedChart('birth-chart'); setShowChartModal(true); }, color: 'bg-blue-500/20 text-blue-400' },
-                       { icon: Heart, label: 'Match', action: () => { setSelectedChart('porutham'); setShowChartModal(true); }, color: 'bg-pink-500/20 text-pink-400' },
-                       { icon: Sparkles, label: 'Navamsa', action: () => { setSelectedChart('navamsa'); setShowChartModal(true); }, color: 'bg-purple-500/20 text-purple-400' },
-                       { icon: Brain, label: 'Behavior', action: () => { setSelectedChart('behavior'); setShowChartModal(true); }, color: 'bg-orange-500/20 text-orange-400' },
-                    ].map((btn, idx) => (
-                       <button key={idx} onClick={btn.action} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border border-white/5 whitespace-nowrap active:scale-95 transition-transform ${btn.color}`}>
-                          <btn.icon size={12} /> {btn.label}
-                       </button>
-                    ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="max-w-[70%] p-4 rounded-2xl bg-slate-800/80 backdrop-blur-sm border border-slate-700/50">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {user?.role === "astrologer" ? "Client" : "Astrologer"} is
+                    typing...
+                  </p>
                 </div>
-             )}
+              </div>
+            )}
 
-             <form onSubmit={sendMessage} className="flex items-center gap-2">
-                 {/* Voice/Record Button */}
-                 {!isRecording ? (
-                     <button type="button" onClick={startRecording} className="w-10 h-10 rounded-full bg-space-800 flex items-center justify-center text-gray-400 hover:text-white active:bg-space-700 transition-colors">
-                        <Mic size={20} />
-                     </button>
-                 ) : (
-                     <button type="button" onClick={stopRecording} className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 animate-pulse">
-                        <MicOff size={20} />
-                     </button>
-                 )}
-
-                 {/* Text Input */}
-                 <div className="flex-1 relative">
-                     <input
-                        type="text"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        onInput={handleTyping}
-                        placeholder="Type a message..."
-                        className="w-full bg-space-800 text-white rounded-full px-5 py-3 pr-10 border border-white/10 focus:border-purple-500/50 focus:outline-none placeholder-gray-500 text-sm"
-                        style={{ fontSize: '16px' }} // Prevent iOS zoom
-                     />
-                     <button
-                        type="button"
-                        onClick={() => document.getElementById('image-upload')?.click()}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-purple-400"
-                     >
-                        <Sparkles size={16} /> {/* Placeholder for file attachment icon if needed, Sparkles used for now */}
-                     </button>
-                     <input type="file" id="image-upload" className="hidden" accept="image/*" onChange={handleFileUpload} />
-                 </div>
-
-                 {/* Send Button */}
-                 <button
-                    type="submit"
-                    disabled={!message.trim()}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                       message.trim() ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50 scale-100' : 'bg-space-800 text-gray-500 scale-95'
-                    }`}
-                 >
-                    <Send size={18} className={message.trim() ? 'ml-0.5' : ''} />
-                 </button>
-             </form>
-         </div>
+            <div ref={messagesEndRef} className="h-4" />
+          </div>
+        </div>
       </div>
 
-      {user?.role === 'client' && (
-          <IntakeModal
-            isOpen={showIntakeModal}
-            sessionId={id}
-            onSubmit={(data) => {
-                setSessionInfo(prev => ({ ...prev, intakeDetails: data }));
-                setShowIntakeModal(false);
-            }}
-          />
-      )}
+      {/* Input */}
+      <div className="chat-footer relative z-10 bg-slate-900 pt-4 pb-safe-or-6 border-t border-slate-800">
+        <div className="max-w-4xl mx-auto px-4">
+          {isRecording && (
+            <div className="text-center mb-3">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full">
+                <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                <span className="text-red-300 text-sm">
+                  Recording... Click to stop
+                </span>
+              </div>
+            </div>
+          )}
 
+          <form onSubmit={sendMessage} className="relative group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-purple-500/20 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
+
+              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3">
+                {!isRecording ? (
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-all duration-200 flex-shrink-0"
+                    title="Record Audio"
+                  >
+                    <Mic size={20} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={stopRecording}
+                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all duration-200 animate-pulse flex-shrink-0"
+                    title="Stop Recording"
+                  >
+                    <MicOff size={20} />
+                  </button>
+                )}
+
+                <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onInput={handleTyping}
+                  placeholder="Type your message..."
+                  className="flex-1 bg-transparent placeholder-gray-400 focus:outline-none text-lg min-w-0 text-gray-800"
+                  style={{ color: "#1f2937" }}
+                />
+
+                <button
+                  type="submit"
+                  disabled={!message.trim()}
+                  className={`p-2 rounded-full transition-all duration-200 flex-shrink-0 ${
+                    message.trim()
+                      ? "bg-purple-600 text-white shadow-lg hover:bg-purple-700 hover:scale-110"
+                      : "text-gray-400 bg-gray-100"
+                  }`}
+                >
+                  <Send size={18} className="md:w-5 md:h-5" />
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {/* Astrology Chart Quick Access - Only for Astrologers */}
+          {user?.role === 'astrologer' && (
+            <div className="mt-3 flex flex-wrap gap-2 justify-center">
+              <button
+                onClick={() => {
+                  setSelectedChart('birth-chart');
+                  setShowChartModal(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              >
+                <Star size={14} />
+                Birth Chart
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedChart('porutham');
+                  setShowChartModal(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              >
+                <Heart size={14} />
+                Porutham
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedChart('navamsa');
+                  setShowChartModal(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              >
+                <Sparkles size={14} />
+                Navamsa
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedChart('behavior');
+                  setShowChartModal(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+              >
+                <Brain size={14} />
+                Behavior
+              </button>
+
+              {/* Dasha button removed per request */}
+            </div>
+          )}
+
+          {/* Show only for astrologers/admins */}
+          {(user?.role === 'astrologer' || user?.role === 'admin') && (
+            <div className="text-center mt-2">
+              <p className="text-gray-500 text-xs">🔮 Secure cosmic connection</p>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Chart Modal */}
       <ChartModal
         isOpen={showChartModal}
         onClose={() => setShowChartModal(false)}
         initialChart={selectedChart}
-        initialData={sessionInfo?.intakeDetails}
       />
     </div>
   );

@@ -13,12 +13,6 @@ const astrologerProfileSchema = new mongoose.Schema({
   rating: { type: Number, default: 0 },
   totalSessions: { type: Number, default: 0 },
   lastActive: { type: Date, default: Date.now },
-  nickName: { type: String, default: '' },
-  aboutMe: { type: String, default: '' },
-  offers: { type: String, default: '' },
-  chatStatus: { type: String, enum: ['online', 'offline', 'busy'], default: 'offline' },
-  callStatus: { type: String, enum: ['online', 'offline', 'busy'], default: 'offline' },
-  videoStatus: { type: String, enum: ['online', 'offline', 'busy'], default: 'offline' },
   schedule: [{
     day: { type: String },
     slots: [{ type: String }],
