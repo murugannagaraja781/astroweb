@@ -3,7 +3,7 @@ import axios from 'axios';
 import { City } from 'country-state-city';
 import BirthChartDisplay from './BirthChartDisplay';
 
-const BirthChartForm = ({ onClose }) => {
+const BirthChartForm = ({ onClose, initialData }) => {
   const [formData, setFormData] = useState({
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
@@ -14,6 +14,33 @@ const BirthChartForm = ({ onClose }) => {
     longitude: 80.2707,
     timezone: 5.5
   });
+
+  useEffect(() => {
+    if (initialData) {
+       // Parse Date: YYYY-MM-DD
+       if (initialData.dateOfBirth) {
+           const [y, m, d] = initialData.dateOfBirth.split('-').map(Number);
+           setFormData(prev => ({ ...prev, year: y, month: m, day: d }));
+       }
+       // Parse Time: HH:mm
+       if (initialData.timeOfBirth) {
+           const [h, min] = initialData.timeOfBirth.split(':').map(Number);
+           setFormData(prev => ({ ...prev, hour: h, minute: min }));
+       }
+       // Location (if lat/long provided)
+       if (initialData.latitude && initialData.longitude) {
+           setFormData(prev => ({
+               ...prev,
+               latitude: parseFloat(initialData.latitude),
+               longitude: parseFloat(initialData.longitude)
+           }));
+           // Also set city search text if name avail
+           if(initialData.placeOfBirth) {
+              setCitySearch(initialData.placeOfBirth);
+           }
+       }
+    }
+  }, [initialData]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [chartData, setChartData] = useState(null);

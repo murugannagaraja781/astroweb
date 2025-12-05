@@ -604,6 +604,7 @@ const AstrologerDashboard = () => {
 
     console.log("[Astrologer] Accepting chat session:", sessionId);
     socket.emit("chat:accept", { sessionId });
+    socket.emit("chat:accept", { sessionId });
     navigate(`/chat/${sessionId}`);
   }, [socket, navigate]);
 
@@ -626,6 +627,32 @@ const AstrologerDashboard = () => {
       alert("Failed to reject chat. Please try again.");
     }
   }, [socket]);
+
+  const handleAcceptChat = useCallback(async (session) => {
+    try {
+        // Re-use request acceptance logic
+        // construct request object compatible with acceptChat or just call api
+        // acceptNotification is used for sockets.
+        // We need to call API /accept.
+        // Let's use acceptIncomingRequest if possible but it expects a request object.
+        // Or create a new handler.
+
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/chat/accept`, {
+            sessionId: session.sessionId,
+            clientId: session.client.id,
+            ratePerMinute: session.ratePerMinute
+        }, {
+            headers: { Authorization: `Bearer ${auth.token}` }
+        });
+
+        // Navigate to chat
+        navigate(`/chat/${session.sessionId}`);
+
+    } catch (err) {
+        console.error("Error accepting waitlist chat", err);
+        alert("Failed to connect. Client may be offline.");
+    }
+  }, [axios, auth.token, navigate]); // Added dependencies for useCallback
 
   const menuItems = useMemo(() => [
     {
@@ -814,13 +841,20 @@ const AstrologerDashboard = () => {
                 <div className="text-2xl font-bold">₹{earnings}</div>
                 <div className="text-xs mt-1 text-indigo-100">+12% from yesterday</div>
             </div>
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                 <div className="flex items-center gap-2 mb-2 text-slate-500">
-                    <Clock size={16} />
-                    <span className="text-xs font-medium">Talk Time</span>
+            <div
+              onClick={() => setActiveTab('waitlist')}
+              className="bg-purple-50 p-6 rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-purple-100 group"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-3 bg-purple-100 rounded-2xl group-hover:scale-110 transition-transform">
+                  <Clock className="text-purple-600" size={24} />
                 </div>
-                <div className="text-2xl font-bold text-slate-800">4h 12m</div>
-                <div className="text-xs mt-1 text-green-500">Target reached! 🎯</div>
+                <span className="bg-purple-200 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">
+                  {pendingSessions.filter(s => s.status === 'waitlist').length}
+                </span>
+              </div>
+              <h3 className="font-bold text-slate-700">Waitlist</h3>
+              <p className="text-xs text-slate-500 mt-1">Manage queued</p>
             </div>
         </div>
 
@@ -836,7 +870,7 @@ const AstrologerDashboard = () => {
                     { icon: BarChart3, label: 'Stats', color: 'bg-green-100 text-green-600' },
                     { icon: Calendar, label: 'Schedule', color: 'bg-orange-100 text-orange-600' },
                     { icon: Star, label: 'Reviews', color: 'bg-pink-100 text-pink-600' },
-                    { icon: Settings, label: 'Settings', color: 'bg-slate-100 text-slate-600' },
+                    { icon: Settings, label: 'Profile', color: 'bg-slate-100 text-slate-600', onClick: () => setActiveTab('profile') },
                 ].map((item, idx) => (
                     <div key={idx} onClick={item.onClick || item.action} className="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform">
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${item.color} shadow-sm`}>
@@ -903,41 +937,188 @@ const AstrologerDashboard = () => {
             </div>
         )}
 
-      </div>
+        {/* Profile Editor Tab */}
+        {activeTab === 'profile' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 animate-fadeIn">
+                 <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-slate-800">Edit Profile</h3>
+                    <button
+                        onClick={() => setActiveTab('overview')}
+                        className="text-sm text-slate-500 hover:text-slate-800"
+                    >
+                        Back to Overview
+                    </button>
+                 </div>
 
-      {/* Popups and Modals */}
-      {showIncomingPopup && incomingRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative">
-             <div className="h-32 bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute w-20 h-20 bg-white/10 rounded-full -top-10 -left-10"></div>
-                <div className="absolute w-40 h-40 bg-white/10 rounded-full -bottom-20 -right-10"></div>
-                <div className="text-center relative z-10">
-                    <div className="w-20 h-20 mx-auto bg-white rounded-full p-1 shadow-lg mb-2">
-                        <img
-                            src={incomingRequest.fromImage || "https://ui-avatars.com/api/?name=" + incomingRequest.fromName}
-                            className="w-full h-full rounded-full object-cover"
+                 <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    try {
+                        const formData = new FormData(e.target);
+                        const updates = Object.fromEntries(formData.entries());
+                        const res = await apiClient.put('/api/astrologer/profile', updates);
+                        setProfile(prev => ({ ...prev, ...res.data }));
+                        alert('Profile updated successfully!');
+                    } catch (err) {
+                        alert('Failed to update profile');
+                        console.error(err);
+                    }
+                 }} className="space-y-4">
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Display Name (Nickname)</label>
+                        <input
+                            name="nickName"
+                            defaultValue={profile?.nickName || ''}
+                            placeholder="e.g. Astro Guru"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:outline-none focus:border-indigo-500"
                         />
                     </div>
-                    <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold backdrop-blur-md">Incoming {incomingRequest.type}</span>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Experience</label>
+                            <input
+                                name="experience"
+                                defaultValue={profile?.experience || ''}
+                                placeholder="e.g. 10 years"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:outline-none focus:border-indigo-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rate (₹/min)</label>
+                            <input
+                                name="ratePerMinute"
+                                type="number"
+                                defaultValue={profile?.ratePerMinute || ''}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:outline-none focus:border-indigo-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Special Offers</label>
+                        <input
+                            name="offers"
+                            defaultValue={profile?.offers || ''}
+                            placeholder="e.g. First call free!"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:outline-none focus:border-indigo-500 text-green-600"
+                        />
+                    </div>
+
+                    <div>
+                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">About Me</label>
+                         <textarea
+                            name="aboutMe"
+                            defaultValue={profile?.aboutMe || profile?.bio || ''}
+                            rows="4"
+                            placeholder="Tell clients about your expertise..."
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:outline-none focus:border-indigo-500"
+                         ></textarea>
+                    </div>
+
+                    <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-colors">
+                        Save Changes
+                    </button>
+                 </form>
+            </div>
+        )}
+
+      </div>
+
+      {/* Waitlist Tab */}
+      {activeTab === 'waitlist' && (
+        <div className="bg-white rounded-[32px] p-8 shadow-xl border border-slate-100 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+             <Clock className="text-purple-500" /> Waitlist Queue
+          </h2>
+
+          <div className="space-y-4">
+            {pendingSessions.filter(s => s.status === 'waitlist').length === 0 ? (
+                <div className="text-center py-20 text-slate-400">
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Clock size={40} className="text-slate-300"/>
+                    </div>
+                    No clients in waitlist
+                </div>
+            ) : (
+                pendingSessions.filter(s => s.status === 'waitlist').map(session => (
+                    <div key={session.sessionId} className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:border-purple-200 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 p-0.5">
+                                <img
+                                    src={`https://ui-avatars.com/api/?name=${session.client.name}`}
+                                    className="w-full h-full rounded-full border-4 border-white"
+                                />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg text-slate-800">{session.client.name}</h3>
+                                <div className="text-sm text-slate-500 flex items-center gap-2">
+                                   <Clock size={14} /> Waited since: {new Date(session.createdAt).toLocaleTimeString()}
+                                </div>
+                                {session.client.intakeDetails?.name && (
+                                    <div className="text-xs text-purple-600 mt-1 font-medium bg-purple-100 px-2 py-0.5 rounded inline-block">
+                                        Intake Submitted
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                             <button
+                                onClick={() => handleAcceptChat(session)}
+                                className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-purple-200"
+                             >
+                                <Users size={18} /> Chat Now
+                             </button>
+                        </div>
+                    </div>
+                ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Full Screen Incoming Request */}
+      {showIncomingPopup && incomingRequest && (
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md p-4 animate-fadeIn text-white">
+           {/* Animated Background Rings */}
+           <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/10 rounded-full animate-ping-slow"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] border border-white/5 rounded-full animate-ping-slower"></div>
+           </div>
+
+           <div className="relative z-10 w-full max-w-md text-center">
+
+             <div className="mb-8 relative inline-block">
+                <div className="w-32 h-32 mx-auto rounded-full p-1 bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse">
+                    <img
+                        src={incomingRequest.fromImage || "https://ui-avatars.com/api/?name=" + incomingRequest.fromName}
+                        className="w-full h-full rounded-full object-cover border-4 border-slate-900"
+                    />
+                </div>
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white text-slate-900 font-bold px-4 py-1 rounded-full text-sm uppercase tracking-wider shadow-lg">
+                    {incomingRequest.type} Request
                 </div>
              </div>
 
-             <div className="p-6 text-center">
-                 <h2 className="text-xl font-bold text-slate-800 mb-1">{incomingRequest.fromName}</h2>
-                 <p className="text-slate-500 text-sm mb-6">is requesting a connection</p>
+             <h2 className="text-4xl font-bold mb-2">{incomingRequest.fromName}</h2>
+             <p className="text-slate-400 text-lg mb-8">is requesting to connect...</p>
 
-                 <div className="flex gap-4">
-                     <button onClick={() => rejectIncomingRequest(incomingRequest)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold flex items-center justify-center gap-2">
-                        <X size={18} /> Decline
-                     </button>
-                     <button onClick={() => acceptIncomingRequest(incomingRequest)} className="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold shadow-lg shadow-green-200 flex items-center justify-center gap-2 animate-bounce-subtle">
-                        <Phone size={18} /> Accept
-                     </button>
-                 </div>
-                 <div className="mt-4 text-xs text-slate-400">Auto-decline in {autoDeclineTimer}s</div>
+             <div className="space-y-4">
+                 <button onClick={() => acceptIncomingRequest(incomingRequest)} className="w-full py-5 rounded-2xl bg-green-500 text-white text-xl font-bold shadow-xl shadow-green-900/20 hover:bg-green-600 transition-transform hover:scale-105 flex items-center justify-center gap-3">
+                    <Phone size={24} /> Accept Request
+                 </button>
+
+                 <button onClick={() => rejectIncomingRequest(incomingRequest)} className="w-full py-4 rounded-2xl bg-slate-800 text-slate-400 font-bold hover:bg-slate-700 transition-colors flex items-center justify-center gap-2">
+                    <X size={20} /> Decline
+                 </button>
              </div>
-          </div>
+
+             <div className="mt-8 text-slate-500">
+                Auto-declining in <span className="text-white font-mono">{autoDeclineTimer}s</span>
+             </div>
+
+           </div>
         </div>
       )}
 

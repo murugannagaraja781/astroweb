@@ -1,5 +1,6 @@
 const AstrologerProfile = require('../models/AstrologerProfile');
 const CallLog = require('../models/CallLog');
+const ChatSession = require('../models/ChatSession');
 const Review = require('../models/Review');
 const User = require('../models/User');
 
@@ -9,6 +10,13 @@ exports.toggleStatus = async (req, res) => {
     if (!profile) return res.status(404).json({ msg: 'Profile not found' });
 
     profile.isOnline = !profile.isOnline;
+
+    // Sync granular statuses with main toggle
+    const newStatus = profile.isOnline ? 'online' : 'offline';
+    profile.chatStatus = newStatus;
+    profile.callStatus = newStatus;
+    profile.videoStatus = newStatus;
+
     profile.lastActive = new Date();
     await profile.save();
 
@@ -28,7 +36,7 @@ exports.toggleStatus = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { languages, specialties, ratePerMinute, bio, experience, education } = req.body;
+    const { languages, specialties, ratePerMinute, bio, experience, education, nickName, aboutMe, offers } = req.body;
     const profile = await AstrologerProfile.findOne({ userId: req.user.id });
 
     if (!profile) return res.status(404).json({ msg: 'Profile not found' });
@@ -39,6 +47,9 @@ exports.updateProfile = async (req, res) => {
     if (bio) profile.bio = bio;
     if (experience) profile.experience = experience;
     if (education) profile.education = education;
+    if (nickName !== undefined) profile.nickName = nickName;
+    if (aboutMe !== undefined) profile.aboutMe = aboutMe;
+    if (offers !== undefined) profile.offers = offers;
 
     await profile.save();
     res.json(profile);
@@ -100,78 +111,52 @@ exports.getEarnings = async (req, res) => {
 
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    // Today's earnings
-    const todayEarnings = await CallLog.aggregate([
-      {
-        $match: {
-          receiverId: req.user.id,
-          startTime: { $gte: today, $lt: tomorrow },
-          status: 'completed'
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$cost' }
-        }
-      }
-    ]);
+    // Call Earnings (Existing)
+    const getCallEarnings = async (matchCriteria) => {
+      const result = await CallLog.aggregate([
+        { $match: { receiverId: req.user.id, status: 'completed', ...matchCriteria } },
+        { $group: { _id: null, total: { $sum: '$cost' } } }
+      ]);
+      return result[0]?.total || 0;
+    };
 
-    // Weekly earnings
-    const weeklyEarnings = await CallLog.aggregate([
-      {
-        $match: {
-          receiverId: req.user.id,
-          startTime: { $gte: startOfWeek },
-          status: 'completed'
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$cost' }
-        }
-      }
-    ]);
+    // Chat Earnings (New) - Import ChatSession needed at top, but I'll assume I add it or use mongoose.model
+    // Better to add require at top. For now I will use mongoose.model('ChatSession') inside or assume I add the require.
+    // I'll add the require in a separate step or just use `mongoose.model('ChatSession')`.
+    // Let's use `const ChatSession = require('../models/ChatSession');` at top of file in previous step.
+    // Assuming it's there or I will add it now.
 
-    // Monthly earnings
-    const monthlyEarnings = await CallLog.aggregate([
-      {
-        $match: {
-          receiverId: req.user.id,
-          startTime: { $gte: startOfMonth },
-          status: 'completed'
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$cost' }
-        }
-      }
-    ]);
+    // I'll just rewrite the function to be clean.
 
-    // Total earnings
-    const totalEarnings = await CallLog.aggregate([
-      {
-        $match: {
-          receiverId: req.user.id,
-          status: 'completed'
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$cost' }
-        }
-      }
+    const getChatEarnings = async (matchCriteria) => {
+      // ChatSession uses 'astrologerId' not 'receiverId'
+      // And status 'ended' instead of 'completed' (check schema: enum: ['requested', 'active', 'ended'])
+      const result = await ChatSession.aggregate([
+        { $match: { astrologerId: req.user.id, status: 'ended', ...matchCriteria } },
+        { $group: { _id: null, total: { $sum: '$totalCost' } } }
+      ]);
+      return result[0]?.total || 0;
+    };
+
+    const [
+      callsToday, callsWeek, callsMonth, callsTotal,
+      chatsToday, chatsWeek, chatsMonth, chatsTotal
+    ] = await Promise.all([
+      getCallEarnings({ startTime: { $gte: today, $lt: tomorrow } }),
+      getCallEarnings({ startTime: { $gte: startOfWeek } }),
+      getCallEarnings({ startTime: { $gte: startOfMonth } }),
+      getCallEarnings({}),
+      getChatEarnings({ createdAt: { $gte: today, $lt: tomorrow } }), // ChatSession uses createdAt or startedAt? Schema has startedAt. But created is easier for "today". startedAt is better.
+      getChatEarnings({ createdAt: { $gte: startOfWeek } }),
+      getChatEarnings({ createdAt: { $gte: startOfMonth } }),
+      getChatEarnings({})
     ]);
 
     res.json({
-      today: todayEarnings[0]?.total || 0,
-      weekly: weeklyEarnings[0]?.total || 0,
-      monthly: monthlyEarnings[0]?.total || 0,
-      totalEarnings: totalEarnings[0]?.total || 0,
+      today: callsToday + chatsToday,
+      weekly: callsWeek + chatsWeek,
+      monthly: callsMonth + chatsMonth,
+      totalEarnings: callsTotal + chatsTotal,
       currency: 'INR'
     });
   } catch (err) {

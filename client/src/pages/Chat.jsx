@@ -5,6 +5,7 @@ import axios from "axios";
 
 import AuthContext from "../context/AuthContext";
 import ChartModal from "../components/ChartModal";
+import IntakeModal from "../components/IntakeModal";
 import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock } from "lucide-react";
 
 // Single shared socket instance
@@ -27,6 +28,7 @@ const Chat = () => {
   const [error, setError] = useState(null);
   const [showChartModal, setShowChartModal] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
+  const [showIntakeModal, setShowIntakeModal] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -63,10 +65,19 @@ const Chat = () => {
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       setSessionInfo(res.data);
+
+      // Check for intake details if user is client
+      if (user?.role === 'client') {
+          if (!res.data.intakeDetails || !res.data.intakeDetails.name) {
+              setShowIntakeModal(true);
+          } else {
+              setShowIntakeModal(false);
+          }
+      }
     } catch (error) {
       console.error("Error fetching session info:", error);
     }
-  }, [id]);
+  }, [id, user?.role]);
 
   // Main socket + data setup
   useEffect(() => {
@@ -781,11 +792,23 @@ const Chat = () => {
           )}
         </div>
       </div>
-      {/* Chart Modal */}
+      {/* Intake Modal for Clients */}
+      {user?.role === 'client' && (
+          <IntakeModal
+            isOpen={showIntakeModal}
+            sessionId={id}
+            onSubmit={(data) => {
+                setSessionInfo(prev => ({ ...prev, intakeDetails: data }));
+                setShowIntakeModal(false);
+            }}
+          />
+      )}
+
       <ChartModal
         isOpen={showChartModal}
         onClose={() => setShowChartModal(false)}
         initialChart={selectedChart}
+        initialData={sessionInfo?.intakeDetails}
       />
     </div>
   );

@@ -22,6 +22,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AstrologerDashboard = lazy(() => import('./pages/AstrologerDashboard'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
 const VideoCall = lazy(() => import('./pages/AgoraVideoCall'));
+const AgoraTestPage = lazy(() => import('./pages/AgoraTest'));
 const Chat = lazy(() => import('./pages/Chat'));
 const AstrologyDashboard = lazy(() => import('./pages/AstrologyDashboard'));
 const PhonePeTest = lazy(() => import('./pages/PhonePeTest'));
@@ -174,6 +175,7 @@ function App() {
                   <Route path="/astrologers/calls" element={<AstrologerListCalls />} />
                   <Route path="/phonepe-test" element={<PhonePeTest />} />
                   <Route path="/health-test" element={<HealthTest />} />
+                  <Route path="/agora-test" element={<AgoraTestPage />} />
                 </Routes>
               </Suspense>
             </AppLayout>

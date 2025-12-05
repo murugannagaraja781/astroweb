@@ -192,6 +192,32 @@ exports.uploadVoiceNote = async (req, res) => {
 /**
  * Initiate a chat session
  */
+exports.submitIntakeForm = async (req, res) => {
+  try {
+    const { sessionId, intakeDetails } = req.body;
+
+    // intakeDetails should have { name, gender, dateOfBirth, timeOfBirth, placeOfBirth }
+
+    const session = await ChatSession.findOne({ sessionId });
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Verify user is the client
+    if (session.clientId.toString() !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    session.intakeDetails = intakeDetails;
+    await session.save();
+
+    res.json({ success: true, message: 'Intake details saved', session });
+  } catch (err) {
+    console.error("Intake submission error:", err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 exports.initiateChat = async (req, res) => {
   try {
     const { receiverId } = req.body;
@@ -281,11 +307,19 @@ exports.requestSession = async (req, res) => {
     const profile = await AstrologerProfile.findOne({ userId: astrologerId });
     if (profile && profile.ratePerMinute) rate = profile.ratePerMinute;
 
+    // Check if astrologer is busy (has active session)
+    const activeSession = await ChatSession.findOne({
+      astrologerId,
+      status: 'active'
+    });
+
+    const initialStatus = activeSession ? 'waitlist' : 'requested';
+
     const newSession = await ChatSession.create({
       sessionId: sid,
       clientId,
       astrologerId,
-      status: "requested",
+      status: initialStatus,
       ratePerMinute: rate,
     });
     console.log(`[DEBUG] Session created: ${JSON.stringify(newSession)}`);
@@ -360,7 +394,7 @@ exports.getPendingSessions = async (req, res) => {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const sessions = await ChatSession.find({
-      status: { $in: ["requested", "active"] },
+      status: { $in: ["requested", "active", "waitlist"] },
       createdAt: { $gte: twentyFourHoursAgo }
     })
       .sort({ createdAt: -1 })
@@ -485,7 +519,7 @@ exports.acceptChatSession = async (req, res) => {
       return res.status(404).json({ msg: "Session not found" });
     }
 
-    if (session.status !== 'requested') {
+    if (session.status !== 'requested' && session.status !== 'waitlist') {
       return res.status(400).json({ msg: "Session already accepted or completed" });
     }
 
@@ -561,10 +595,17 @@ exports.rejectChatSession = async (req, res) => {
       return res.status(403).json({ msg: "Unauthorized" });
     }
 
-    // Delete the session
+    // If session is just requested, move to waitlist
+    if (session.status === 'requested') {
+      session.status = 'waitlist';
+      await session.save();
+      return res.json({ success: true, msg: "Chat session moved to waitlist", status: 'waitlist' });
+    }
+
+    // If already in waitlist or other status, delete/cancel
     await ChatSession.deleteOne({ sessionId });
 
-    res.json({ success: true, msg: "Chat session rejected and removed" });
+    res.json({ success: true, msg: "Chat session removed" });
   } catch (err) {
     console.error("Error rejecting chat session:", err);
     res.status(500).json({ msg: "Server error" });

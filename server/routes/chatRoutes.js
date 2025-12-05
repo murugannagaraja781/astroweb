@@ -17,6 +17,7 @@ const {
   getSessionInfo,
   getAllSessionsDebug,
   storeChatCall,
+  submitIntakeForm
 } = require("../controllers/chatController");
 
 const auth = require("../middleware/auth");
@@ -25,6 +26,7 @@ const auth = require("../middleware/auth");
 router.post("/initiate", auth, initiateChat);
 router.post("/end", auth, endChat);
 router.post("/request", auth, requestSession);
+router.post("/intake", auth, submitIntakeForm);
 
 // HISTORY + SESSIONS
 router.get("/history/:userId/:peerId", auth, getChatHistory);

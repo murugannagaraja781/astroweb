@@ -1,15 +1,19 @@
 const { RtcTokenBuilder, RtcRole } = require("agora-token");
 
 exports.generateToken = (req, res) => {
-  const appID = process.env.AGORA_APP_ID;
-  const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+  // Hardcoded App ID to match client
+  const appID = "d95d4af1ea6443bcb59fed8386d71c75";
+  const appCertificate = process.env.AGORA_APP_CERTIFICATE; // Still need this from env!
+
+  console.log(`[Agora] Generating token with App ID: ${appID}`);
+
   const channel = req.query.channel;
   const uidParam = req.query.uid || 0;
   const uid = Number(uidParam) || 0;
-  if (!appID || !appCertificate) {
-    return res
-      .status(500)
-      .json({ error: "Agora App ID or Certificate not configured on server" });
+
+  if (!appCertificate) {
+    console.error("[Agora] Missing App Certificate in environment variables");
+    return res.status(500).json({ error: "Agora Certificate configuration error" });
   }
   if (!channel) {
     return res.status(400).json({ error: "channel is required" });
