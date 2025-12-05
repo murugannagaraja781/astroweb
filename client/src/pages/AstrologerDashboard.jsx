@@ -405,6 +405,11 @@ useEffect(() => {
       setProfile(res.data);
     } catch (err) {
       console.error("Error fetching profile:", err);
+      setProfile(false); // Stop loading
+      // If unauthorized, redirect to login
+      if (err.response && err.response.status === 401) {
+          navigate('/login');
+      }
     }
   };
 
@@ -459,7 +464,8 @@ useEffect(() => {
       const roomId = `video_${Date.now()}_${incomingCall.from}`;
       socket.emit("call:accept", {
         toSocketId: incomingCall.socketId,
-        roomId
+        roomId,
+        callId: incomingCall.callId // Pass callId
       });
       setActiveCallRoomId(roomId);
       setActiveTab("calls");
@@ -495,7 +501,8 @@ useEffect(() => {
       const roomId = request.roomId || `video_${Date.now()}_${request.fromId}`;
       socket.emit("call:accept", {
         toSocketId: request.fromSocketId,
-        roomId
+        roomId,
+        callId: request.callId // Pass callId back to server
       });
       setActiveCallRoomId(roomId);
       setActiveCallType("video");
@@ -775,6 +782,18 @@ useEffect(() => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto mb-4"></div>
           <p className="text-purple-200 text-lg">Connecting to cosmic energies...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (profile === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <div className="text-white text-center p-8 bg-white/10 rounded-2xl backdrop-blur">
+          <h2 className="text-2xl font-bold mb-4">Profile Not Found</h2>
+          <p className="mb-6">We couldn't load your astrologer profile.</p>
+          <button onClick={() => window.location.reload()} className="px-6 py-2 bg-purple-600 rounded-lg hover:bg-purple-700">Retry</button>
         </div>
       </div>
     );
