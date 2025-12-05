@@ -15,7 +15,7 @@ import {
 import AgoraRTC from 'agora-rtc-sdk-ng';
 import { FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhone } from 'react-icons/fi';
 
-const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
+const APP_ID = "d95d4af1ea6443bcb59fed8386d71c75";
 
 // Helper component for the internal video call logic
 const VideoCallInterface = ({ appId, channelName, token, uid, onEndCall }) => {
@@ -383,4 +383,4 @@ export default function AgoraVideoCall() {
       </div>
   );
 }
-```
+

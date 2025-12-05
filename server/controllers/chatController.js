@@ -306,29 +306,18 @@ exports.getSessionHistory = async (req, res) => {
     const clientId = s.clientId ? s.clientId.toString() : null;
     const astrologerId = s.astrologerId ? s.astrologerId.toString() : null;
 
-    // TEMPORARY: Allow all authenticated users to access chat history for development
-    // TODO: Re-enable proper authorization in production
-    /*
-    const isAuthorized =
-      req.user.role === 'admin' ||
-      req.user.id === clientId ||
-      req.user.id === astrologerId ||
-      (req.user.role === 'astrologer' && !astrologerId) ||
-      (req.user.role === 'client' && req.user.id === clientId);
+    const currentUserId = req.user.id;
+    const userRole = req.user.role;
 
-    if (!isAuthorized) {
-      console.log(`[DEBUG] Unauthorized access to session history. User: ${req.user.id}, Role: ${req.user.role}, Client: ${clientId}, Astrologer: ${astrologerId}`);
-      return res.status(403).json({
-        msg: "Unauthorized",
-        debug: {
-          currentUserId: req.user.id,
-          currentUserRole: req.user.role,
-          sessionClientId: clientId,
-          sessionAstrologerId: astrologerId
-        }
-      });
+    const isClient = clientId === currentUserId;
+    const isAstrologer = astrologerId === currentUserId;
+    const isAdmin = userRole === 'admin';
+
+    // Allow access if admin, or the participant (client/astrologer) matched
+    if (!isAdmin && !isClient && !isAstrologer) {
+      console.log(`[Auth Fail] User: ${currentUserId} (${userRole}) tried to access session ${sessionId}`);
+      return res.status(403).json({ msg: "Unauthorized access to session history" });
     }
-    */
     const messages = await ChatMessage.find({ sessionId }).sort({
       timestamp: 1,
     });
@@ -601,29 +590,17 @@ exports.getSessionInfo = async (req, res) => {
     const clientId = session.clientId ? session.clientId._id.toString() : null;
     const astrologerId = session.astrologerId ? session.astrologerId._id.toString() : null;
 
-    // TEMPORARY: Allow all authenticated users to access session info for development
-    // TODO: Re-enable proper authorization in production
-    /*
-    const isAuthorized =
-      req.user.role === 'admin' ||
-      req.user.id === clientId ||
-      req.user.id === astrologerId ||
-      (req.user.role === 'astrologer' && !astrologerId) ||
-      (req.user.role === 'client' && req.user.id === clientId);
+    const currentUserId = req.user.id;
+    const userRole = req.user.role;
 
-    if (!isAuthorized) {
-      console.log(`[DEBUG] Unauthorized access to session info. User: ${req.user.id}, Role: ${req.user.role}, Client: ${clientId}, Astrologer: ${astrologerId}`);
-      return res.status(403).json({
-        msg: 'Unauthorized',
-        debug: {
-          currentUserId: req.user.id,
-          currentUserRole: req.user.role,
-          sessionClientId: clientId,
-          sessionAstrologerId: astrologerId
-        }
-      });
+    const isClient = clientId === currentUserId;
+    // Allow astrologer if they are the assigned one, OR if the session has no astrologer yet (request pool) and they are an astrologer
+    const isAstrologer = (astrologerId === currentUserId) || (!astrologerId && userRole === 'astrologer');
+    const isAdmin = userRole === 'admin';
+
+    if (!isAdmin && !isClient && !isAstrologer) {
+      return res.status(403).json({ msg: 'Unauthorized access to session info' });
     }
-    */
 
     res.json({
       sessionId: session.sessionId,

@@ -209,8 +209,12 @@ const AstrologerDashboard = () => {
       return;
     }
 
-    // Reset audio to beginning
-    audio.pause();
+    // Check if audio is already playing to avoid interruption errors
+    if (!audio.paused) {
+        audio.currentTime = 0; // Just restart if already playing
+        return;
+    }
+
     audio.currentTime = 0;
 
     // Play with error handling
@@ -226,17 +230,18 @@ const AstrologerDashboard = () => {
           }
         })
         .catch(err => {
-          // Ignore AbortError (happens when audio is interrupted)
-          if (err.name !== 'AbortError') {
-            console.warn("⚠️ Sound blocked by browser:", err.message);
-            // Show visual notification as fallback
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('New Request', {
-                body: 'You have a new chat/call request',
-                icon: '/logo.png',
-                requireInteraction: true
-              });
-            }
+          // Ignore AbortError (happens when audio is interrupted) or NotAllowedError (user interaction required)
+          if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+             console.warn("⚠️ Sound blocked by browser:", err.message);
+          }
+
+          // Show visual notification as fallback
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('New Request', {
+              body: 'You have a new chat/call request',
+              icon: '/logo.png',
+              requireInteraction: true
+            });
           }
         });
     }
