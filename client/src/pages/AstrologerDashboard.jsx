@@ -1,7 +1,7 @@
- // AstrologerDashboard.jsx
-import { useState, useEffect, useRef, useCallback } from "react";
+// AstrologerDashboard.jsx
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Modal from "../components/Modal";
-import axios from "axios";
+import apiClient from "../utils/apiClient";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
@@ -60,7 +60,7 @@ const AstrologerDashboard = () => {
     const soundUrls = [
       "/notification.mp3",
       "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3", // Fallback online sound
-      "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OihUBELTKXh8bllHAU2jdXvzn0vBSh+zPDajzsKElyx6OyrWBUIQ5zd8sFuJAUuhM/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6Q=="
+      "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OihUBELTKXh8bllHAU2jdXvzn0vBSh+zPDajzsKElyx6OyrWBUIQ5zd8sFuJAUuhM/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6aFSEQtLpuDxuWUcBTeN1e/PgC8FJ37M8NqPOwsSXK/o66tZFQhCm93yv20kBS+Fz/PbiTYHF2O77OmhUhELS6bg8bllHAU3jdXvz4AvBSd+zPDajzsKElyx6OyrWRUIQpvd8r9tJAUvhc/z24k2Bxdju+zpoVIRC0um4PG5ZRwFN43V78+ALwUnfszw2o87ChJcr+jrq1kVCEKb3fK/bSQFL4XP89uJNgcXY7vs6Q=="
     ];
 
     const tryLoadSound = (index = 0) => {
@@ -96,27 +96,29 @@ const AstrologerDashboard = () => {
         notificationSoundRef.current = null;
       }
     };
-  }, []);useEffect(() => {
-  window.testNotificationSound = () => {
-    if (notificationSoundRef.current) {
-      notificationSoundRef.current.play()
-        .then(() => console.log("Sound OK"))
-        .catch(err => console.log("Sound Blocked:", err));
-    } else {
-      console.log("Audio ref missing");
-    }
-  };
-}, []);
+  }, []);
+
+  useEffect(() => {
+    window.testNotificationSound = () => {
+      if (notificationSoundRef.current) {
+        notificationSoundRef.current.play()
+          .then(() => console.log("Sound OK"))
+          .catch(err => console.log("Sound Blocked:", err));
+      } else {
+        console.log("Audio ref missing");
+      }
+    };
+  }, []);
 
 
-useEffect(() => {
-  const unlock = () => {
-    const btn = document.getElementById("unlock-audio");
-    if (btn) btn.click();
-    window.removeEventListener("click", unlock);
-  };
-  window.addEventListener("click", unlock);
-}, []);
+  useEffect(() => {
+    const unlock = () => {
+      const btn = document.getElementById("unlock-audio");
+      if (btn) btn.click();
+      window.removeEventListener("click", unlock);
+    };
+    window.addEventListener("click", unlock);
+  }, []);
 
 
   // Initialize socket connection once
@@ -145,13 +147,7 @@ useEffect(() => {
   // Fetch pending sessions (Moved up & wrapped in useCallback)
   const fetchPendingSessions = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const res = await apiClient.get('/api/chat/sessions/pending');
       if (res.data && Array.isArray(res.data)) {
         setPendingSessions(res.data);
       } else {
@@ -163,9 +159,92 @@ useEffect(() => {
     }
   }, []);
 
+  const fetchProfile = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/api/astrologer/profile');
+      setProfile(res.data);
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+      setProfile(false); // Stop loading
+      // If unauthorized (401) or forbidden (403 - wrong role), it is handled by interceptors mostly but we can add secondary checks
+      if (err.response) {
+         if (err.response.status === 403) {
+             console.warn("Access denied: Redirecting to main dashboard");
+             navigate('/dashboard');
+        }
+      }
+    }
+  }, [navigate]);
+
+  const fetchEarnings = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/api/astrologer/earnings');
+      setEarnings(res.data.totalEarnings || 0);
+    } catch (err) {
+      console.error("Error fetching earnings:", err);
+      setEarnings(0);
+    }
+  }, []);
+
   useEffect(() => {
     fetchProfile();
     fetchEarnings();
+  }, [fetchProfile, fetchEarnings]);
+
+  // Play notification sound
+  const playNotificationSound = useCallback(() => {
+    const audio = notificationSoundRef.current;
+    if (!audio) {
+      console.warn("⚠️ Audio not initialized");
+      // Try browser notification sound as fallback
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('New Request', {
+          body: 'You have a new chat/call request',
+          icon: '/logo.png',
+          badge: '/logo.png',
+          tag: 'astrologer-request',
+          requireInteraction: true
+        });
+      }
+      return;
+    }
+
+    // Reset audio to beginning
+    audio.pause();
+    audio.currentTime = 0;
+
+    // Play with error handling
+    const playPromise = audio.play();
+
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("🔔 Notification sound played successfully");
+          // Vibrate on mobile if supported
+          if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200]);
+          }
+        })
+        .catch(err => {
+          // Ignore AbortError (happens when audio is interrupted)
+          if (err.name !== 'AbortError') {
+            console.warn("⚠️ Sound blocked by browser:", err.message);
+            // Show visual notification as fallback
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('New Request', {
+                body: 'You have a new chat/call request',
+                icon: '/logo.png',
+                requireInteraction: true
+              });
+            }
+          }
+        });
+    }
+  }, []);
+
+  // Add request to queue
+  const addToRequestQueue = useCallback((request) => {
+    setRequestQueue((prev) => [...prev, request]);
   }, []);
 
   // Setup socket listeners when socket is ready
@@ -267,7 +346,7 @@ useEffect(() => {
       socket.off("chat:request");
       socket.off("audio:request");
     };
-  }, [socket, fetchPendingSessions]);
+  }, [socket, fetchPendingSessions, addToRequestQueue, playNotificationSound]);
 
 
   useEffect(() => {
@@ -278,68 +357,54 @@ useEffect(() => {
     }
   }, [profile?.userId, socket, fetchPendingSessions]);
 
-  // Play notification sound
-  // SUPER RELIABLE Notification Sound (works always when tab is open)
-  const playNotificationSound = () => {
-    const audio = notificationSoundRef.current;
-    if (!audio) {
-      console.warn("⚠️ Audio not initialized");
-      // Try browser notification sound as fallback
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('New Request', {
-          body: 'You have a new chat/call request',
-          icon: '/logo.png',
-          badge: '/logo.png',
-          tag: 'astrologer-request',
-          requireInteraction: true
-        });
-      }
-      return;
-    }
-
-    // Reset audio to beginning
-    audio.pause();
-    audio.currentTime = 0;
-
-    // Play with error handling
-    const playPromise = audio.play();
-
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          console.log("🔔 Notification sound played successfully");
-          // Vibrate on mobile if supported
-          if ('vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200]);
-          }
-        })
-        .catch(err => {
-          // Ignore AbortError (happens when audio is interrupted)
-          if (err.name !== 'AbortError') {
-            console.warn("⚠️ Sound blocked by browser:", err.message);
-            // Show visual notification as fallback
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('New Request', {
-                body: 'You have a new chat/call request',
-                icon: '/logo.png',
-                requireInteraction: true
-              });
-            }
-          }
-        });
-    }
-  };
-
-
-
-  // Add request to queue and show popup
-  // Add request to queue
-  const addToRequestQueue = (request) => {
-    setRequestQueue((prev) => [...prev, request]);
-  };
 
   // Auto-decline timer state
   const [autoDeclineTimer, setAutoDeclineTimer] = useState(30);
+
+  // Reject incoming request from popup with callback to avoid hoisting issues with useeffect
+  const rejectIncomingRequest = useCallback((request) => {
+    console.log("❌ Rejecting request:", request);
+
+    // 1. Optimistic UI Update: Close popup immediately
+    setShowIncomingPopup(false);
+    setIncomingRequest(null);
+
+    // 2. Stop Sound
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.pause();
+      notificationSoundRef.current.currentTime = 0;
+    }
+
+    // 3. Emit Socket Event
+    if (socket && socket.connected) {
+      if (request.type === "chat") {
+        socket.emit("chat:reject", { sessionId: request.sessionId });
+      } else if (request.type === "video") {
+        socket.emit("call:reject", { toSocketId: request.fromSocketId });
+      } else if (request.type === "audio") {
+        socket.emit("audio:reject", { toSocketId: request.fromSocketId });
+      }
+    } else {
+      console.warn("⚠️ Socket not connected, cannot send reject event to server");
+    }
+
+    // 4. Cleanup Local State
+    if (request.type === "chat") {
+      setPendingSessions(prev => prev.filter(s => s.sessionId !== request.sessionId));
+    } else if (request.type === "video") {
+      setPendingVideoCalls(prev => prev.filter(v => v.id !== request.id));
+    } else if (request.type === "audio") {
+      setPendingAudioCalls(prev => prev.filter(a => a.id !== request.id));
+    }
+
+    // 5. Process Next Request
+    setTimeout(() => {
+      setRequestQueue((prev) => {
+        const [, ...remaining] = prev;
+        return remaining;
+      });
+    }, 100); // Small delay to ensure state updates settle
+  }, [socket]);
 
   // Process queue: Show popup if queue has items and no popup is showing
   useEffect(() => {
@@ -355,7 +420,7 @@ useEffect(() => {
         navigator.vibrate([400, 200, 400, 200, 400]);
       }
     }
-  }, [requestQueue, showIncomingPopup]);
+  }, [requestQueue, showIncomingPopup, playNotificationSound]);
 
   // Auto-decline countdown timer
   useEffect(() => {
@@ -374,58 +439,17 @@ useEffect(() => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [showIncomingPopup, incomingRequest]);
+  }, [showIncomingPopup, incomingRequest, rejectIncomingRequest]);
 
   // Handle next request in queue
-  const handleNextRequest = () => {
+  const handleNextRequest = useCallback(() => {
     setShowIncomingPopup(false);
     setIncomingRequest(null);
     setRequestQueue((prev) => {
       const [, ...remaining] = prev;
       return remaining;
     });
-  };
-
-  const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/astrologer/profile`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setProfile(res.data);
-    } catch (err) {
-      console.error("Error fetching profile:", err);
-      setProfile(false); // Stop loading
-      // If unauthorized (401) or forbidden (403 - wrong role), redirect appropriately
-      if (err.response) {
-        if (err.response.status === 401) {
-             navigate('/login');
-        } else if (err.response.status === 403) {
-             console.warn("Access denied: Redirecting to main dashboard");
-             navigate('/dashboard');
-        }
-      }
-    }
-  };
-
-  const fetchEarnings = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/astrologer/earnings`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setEarnings(res.data.totalEarnings || 0);
-    } catch (err) {
-      console.error("Error fetching earnings:", err);
-      setEarnings(0);
-    }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeTab === "inbox") {
@@ -452,7 +476,7 @@ useEffect(() => {
 
 
 
-  const acceptCall = () => {
+  const acceptCall = useCallback(() => {
     if (!incomingCall || !socket) return;
 
     if (incomingCall.type === "chat") {
@@ -469,9 +493,9 @@ useEffect(() => {
       setActiveTab("calls");
     }
     setIncomingCall(null);
-  };
+  }, [incomingCall, socket, navigate]);
 
-  const rejectCall = () => {
+  const rejectCall = useCallback(() => {
     if (incomingCall && socket) {
       if (incomingCall.type === "video") {
           socket.emit("call:reject", { toSocketId: incomingCall.socketId });
@@ -480,10 +504,10 @@ useEffect(() => {
       }
     }
     setIncomingCall(null);
-  };
+  }, [incomingCall, socket]);
 
   // Accept incoming request from popup
-  const acceptIncomingRequest = (request) => {
+  const acceptIncomingRequest = useCallback((request) => {
     if (!socket) return;
 
     // Stop notification sound
@@ -529,89 +553,38 @@ useEffect(() => {
 
     // Show next request in queue
     handleNextRequest();
-  };
-
-  // Reject incoming request from popup
-  // Reject incoming request from popup
-  const rejectIncomingRequest = (request) => {
-    console.log("❌ Rejecting request:", request);
-
-    // 1. Optimistic UI Update: Close popup immediately
-    setShowIncomingPopup(false);
-    setIncomingRequest(null);
-
-    // 2. Stop Sound
-    if (notificationSoundRef.current) {
-      notificationSoundRef.current.pause();
-      notificationSoundRef.current.currentTime = 0;
-    }
-
-    // 3. Emit Socket Event
-    if (socket && socket.connected) {
-      if (request.type === "chat") {
-        socket.emit("chat:reject", { sessionId: request.sessionId });
-      } else if (request.type === "video") {
-        socket.emit("call:reject", { toSocketId: request.fromSocketId });
-      } else if (request.type === "audio") {
-        socket.emit("audio:reject", { toSocketId: request.fromSocketId });
-      }
-    } else {
-      console.warn("⚠️ Socket not connected, cannot send reject event to server");
-    }
-
-    // 4. Cleanup Local State
-    if (request.type === "chat") {
-      setPendingSessions(prev => prev.filter(s => s.sessionId !== request.sessionId));
-    } else if (request.type === "video") {
-      setPendingVideoCalls(prev => prev.filter(v => v.id !== request.id));
-    } else if (request.type === "audio") {
-      setPendingAudioCalls(prev => prev.filter(a => a.id !== request.id));
-    }
-
-    // 5. Process Next Request
-    setTimeout(() => {
-      setRequestQueue((prev) => {
-        const [, ...remaining] = prev;
-        return remaining;
-      });
-    }, 100); // Small delay to ensure state updates settle
-  };
+  }, [socket, navigate, handleNextRequest]);
 
   // Close popup without action
-  const closeIncomingPopup = () => {
+  const closeIncomingPopup = useCallback(() => {
     if (notificationSoundRef.current) {
       notificationSoundRef.current.pause();
       notificationSoundRef.current.currentTime = 0;
     }
     handleNextRequest();
-  };
+  }, [handleNextRequest]);
 
-  const toggleStatus = async () => {
+  const toggleStatus = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/astrologer/status`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await apiClient.put('/api/astrologer/status');
       setProfile(res.data);
       // Close offline popup if it was open
       setShowOfflinePopup(false);
     } catch (err) {
       console.error("Error updating status:", err);
     }
-  };
+  }, []);
 
-  const checkOnlineStatus = () => {
+  const checkOnlineStatus = useCallback(() => {
     if (!profile?.isOnline) {
       setShowOfflinePopup(true);
       return false;
     }
     return true;
-  };
+  }, [profile?.isOnline]);
 
   // ACCEPT CHAT FROM LIST
-  const acceptChat = (sessionId) => {
+  const acceptChat = useCallback((sessionId) => {
     if (!socket) {
       alert("Connection not ready. Please wait a moment and try again.");
       window.location.reload();
@@ -627,20 +600,18 @@ useEffect(() => {
     console.log("[Astrologer] Accepting chat session:", sessionId);
     socket.emit("chat:accept", { sessionId });
     navigate(`/chat/${sessionId}`);
-  };
+  }, [socket, navigate]);
 
   // REJECT CHAT FROM LIST
-  const rejectChat = async (sessionId) => {
+  const rejectChat = useCallback(async (sessionId) => {
     if (socket && socket.connected) {
       socket.emit("chat:reject", { sessionId });
     }
 
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/chat/debug/all`,
-        { sessionId },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await apiClient.post(
+        '/api/chat/debug/all',
+        { sessionId }
       );
       setPendingSessions((prev) =>
         prev.filter((s) => s.sessionId !== sessionId)
@@ -649,9 +620,9 @@ useEffect(() => {
       console.error("Error rejecting chat:", err);
       alert("Failed to reject chat. Please try again.");
     }
-  };
+  }, [socket]);
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     {
       id: "overview",
       icon: Home,
@@ -690,37 +661,9 @@ useEffect(() => {
       color: "from-yellow-500 to-orange-500",
       badge: null,
     }
-    // {
-    //   id: "clients",
-    //   icon: Users,
-    //   label: "Clients",
-    //   color: "from-indigo-500 to-blue-500",
-    //   badge: null,
-    // },
-    // {
-    //   id: "schedule",
-    //   icon: Calendar,
-    //   label: "Schedule",
-    //   color: "from-red-500 to-pink-500",
-    //   badge: null,
-    // },
-    // {
-    //   id: "analytics",
-    //   icon: BarChart3,
-    //   label: "Analytics",
-    //   color: "from-teal-500 to-green-500",
-    //   badge: null,
-    // },
-    // {
-    //   id: "profile",
-    //   icon: User,
-    //   label: "Profile",
-    //   color: "from-gray-600 to-gray-800",
-    //   badge: null,
-    // },
-  ];
+  ], [pendingSessions.length, pendingVideoCalls.length, pendingAudioCalls.length]);
 
-  const handleTabChange = (item) => {
+  const handleTabChange = useCallback((item) => {
     // If menu item has onClick, execute it
     if (item.onClick) {
       item.onClick();
@@ -740,10 +683,10 @@ useEffect(() => {
     }
 
     setActiveTab(item.id);
-  };
+  }, [navigate, profile?.isOnline]);
 
   // Handle chart selection from FAB menu
-  const handleChartSelect = (chartId) => {
+  const handleChartSelect = useCallback((chartId) => {
     console.log('Selected chart:', chartId);
 
     switch(chartId) {
@@ -772,7 +715,7 @@ useEffect(() => {
         setShowChartModal(true);
         break;
     }
-  };
+  }, [profile?.isOnline]);
 
   if (!profile) {
     return (
@@ -798,7 +741,6 @@ useEffect(() => {
   }
 
   return (
-
     <div className="min-h-screen bg-[#F8F9FE] font-sans text-slate-800 pb-24">
       {/* Top Header & Status Bar */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3">
