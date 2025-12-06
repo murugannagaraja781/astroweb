@@ -445,241 +445,138 @@ const AstrologerDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
-      {/* Cosmic Header */}
-      <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white py-12 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-10 left-10 w-4 h-4 bg-white rounded-full opacity-20 animate-pulse"></div>
-          <div className="absolute top-20 right-20 w-3 h-3 bg-yellow-200 rounded-full opacity-30 animate-pulse"></div>
-          <div className="absolute bottom-16 left-1/4 w-2 h-2 bg-blue-200 rounded-full opacity-40 animate-pulse"></div>
-        </div>
-
-        <div className="container mx-auto relative z-10">
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-white hover:text-purple-200 mb-6 transition-colors group"
-          >
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span>Back to Cosmic Realm</span>
-          </button>
+      {/* Gold Header */}
+      <div className="relative bg-[#FFD700] text-black py-4 px-4 shadow-sm sticky top-0 z-40">
+        <div className="container mx-auto flex items-center justify-between">
+           <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-1 hovered:bg-black/10 rounded-full transition-colors"
+              >
+                <ArrowLeft className="w-6 h-6 text-black" />
+              </button>
+              <h1 className="text-lg font-bold">Astrologer Profile</h1>
+           </div>
+           <button className="bg-white/20 px-3 py-1.5 rounded-full text-sm font-bold border border-black/10 flex items-center gap-1">
+             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+             Help
+           </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 -mt-16 relative z-20">
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/20 backdrop-blur-sm">
-          {/* Profile Header */}
-          <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 p-8 text-white">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              {/* Avatar */}
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-2xl border-4 border-white/20">
-                  <span className="text-white text-4xl font-bold">
-                    {getInitials(astrologer.name)}
-                  </span>
-                </div>
-                {astrologer.isOnline && (
-                  <div className="absolute bottom-2 right-2 w-8 h-8 bg-green-500 border-4 border-white rounded-full animate-pulse flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
+      <div className="container mx-auto px-4 py-6 bg-gray-50 min-h-[calc(100vh-60px)]">
+         {/* Profile Card */}
+         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+            <div className="flex gap-4">
+               {/* Avatar */}
+               <div className="relative flex-shrink-0">
+                  <div className="w-24 h-24 rounded-full border-2 border-[#FFD700] p-0.5">
+                     <img
+                       src={astrologer.profile?.profileImage || `https://ui-avatars.com/api/?name=${astrologer.name}&background=random`}
+                       alt={astrologer.name}
+                       className="w-full h-full rounded-full object-cover"
+                     />
                   </div>
-                )}
-              </div>
-
-              {/* Profile Info */}
-              <div className="flex-1 text-center md:text-left">
-                <h1 className="text-4xl font-bold mb-2">{astrologer.name}</h1>
-                <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
-                  {astrologer.isOnline ? (
-                    <span className="px-4 py-2 bg-green-500/20 backdrop-blur-sm text-green-100 rounded-full text-sm font-semibold flex items-center gap-2 border border-green-400/30">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      ✨ Available for Guidance
-                    </span>
-                  ) : (
-                    <span className="px-4 py-2 bg-gray-500/20 text-gray-300 rounded-full text-sm font-semibold">
-                      🌙 Currently Meditating
-                    </span>
+                  {astrologer.isOnline && (
+                    <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
                   )}
-                </div>
+               </div>
 
-                {/* Rate */}
-                <div className="flex items-center justify-center md:justify-start gap-2 text-2xl font-bold text-yellow-300 mb-6">
-                  <Star className="w-6 h-6 fill-yellow-300" />₹
-                  {astrologer.profile?.ratePerMinute || 0}/min
-                  <span className="text-sm text-purple-200 ml-2">
-                    Cosmic Consultation
-                  </span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                  <button
-                    onClick={handleVideoCall}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-                  >
-                    <Camera className="w-5 h-5" />
-                    Video Call
-                  </button>
-                  <button
-                    onClick={handleAudioCall}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-                  >
-                    <Phone className="w-5 h-5" />
-                    Audio Call
-                  </button>
-
-                  <button
-                    onClick={handleChatClick}
-                    className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
-                  >
-                    <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    Text Chat
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-b">
-            {astrologer.profile?.experience && (
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 text-purple-600 mb-2">
-                  <Clock className="w-5 h-5" />
-                  <span className="text-2xl font-bold">
-                    {astrologer.profile.experience}+
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600">Years Experience</p>
-              </div>
-            )}
-
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-pink-600 mb-2">
-                <Users className="w-5 h-5" />
-                <span className="text-2xl font-bold">98%</span>
-              </div>
-              <p className="text-sm text-gray-600">Satisfied Clients</p>
-            </div>
-
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-blue-600 mb-2">
-                <Zap className="w-5 h-5" />
-                <span className="text-2xl font-bold">24/7</span>
-              </div>
-              <p className="text-sm text-gray-600">Availability</p>
-            </div>
-
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-green-600 mb-2">
-                <Shield className="w-5 h-5" />
-                <span className="text-2xl font-bold">100%</span>
-              </div>
-              <p className="text-sm text-gray-600">Authentic</p>
-            </div>
-          </div>
-
-          {/* Content Area */}
-          <div className="p-8">
-            {/* Specialties */}
-            {astrologer.profile?.specialties &&
-              astrologer.profile.specialties.length > 0 && (
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
-                      <Sparkles className="w-6 h-6 text-white" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-800">
-                      Cosmic Specialties
-                    </h3>
+               {/* Info */}
+               <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                     <div>
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-1">
+                          {astrologer.name}
+                          <Shield className="w-4 h-4 text-blue-500 fill-blue-500" />
+                        </h2>
+                        <p className="text-sm text-gray-500 truncate">
+                          {astrologer.profile?.specialties?.join(', ') || 'Vedic, Prashana'}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {astrologer.profile?.languages?.join(', ') || 'English, Hindi'}
+                        </p>
+                     </div>
+                     <div className="text-right">
+                       <p className="text-xs text-gray-400">Experience</p>
+                       <p className="font-bold text-gray-900">{astrologer.profile?.experience || 0} Yrs</p>
+                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {astrologer.profile.specialties.map((specialty, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 text-center group hover:from-purple-100 hover:to-pink-100 transition-all"
-                      >
-                        <span className="text-purple-700 font-semibold group-hover:text-purple-800">
-                          {specialty}
+
+                  <div className="mt-3 flex items-center gap-2">
+                     <span className="text-lg font-bold text-gray-900">
+                       ₹{astrologer.profile?.ratePerMinute || 20}/min
+                     </span>
+                     {astrologer.profile?.ratePerMinute > 0 && (
+                        <span className="text-xs text-red-500 line-through">
+                          ₹{Math.round(astrologer.profile.ratePerMinute * 1.5)}/min
                         </span>
-                      </div>
-                    ))}
+                     )}
                   </div>
-                </div>
-              )}
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Languages */}
-              {astrologer.profile?.languages &&
-                astrologer.profile.languages.length > 0 && (
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
-                        <Languages className="w-5 h-5 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-800">
-                        Cosmic Languages
-                      </h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {astrologer.profile.languages.map((lang, idx) => (
-                        <span
-                          key={idx}
-                          className="px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-xl text-sm font-medium shadow-sm"
-                        >
-                          {lang}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              {/* Experience */}
-              {astrologer.profile?.experience && (
-                <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border border-orange-200">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl">
-                      <Award className="w-5 h-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800">
-                      Wisdom Journey
-                    </h3>
-                  </div>
-                  <p className="text-gray-700 text-lg font-semibold">
-                    {astrologer.profile.experience} years of cosmic guidance
-                  </p>
-                  <div className="mt-3 w-full bg-orange-200 rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full"
-                      style={{
-                        width: `${Math.min(
-                          astrologer.profile.experience * 10,
-                          100
-                        )}%`,
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              )}
+               </div>
             </div>
 
-            {/* Bio */}
-            {astrologer.profile?.bio && (
-              <div className="mt-8 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl">
-                    <Heart className="w-5 h-5 text-white" />
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-2 mt-6 border-t border-gray-100 pt-4">
+               <div className="text-center">
+                  <div className="text-lg font-bold text-gray-900 flex items-center justify-center gap-1">
+                     4.8 <Star size={14} className="fill-yellow-400 text-yellow-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800">
-                    Cosmic Message
-                  </h3>
-                </div>
-                <p className="text-gray-700 leading-relaxed text-lg">
-                  {astrologer.profile.bio}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+                  <p className="text-xs text-gray-500">Rating</p>
+               </div>
+               <div className="text-center border-l border-gray-100">
+                  <div className="text-lg font-bold text-gray-900">
+                     2000+
+                  </div>
+                  <p className="text-xs text-gray-500">Orders</p>
+               </div>
+               <div className="text-center border-l border-gray-100">
+                  <div className="text-lg font-bold text-gray-900">
+                     500+
+                  </div>
+                  <p className="text-xs text-gray-500">Reviews</p>
+               </div>
+            </div>
+         </div>
+
+         {/* About Section */}
+         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-20">
+            <h3 className="font-bold text-gray-900 mb-2">About Astrologer</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+               {astrologer.profile?.bio || `Hello, I am ${astrologer.name}. I have extensive experience in Vedic astrology and verify all predictions with accuracy. Consult me for guidance on career, marriage, and finance.`}
+            </p>
+         </div>
+
+         {/* Floating Action Bar */}
+         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-safe-or-4 z-50">
+            <div className="container mx-auto max-w-md grid grid-cols-2 gap-3">
+               <button
+                 onClick={handleChatClick}
+                 disabled={astrologer.profile?.isChatEnabled === false}
+                 className={`flex flex-col items-center justify-center gap-1 border py-2.5 rounded-xl font-bold transition-all ${
+                    astrologer.profile?.isChatEnabled === false
+                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-white border-green-500 text-green-600 hover:bg-green-50 active:scale-95"
+                 }`}
+               >
+                 <MessageCircle className="w-5 h-5" />
+                 <span>Chat</span>
+               </button>
+               <button
+                 onClick={handleAudioCall}
+                 disabled={astrologer.profile?.isCallEnabled === false}
+                 className={`flex flex-col items-center justify-center gap-1 border py-2.5 rounded-xl font-bold transition-all shadow-sm ${
+                    astrologer.profile?.isCallEnabled === false
+                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-[#FFD700] text-black border-[#FFD700] hover:brightness-95 active:scale-95"
+                 }`}
+               >
+                 <Phone className="w-5 h-5" />
+                 <span>Call</span>
+               </button>
+            </div>
+         </div>
       </div>
 
       {/* Waiting Modal */}

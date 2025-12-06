@@ -23,7 +23,8 @@ import {
   Bell,
   X,
   Settings,
-  Clock
+  Clock,
+  Edit2
 } from "lucide-react";
 import { FiVideo } from "react-icons/fi";
 
@@ -48,6 +49,7 @@ const AstrologerDashboard = () => {
   const [showChartModal, setShowChartModal] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
   const [showChatPanel, setShowChatPanel] = useState(false); // New: For sliding chat panel
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [isOnline, setIsOnline] = useState(true); // Online status for polling
 
   const audioRef = useRef(null);
@@ -668,6 +670,30 @@ const AstrologerDashboard = () => {
     }
   ], [pendingSessions.length, pendingVideoCalls.length, pendingAudioCalls.length]);
 
+  const handleProfileUpdate = useCallback(async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = {
+       name: formData.get('name'),
+       experience: formData.get('experience'),
+       ratePerMinute: formData.get('ratePerMinute'),
+       bio: formData.get('bio'),
+       isChatEnabled: formData.get('isChatEnabled') === 'on',
+       isCallEnabled: formData.get('isCallEnabled') === 'on',
+       isVideoEnabled: formData.get('isVideoEnabled') === 'on',
+    };
+
+    try {
+       await apiClient.put('/api/astrologer/profile', data);
+       fetchProfile();
+       setShowProfileEdit(false);
+       alert("Profile updated successfully!");
+    } catch (err) {
+       console.error("Failed to update profile", err);
+       alert("Failed to update profile. Please try again.");
+    }
+  }, [fetchProfile]);
+
   const handleTabChange = useCallback((item) => {
     // If menu item has onClick, execute it
     if (item.onClick) {
@@ -981,6 +1007,118 @@ const AstrologerDashboard = () => {
                </div>
                <div className="p-4 text-center text-slate-400 mt-10">Select a chat to view</div>
           </div>
+      )}
+
+      {/* Profile Edit Modal */}
+      {showProfileEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
+              <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+                 <h3 className="text-lg font-bold text-gray-900">Edit Profile</h3>
+                 <button onClick={() => setShowProfileEdit(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                    <X size={20} className="text-gray-500" />
+                 </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+                 <form id="profile-form" onSubmit={handleProfileUpdate} className="space-y-4">
+                    <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                       <input
+                         name="name"
+                         defaultValue={profile?.name}
+                         required
+                         className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                       />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                       <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Experience (Years)</label>
+                          <input
+                            name="experience"
+                            type="number"
+                            defaultValue={profile?.experience}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                          />
+                       </div>
+                       <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹/min)</label>
+                          <input
+                            name="ratePerMinute"
+                            type="number"
+                            defaultValue={profile?.ratePerMinute}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                          />
+                       </div>
+                    </div>
+
+                    <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                       <textarea
+                         name="bio"
+                         defaultValue={profile?.bio}
+                         rows={3}
+                         className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none transition-all"
+                       />
+                    </div>
+
+                    <div className="bg-purple-50 p-4 rounded-xl space-y-3 border border-purple-100">
+                       <h4 className="text-sm font-bold text-purple-900 mb-2 flex items-center gap-2">
+                         <Sparkles size={14} /> Service Capabilities
+                       </h4>
+
+                       <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                          <span className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                             <div className="p-1.5 bg-green-100 text-green-600 rounded-lg">
+                               <MessageCircle size={16} />
+                             </div>
+                             Chat Enabled
+                          </span>
+                          <input type="checkbox" name="isChatEnabled" defaultChecked={profile?.isChatEnabled !== false} className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500" />
+                       </label>
+
+                       <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                          <span className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                             <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
+                               <Phone size={16} />
+                             </div>
+                             Audio Call Enabled
+                          </span>
+                          <input type="checkbox" name="isCallEnabled" defaultChecked={profile?.isCallEnabled !== false} className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500" />
+                       </label>
+
+                       <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                          <span className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                             <div className="p-1.5 bg-rose-100 text-rose-600 rounded-lg">
+                               <FiVideo size={16} />
+                             </div>
+                             Video Call Enabled
+                          </span>
+                          <input type="checkbox" name="isVideoEnabled" defaultChecked={profile?.isVideoEnabled !== false} className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500" />
+                       </label>
+                    </div>
+                 </form>
+              </div>
+
+              <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
+                 <button
+                   type="button"
+                   onClick={() => setShowProfileEdit(false)}
+                   className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-200 rounded-xl transition-colors"
+                 >
+                   Cancel
+                 </button>
+                 <button
+                   type="submit"
+                   form="profile-form"
+                   className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg transform active:scale-95"
+                 >
+                   Save Changes
+                 </button>
+              </div>
+           </div>
+        </div>
       )}
 
     </div>
