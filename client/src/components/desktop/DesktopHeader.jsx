@@ -41,7 +41,7 @@ const DesktopHeader = () => {
       ? [{ to: "/astrology", icon: Star, label: "Astrology" }]
       : []),
     { to: "/chat/0", icon: MessageCircle, label: "Chat" },
-    { to: "/call/0", icon: Video, label: "Call" },
+    { to: "/astrologers/calls", icon: Video, label: "Call" },
   ];
 
   return (

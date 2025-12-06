@@ -1,30 +1,31 @@
  import { useEffect, useState, useRef, useContext, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { io } from "socket.io-client";
 import axios from "axios";
 
 import AuthContext from "../context/AuthContext";
+import { useChatSocket } from "../hooks/useChatSocket";
 import ChartModal from "../components/ChartModal";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock } from "lucide-react";
-
-// Single shared socket instance
-const socket = io(
-  import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app",
-  { autoConnect: false }
-);
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock, Paperclip } from "lucide-react";
 
 const Chat = () => {
   const { user } = useContext(AuthContext);
   const { id } = useParams(); // sessionId
 
+  const {
+    conversation,
+    setConversation,
+    isTyping,
+    sessionInfo,
+    setSessionInfo,
+    sessionDuration,
+    error: socketError,
+    sendMessage: sendSocketMessage,
+    sendTyping,
+    endSession
+  } = useChatSocket(id, user);
+
   const [message, setMessage] = useState("");
-  const [conversation, setConversation] = useState([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [otherUser, setOtherUser] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [sessionInfo, setSessionInfo] = useState(null);
-  const [sessionDuration, setSessionDuration] = useState(0);
-  const [error, setError] = useState(null);
   const [showChartModal, setShowChartModal] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
 
@@ -47,11 +48,10 @@ const Chat = () => {
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       setConversation(res.data.messages || []);
-      setOtherUser(null);
     } catch (error) {
       console.error("Error fetching chat:", error);
     }
-  }, [id]);
+  }, [id, setConversation]);
 
   // Fetch session info from REST
   const fetchSessionInfo = useCallback(async () => {
@@ -66,171 +66,23 @@ const Chat = () => {
     } catch (error) {
       console.error("Error fetching session info:", error);
     }
-  }, [id]);
+  }, [id, setSessionInfo]);
 
-  // Main socket + data setup
+  // Initial load
   useEffect(() => {
-    if (!user?.id || !id) return;
-
-    // Attach identity to socket
-    socket.io.opts.query = { username: user.name, userId: user.id };
-
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    console.log("[Chat] Joining session:", id);
-    socket.emit("user_online", { userId: user.id });
-    socket.emit("join_chat", { sessionId: id, userId: user.id });
-
-    // Initial load
-    fetchChat();
-    fetchSessionInfo();
-
-    // Poll session status every 2 seconds (max 30s)
-    const statusPoll = setInterval(() => {
-      fetchSessionInfo();
-    }, 2000);
-
-    const statusTimeout = setTimeout(() => {
-      clearInterval(statusPoll);
-    }, 30000);
-
-    // ---- SOCKET LISTENERS ----
-
-    const onConnectError = (err) => {
-      console.error("[socket] connect_error", err);
-      setError(`Connection error: ${err.message}. Please refresh the page.`);
-    };
-
-    const onDisconnect = (reason) => {
-      console.warn("[socket] disconnect:", reason);
-      if (reason === "io server disconnect") {
-        setError("Disconnected by server. Please refresh and try again.");
-      } else {
-        setError("Connection lost. Reconnecting...");
-      }
-    };
-
-    const onReconnect = () => {
-      console.log("[socket] reconnect");
-      setError(null);
-      socket.emit("join_chat", { sessionId: id, userId: user.id });
+    if (id && user?.id) {
       fetchChat();
       fetchSessionInfo();
-    };
+    }
+  }, [id, user?.id, fetchChat, fetchSessionInfo]);
 
-    const onChatMessage = (newMessage) => {
-      setConversation((prev) => {
-        // 1. TEMP ID MATCH → Replace pending message
-        if (newMessage.tempId) {
-          const exists = prev.some((msg) => msg.tempId === newMessage.tempId);
-          if (exists) {
-            return prev.map((msg) =>
-              msg.tempId === newMessage.tempId
-                ? { ...msg, ...newMessage, pending: false }
-                : msg
-            );
-          }
-        }
-
-        // 2. REAL DB ID MATCH → do NOT add again
-        if (newMessage._id) {
-          const exists = prev.some((msg) => msg._id === newMessage._id);
-          if (exists) return prev;
-        }
-
-        // 3. Otherwise add new message normally
-        return [...prev, newMessage];
-      });
-    };
-
-    const onChatTyping = (data) => {
-      if (data.userId && data.userId !== user.id) {
-        setIsTyping(true);
-        setTimeout(() => setIsTyping(false), 1500);
-      }
-    };
-
-    const onChatSessionInfo = (info) => {
-      console.log("[Chat] Received session info:", info);
-      setSessionInfo(info);
-    };
-
-    const onChatAccepted = (data) => {
-      console.log("[Chat] Chat accepted:", data);
-      fetchSessionInfo();
-    };
-
-    const onChatAcceptedByAstrologer = (data) => {
-      console.log("[Chat] Astrologer accepted your request:", data);
-      fetchSessionInfo();
-    };
-
-    const onChatStarted = (data) => {
-      console.log("[Chat] Chat started:", data);
-      fetchSessionInfo();
-    };
-
-    const onWalletUpdate = (data) => {
-      // data: { sessionId, balance, elapsed }
-      if (data.elapsed) {
-        setSessionDuration(data.elapsed);
-      }
-    };
-
-    // attach listeners
-    socket.on("connect_error", onConnectError);
-    socket.on("disconnect", onDisconnect);
-    socket.on("reconnect", onReconnect);
-    socket.on("chat:message", onChatMessage);
-    socket.on("chat:typing", onChatTyping);
-    socket.on("chat:session_info", onChatSessionInfo);
-    socket.on("chat:accepted", onChatAccepted);
-    socket.on("chat:accepted_by_astrologer", onChatAcceptedByAstrologer);
-    socket.on("chat:started", onChatStarted);
-    socket.on("wallet:update", onWalletUpdate);
-
-    // cleanup
-    return () => {
-      clearInterval(statusPoll);
-      clearTimeout(statusTimeout);
-
-      socket.off("connect_error", onConnectError);
-      socket.off("disconnect", onDisconnect);
-      socket.off("reconnect", onReconnect);
-      socket.off("chat:message", onChatMessage);
-      socket.off("chat:typing", onChatTyping);
-      socket.off("chat:session_info", onChatSessionInfo);
-      socket.off("chat:accepted", onChatAccepted);
-      socket.off("chat:accepted_by_astrologer", onChatAcceptedByAstrologer);
-      socket.off("chat:started", onChatStarted);
-      socket.off("wallet:update", onWalletUpdate);
-    };
-  }, [id, user?.id, user?.name, fetchChat, fetchSessionInfo]);
+  // Poll session status fallback (optional, as socket pushes updates too)
+  useEffect(() => {
+    const statusPoll = setInterval(fetchSessionInfo, 5000);
+    return () => clearInterval(statusPoll);
+  }, [fetchSessionInfo]);
 
   useEffect(scrollToBottom, [conversation]);
-
-  // Session status watcher (optional)
-  useEffect(() => {
-    if (sessionInfo?.status === "active") {
-      console.log("[Chat] Session is now active, UI should update");
-    }
-  }, [sessionInfo?.status]);
-
-  // Session timer (fallback if socket doesn't send updates often enough)
-  useEffect(() => {
-    if (!sessionInfo?.startedAt || sessionInfo.status !== "active") return;
-
-    const interval = setInterval(() => {
-      const start = new Date(sessionInfo.startedAt);
-      const now = new Date();
-      const diff = Math.floor((now - start) / 1000);
-      setSessionDuration(diff);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [sessionInfo]);
 
   // Helper function to format duration
   const formatDuration = (seconds) => {
@@ -240,46 +92,17 @@ const Chat = () => {
   };
 
   // --- Send Message ---
-  const sendMessage = async (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
-    if (!user?.id || !id) return;
 
-    if (!socket.connected) {
-      setError("Not connected to chat server. Please refresh.");
-      return;
-    }
-
-    const tempId =
-      "tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2);
-
-    const newMsg = {
-      tempId,
-      senderId: user.id,
-      text: message,
-      timestamp: new Date().toISOString(),
-      pending: true,
-    };
-
-    // Optimistic UI
-    setConversation((prev) => [...prev, newMsg]);
-
-    socket.emit("chat:message", {
-      sessionId: id,
-      senderId: user.id,
-      text: message,
-      tempId,
-    });
-
+    sendSocketMessage(message);
     setMessage("");
   };
 
   // --- Typing Event ---
   const handleTyping = () => {
-    if (!user?.id || !id) return;
-    if (!socket.connected) return;
-
-    socket.emit("chat:typing", { sessionId: id, userId: user.id });
+    sendTyping();
   };
 
   // --- File Upload ---
@@ -305,15 +128,9 @@ const Chat = () => {
       );
 
       const { url } = res.data;
-
       // Send image message via socket
-      socket.emit("chat:message", {
-        sessionId: id,
-        senderId: user.id,
-        text: "Sent an image",
-        type: "image",
-        mediaUrl: url,
-      });
+      sendSocketMessage("Sent an image", "image", url);
+
     } catch (err) {
       console.error("Error uploading image:", err);
       alert("Failed to upload image");
@@ -353,24 +170,8 @@ const Chat = () => {
           );
 
           const { url } = res.data;
+          sendSocketMessage("Voice message", "audio", url);
 
-          const audioMsg = {
-            senderId: user.id,
-            audioUrl: url,
-            timestamp: new Date().toISOString(),
-            status: "sent",
-          };
-
-          setConversation((prev) => [...prev, audioMsg]);
-
-          socket.emit("chat:message", {
-            sessionId: id,
-            senderId: user.id,
-            text: "Voice message",
-            type: "audio",
-            mediaUrl: url,
-            duration: 0, // You might want to calculate duration
-          });
         } catch (err) {
           console.error("Error uploading voice note:", err);
         }
@@ -398,20 +199,14 @@ const Chat = () => {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-gray-300 relative overflow-hidden">
       {/* Error Popup */}
-      {error && (
+      {socketError && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md mx-4">
             <div className="text-red-500 text-6xl mb-4 text-center">⚠️</div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">
               Connection Error
             </h3>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={() => setError(null)}
-              className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition-colors"
-            >
-              Dismiss
-            </button>
+            <p className="text-gray-600 mb-6">{socketError}</p>
           </div>
         </div>
       )}
@@ -492,7 +287,7 @@ const Chat = () => {
               if (
                 window.confirm("Are you sure you want to end this chat session?")
               ) {
-                socket.emit("chat:end", { sessionId: id });
+                endSession();
                 window.history.back();
               }
             }}
@@ -616,6 +411,12 @@ const Chat = () => {
                           </div>
                         )}
 
+                         {msg.mediaUrl && msg.type === 'image' && (
+                          <div className="mt-2">
+                            <img src={msg.mediaUrl} alt="shared" className="rounded-lg max-w-full h-auto border border-white/10" />
+                          </div>
+                        )}
+
                         <div
                           className={`text-[10px] mt-2 flex items-center gap-1 ${
                             isMe
@@ -672,7 +473,7 @@ const Chat = () => {
             </div>
           )}
 
-          <form onSubmit={sendMessage} className="relative group">
+          <form onSubmit={handleSendMessage} className="relative group">
             <div className="relative">
               <div className="absolute inset-0 bg-purple-500/20 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
 
@@ -696,6 +497,22 @@ const Chat = () => {
                     <MicOff size={20} />
                   </button>
                 )}
+
+                <input
+                  type="file"
+                  id="image-upload"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('image-upload').click()}
+                  className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-all duration-200 flex-shrink-0"
+                  title="Attach Image"
+                >
+                  <Paperclip size={20} />
+                </button>
 
                 <input
                   type="text"

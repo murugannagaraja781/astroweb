@@ -21,7 +21,7 @@ const AstrologerDetail = lazy(() => import('./pages/AstrologerDetail'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AstrologerDashboard = lazy(() => import('./pages/AstrologerDashboard'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
-const VideoCall = lazy(() => import('./pages/VideoCall'));
+
 const Chat = lazy(() => import('./pages/Chat'));
 const AstrologyDashboard = lazy(() => import('./pages/AstrologyDashboard'));
 const PhonePeTest = lazy(() => import('./pages/PhonePeTest'));
@@ -167,7 +167,7 @@ function App() {
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/astrologer-dashboard" element={<AstrologerDashboard />} />
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                  <Route path="/call/:id" element={<VideoCall />} />
+
                   <Route path="/chat/:id" element={<Chat />} />
                   <Route path="/astrology" element={<ProtectedAstrology />} />
                   <Route path="/astrologers/chat" element={<AstrologerListChat />} />
