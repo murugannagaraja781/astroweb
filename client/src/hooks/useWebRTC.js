@@ -199,10 +199,19 @@ export const useWebRTC = ({
         socket.on('call:candidate', handleCandidate);
         socket.on('call:end', handleEnd);
 
-        socket.on('disconnect', () => {
-            console.log('[useWebRTC] Socket disconnected');
-            setError('Connection lost. Please check your internet or click Retry.');
-            setConnectionStatus('failed');
+        socket.on('connect_error', (err) => {
+            console.error('[useWebRTC] Socket connect_error:', err);
+            // Don't immediately fail call on minor transport glitches, but log it.
+            // setConnectionStatus('failed'); // Removed immediate fail to allow retries
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('[useWebRTC] Socket disconnected:', reason);
+            if (reason === 'io server disconnect') {
+                setError('Disconnected by server.');
+                setConnectionStatus('failed');
+            }
+            // Else it might be transport close (network), let reconnection handle it
         });
 
         return () => {

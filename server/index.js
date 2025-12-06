@@ -13,9 +13,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all for dev simplicity
-    methods: ["GET", "POST"],
+    origin: "*", // Keep strict check off for now to debug localhost->prod
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true
   },
+  transports: ['websocket', 'polling'] // Ensure both transports are enabled server-side
 });
 
 app.use(cors());
