@@ -326,7 +326,7 @@ const AstrologerDetail = () => {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/chat/request`,
         {
-          astrologerId: id,
+          astrologerId: astrologer.name,
           intakeDetails: intakeData
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -342,7 +342,7 @@ const AstrologerDetail = () => {
       if (user.id) {
         socket.emit("chat:request", {
           clientId: user.id,
-          astrologerId: id,
+          astrologerId: astrologer.name,
           ratePerMinute: ratePerMinute || 1,
           sessionId,
           intakeDetails: intakeData
@@ -409,7 +409,7 @@ const AstrologerDetail = () => {
                 <ClienttoAstrologyvideocall
                   roomId={videoRoomId}
                   socket={socket}
-                  astrologerId={id}
+                  astrologerId={astrologer.name}
                   peerSocketId={peerSocketId}
                 />
               </div>
