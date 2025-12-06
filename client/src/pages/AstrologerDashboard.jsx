@@ -891,6 +891,14 @@ const AstrologerDashboard = () => {
                         </div>
                     )}
 
+                    {/* Developer Debug: JSON Dump */}
+                    <details className="mb-4">
+                        <summary className="text-xs text-slate-400 cursor-pointer">Show Debug Data (JSON)</summary>
+                        <pre className="bg-slate-900 text-green-400 p-4 rounded-xl text-[10px] overflow-auto max-h-60 mt-2 font-mono">
+                            {JSON.stringify({ pendingSessions, pendingVideoCalls, pendingAudioCalls }, null, 2)}
+                        </pre>
+                    </details>
+
                     {pendingSessions.map(session => (
                         <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                              <div className="flex items-center gap-3">
