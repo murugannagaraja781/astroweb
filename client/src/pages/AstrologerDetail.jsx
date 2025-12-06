@@ -5,7 +5,6 @@ import axios from "axios";
 import AuthContext from "../context/AuthContext";
 import ClienttoAstrologyvideocall from "./AstrologertoClientVideoCall";
 import AudioCall from "./AudioCall";
-import IntakeModal from "../components/IntakeModal";
 
 import {
   MessageCircle,
@@ -43,7 +42,6 @@ const AstrologerDetail = () => {
   const [audioPeerSocketId, setAudioPeerSocketId] = useState(null);
   const [lastSessionId, setLastSessionId] = useState(null);
   const [showMissedPopup, setShowMissedPopup] = useState(false);
-  const [showIntakeModal, setShowIntakeModal] = useState(false);
 
   // Timeout Logic
   useEffect(() => {
@@ -277,10 +275,7 @@ const AstrologerDetail = () => {
   // ============================
   // CHAT REQUEST (CLIENT → ASTRO)
   // ============================
-  // ============================
-  // CHAT REQUEST (CLIENT → ASTRO)
-  // ============================
-  const handleChatClick = () => {
+  const requestChat = async () => {
     if (!user) {
       alert("Please login to continue");
       navigate("/login");
@@ -303,21 +298,16 @@ const AstrologerDetail = () => {
       return;
     }
 
-    if (!socket || !socket.connected) {
-      // Try to reconnect if socket exists but not connected
-      if (socket && !socket.connected) socket.connect();
-      else {
-        alert("Connection not ready. Please refresh.");
-        return;
-      }
+    if (!socket) {
+      alert("Connection not ready. Please try again.");
+      return;
     }
 
-    // Open Intake Modal instead of direct request
-    setShowIntakeModal(true);
-  };
+    if (!socket.connected) {
+      alert("Connection not established. Please refresh and try again.");
+      return;
+    }
 
-  const handleIntakeSubmit = async (intakeData) => {
-    setShowIntakeModal(false);
     setWaiting(true);
     setWaitingType("chat");
 
@@ -325,10 +315,7 @@ const AstrologerDetail = () => {
       const token = localStorage.getItem("token");
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/chat/request`,
-        {
-          astrologerId: id,
-          intakeDetails: intakeData
-        },
+        { astrologerId: id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -345,7 +332,6 @@ const AstrologerDetail = () => {
           astrologerId: id,
           ratePerMinute: ratePerMinute || 1,
           sessionId,
-          intakeDetails: intakeData
         });
       }
 
@@ -528,7 +514,7 @@ const AstrologerDetail = () => {
                   </button>
 
                   <button
-                    onClick={handleChatClick}
+                    onClick={requestChat}
                     className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 group"
                   >
                     <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -753,12 +739,6 @@ const AstrologerDetail = () => {
           ✨ Your Balance: ₹{balance}
         </div>
       </div>
-      <IntakeModal
-        isOpen={showIntakeModal}
-        onClose={() => setShowIntakeModal(false)}
-        onCancel={() => setShowIntakeModal(false)}
-        onSubmit={handleIntakeSubmit}
-      />
     </div>
   );
 };

@@ -5,7 +5,7 @@ import axios from "axios";
 
 import AuthContext from "../context/AuthContext";
 import ChartModal from "../components/ChartModal";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock, User } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock } from "lucide-react";
 
 // Single shared socket instance
 const socket = io(
@@ -500,23 +500,6 @@ const Chat = () => {
           >
             End Chat
           </button>
-
-          {sessionInfo?.intakeDetails && (
-             <button
-                onClick={() => {
-                   alert(
-                     `Name: ${sessionInfo.intakeDetails.name}\n` +
-                     `DOB: ${sessionInfo.intakeDetails.dateOfBirth}\n` +
-                     `Time: ${sessionInfo.intakeDetails.timeOfBirth}\n` +
-                     `Place: ${sessionInfo.intakeDetails.placeOfBirth}`
-                   );
-                }}
-                className="p-2 bg-purple-500/20 rounded-full text-purple-300 hover:bg-purple-500/30 transition-colors"
-                title="View Client Intake Details"
-             >
-                <User size={20} />
-             </button>
-          )}
         </div>
       </div>
 
@@ -803,7 +786,6 @@ const Chat = () => {
         isOpen={showChartModal}
         onClose={() => setShowChartModal(false)}
         initialChart={selectedChart}
-        intakeData={sessionInfo?.intakeDetails}
       />
     </div>
   );
