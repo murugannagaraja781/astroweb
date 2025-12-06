@@ -1,5 +1,6 @@
 // AstrologerDashboard.jsx
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useContext } from "react";
+import AuthContext from "../context/AuthContext";
 import Modal from "../components/Modal";
 import apiClient from "../utils/apiClient";
 import { io } from "socket.io-client";
@@ -29,6 +30,7 @@ import {
 import { FiVideo } from "react-icons/fi";
 
 const AstrologerDashboard = () => {
+  const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("inbox");
   const [inboxTab, setInboxTab] = useState("chat"); // 'chat' or 'video'
   const [profile, setProfile] = useState(null);
@@ -787,7 +789,8 @@ const AstrologerDashboard = () => {
                 </div>
                 <div>
                     <h1 className="text-lg font-bold text-slate-800 leading-tight">
-                        {profile.userId?.name || "Astrologer"}
+                         {/* Display Name from Context (Login Name) or Profile Fallback */}
+                        {user?.name || profile.userId?.name || "Astrologer"}
                     </h1>
                     <div className="flex items-center gap-1 text-xs text-slate-500">
                         <Star size={12} className="text-yellow-400 fill-yellow-400" />
