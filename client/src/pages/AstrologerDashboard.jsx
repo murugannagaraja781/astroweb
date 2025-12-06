@@ -676,6 +676,29 @@ useEffect(() => {
     }
   };
 
+  // FILTER LOGIC FOR BADGES
+  const filterByMyName = (item) => {
+    if (!profile?.userId) return false;
+    const myName = user?.name || profile.userId?.name || profile.name;
+    const myId = profile.userId._id || profile.userId;
+
+    // Strict Name Check
+    if (item.astrologer?.name && myName) {
+       return item.astrologer.name === myName;
+    }
+    if (item.astrologerName && myName) {
+       return item.astrologerName === myName;
+    }
+
+    // Fallback ID Check
+    const itemId = item.astrologerId || item.astrologer?.id;
+    return String(itemId) === String(myId);
+  };
+
+  const myPendingSessions = pendingSessions.filter(filterByMyName);
+  const myPendingVideoCalls = pendingVideoCalls.filter(filterByMyName);
+  const myPendingAudioCalls = pendingAudioCalls.filter(filterByMyName);
+
   const menuItems = [
     {
       id: "overview",
@@ -689,7 +712,7 @@ useEffect(() => {
       icon: MessageCircle,
       label: "Inbox",
       color: "from-purple-500 to-pink-500",
-      badge: pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length,
+      badge: myPendingSessions.length + myPendingVideoCalls.length + myPendingAudioCalls.length,
       requiresOnline: true, // NEW: Requires online status
     },
     {
