@@ -8,7 +8,7 @@ import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
 import AudioCall from "./AudioCall";
 import ChartModal from "../components/ChartModal";
 import AstrologyQuickMenu from "../components/AstrologyQuickMenu";
-import { AuthContext } from "../context/AuthContext";
+import AuthContext from "../context/AuthContext";
 import {
   Home,
   MessageCircle,
