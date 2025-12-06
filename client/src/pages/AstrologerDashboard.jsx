@@ -123,9 +123,9 @@ useEffect(() => {
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app";
     const newSocket = io(socketUrl, {
-      transports: ["websocket", "polling"],
+      transports: ["websocket"], // Force WebSocket to avoid XHR polling errors
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
     });
 
     newSocket.on("connect", () => {

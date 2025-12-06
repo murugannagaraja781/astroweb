@@ -11,13 +11,16 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*", // Keep strict check off for now to debug localhost->prod
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true
+cors: {
+  origin: (origin, callback) => {
+    // Allow any origin for development/testing flexibility
+    // In production, you might want to restrict this
+    callback(null, true);
   },
-  transports: ['websocket', 'polling'] // Ensure both transports are enabled server-side
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      credentials: true
+},
+transports: ['websocket', 'polling'] // Ensure both transports are enabled server-side
 });
 
 app.use(cors());
