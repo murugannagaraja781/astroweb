@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { io } from "socket.io-client";
 
 const socket = io(
-    import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app",
-    { autoConnect: false }
+    "https://astroweb-production.up.railway.app",
+    { autoConnect: false, transports: ['websocket', 'polling'] }
 );
 
 export const useChatSocket = (sessionId, user) => {
