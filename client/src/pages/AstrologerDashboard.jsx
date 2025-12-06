@@ -1370,13 +1370,18 @@ useEffect(() => {
                                   onClick={() => {
                                     if (socket) {
                                       const roomId = call.roomId || `video_${Date.now()}_${call.fromId}`;
-                                      socket.emit("call:accept", {
-                                        toSocketId: call.fromSocketId,
-                                        roomId
-                                      });
-                                      setActiveCallRoomId(roomId);
-                                      setActiveTab("calls");
-                                    }
+                                        socket.emit("call:accept", {
+                                          toSocketId: call.fromSocketId,
+                                          roomId
+                                        });
+                                        // Set activeCall to trigger VideoCall component overlay
+                                        setActiveCall({
+                                            type: 'video',
+                                            fromSocketId: call.fromSocketId,
+                                            fromName: call.fromName,
+                                            roomId
+                                        });
+                                      }
                                     setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
                                   }}
                                   className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-all transform hover:scale-105"

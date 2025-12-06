@@ -105,6 +105,11 @@ const AstrologerDetail = () => {
       alert("Astrologer is busy or rejected the call.");
     });
 
+    newSocket.on("call:offline", () => {
+      setWaiting(false);
+      alert("Astrologer is offline or unreachable.");
+    });
+
     // Audio Call Listeners
     newSocket.on("audio:accepted", ({ roomId, fromSocketId }) => {
       console.log("Audio call accepted:", roomId, fromSocketId);
@@ -124,6 +129,7 @@ const AstrologerDetail = () => {
       newSocket.off("chat:rejected");
       newSocket.off("call:accepted");
       newSocket.off("call:rejected");
+      newSocket.off("call:offline");
       newSocket.off("audio:accepted");
       newSocket.off("audio:rejected");
       newSocket.disconnect();
