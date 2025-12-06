@@ -5,7 +5,7 @@ import axios from "axios";
 
 import AuthContext from "../context/AuthContext";
 import ChartModal from "../components/ChartModal";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock, User } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock, User, Calendar, MapPin, X } from "lucide-react";
 
 // Single shared socket instance
 const socket = io(
@@ -27,6 +27,7 @@ const Chat = () => {
   const [error, setError] = useState(null);
   const [showChartModal, setShowChartModal] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
+  const [showIntakeInfoModal, setShowIntakeInfoModal] = useState(false); // New state for intake modal
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -494,14 +495,7 @@ const Chat = () => {
 
           {sessionInfo?.intakeDetails && (
              <button
-                onClick={() => {
-                   alert(
-                     `Name: ${sessionInfo.intakeDetails.name}\n` +
-                     `DOB: ${sessionInfo.intakeDetails.dateOfBirth}\n` +
-                     `Time: ${sessionInfo.intakeDetails.timeOfBirth}\n` +
-                     `Place: ${sessionInfo.intakeDetails.placeOfBirth}`
-                   );
-                }}
+                onClick={() => setShowIntakeInfoModal(true)}
                 className="p-1.5 md:p-2 bg-purple-500/20 rounded-full text-purple-300 hover:bg-purple-500/30 transition-colors flex-shrink-0"
                 title="View Client Intake Details"
              >
@@ -515,6 +509,49 @@ const Chat = () => {
       <div className="flex-1 overflow-y-auto relative z-0 scroll-smooth">
         <div className="max-w-4xl mx-auto min-h-full flex flex-col justify-end">
           <div className="px-4 py-4 space-y-4 message-container">
+
+            {/* System Message: Intake Details Card (Visible to Astrologers) */}
+            {sessionInfo?.intakeDetails && (user?.role === 'astrologer' || user?.role === 'admin') && (
+              <div className="mx-auto max-w-sm mb-6 relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-200"></div>
+                  <div className="relative bg-[#1a1a2e] border border-white/10 p-5 rounded-2xl shadow-xl">
+                    <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-2">
+                       <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+                          <User size={16} className="text-purple-300" />
+                       </div>
+                       <h3 className="font-serif font-bold text-white tracking-wide">Birth Details</h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                       <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Name</p>
+                          <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.name}</p>
+                       </div>
+                       <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Date of Birth</p>
+                          <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.dateOfBirth}</p>
+                       </div>
+                       <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Time</p>
+                          <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.timeOfBirth}</p>
+                       </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Place</p>
+                          <p className="text-gray-200 font-medium truncate" title={sessionInfo.intakeDetails.placeOfBirth}>
+                            {sessionInfo.intakeDetails.placeOfBirth}
+                          </p>
+                       </div>
+                       {(sessionInfo.intakeDetails.gender) && (
+                         <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Gender</p>
+                            <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.gender}</p>
+                         </div>
+                       )}
+                    </div>
+                  </div>
+              </div>
+            )}
+
             {conversation.length === 0 ? (
               <div className="text-center py-12">
                 {sessionInfo?.status === "requested" ? (
@@ -796,6 +833,62 @@ const Chat = () => {
         initialChart={selectedChart}
         intakeData={sessionInfo?.intakeDetails}
       />
+
+      {/* Intake Details Modal (Separate from Chart Modal for quick view) */}
+      {showIntakeInfoModal && sessionInfo?.intakeDetails && (
+         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowIntakeInfoModal(false)}>
+             <div className="bg-[#1a1a2e] border border-[#D4AF37]/30 rounded-2xl w-full max-w-sm shadow-2xl transform transition-all scale-100 p-6 relative"
+                  onClick={e => e.stopPropagation()}>
+
+                  <button className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                          onClick={() => setShowIntakeInfoModal(false)}>
+                      <X size={20} />
+                  </button>
+
+                  <div className="flex items-center gap-3 mb-6">
+                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#8a701f] text-white flex items-center justify-center font-bold text-lg shadow-lg">
+                          {sessionInfo.intakeDetails.name?.[0]?.toUpperCase()}
+                       </div>
+                       <div>
+                          <h3 className="text-xl font-bold text-white font-serif">{sessionInfo.intakeDetails.name}</h3>
+                          <p className="text-sm text-[#D4AF37]">Birth Details</p>
+                       </div>
+                  </div>
+
+                  <div className="space-y-4">
+                      <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                         <div className="p-2 bg-black/20 rounded-lg text-purple-300"><Calendar size={18} /></div>
+                         <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-widest">Date of Birth</p>
+                            <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.dateOfBirth}</p>
+                         </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                         <div className="p-2 bg-black/20 rounded-lg text-blue-300"><Clock size={18} /></div>
+                         <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-widest">Time of Birth</p>
+                            <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.timeOfBirth}</p>
+                         </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                         <div className="p-2 bg-black/20 rounded-lg text-pink-300"><MapPin size={18} /></div>
+                         <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-widest">Place of Birth</p>
+                            <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.placeOfBirth}</p>
+                         </div>
+                      </div>
+                  </div>
+
+                  <button className="w-full mt-6 py-3 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/50 text-[#D4AF37] rounded-xl font-bold transition-all uppercase tracking-wider text-sm"
+                          onClick={() => setShowIntakeInfoModal(false)}>
+                      Close Details
+                  </button>
+             </div>
+         </div>
+      )}
     </div>
   );
 };
