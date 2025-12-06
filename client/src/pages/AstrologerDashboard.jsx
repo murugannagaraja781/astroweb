@@ -113,12 +113,6 @@ const AstrologerDashboard = () => {
   }, []);
 
 
-  const profileRef = useRef(null);
-
-  useEffect(() => {
-      profileRef.current = profile;
-  }, [profile]);
-
   useEffect(() => {
     const unlock = () => {
       const btn = document.getElementById("unlock-audio");
@@ -139,13 +133,6 @@ const AstrologerDashboard = () => {
 
     newSocket.on("connect", () => {
       console.log("[Astrologer] Socket connected:", newSocket.id);
-      // Re-register presence immediately on connection/reconnection
-      if (profileRef.current?.userId) {
-         // Handle both populated object and direct ID ID
-         const userId = profileRef.current.userId._id || profileRef.current.userId;
-         console.log("[Astrologer] Emitting user_online on connect:", userId);
-         newSocket.emit("user_online", { userId });
-      }
     });
 
     newSocket.on("connect_error", (err) => {
@@ -903,7 +890,7 @@ const AstrologerDashboard = () => {
                              <p className="text-xs text-slate-300 mt-1">Updates live automatically</p>
                         </div>
                     )}
-{JSON.stringify(pendingSessions)}
+
                     {pendingSessions.map(session => (
                         <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                              <div className="flex items-center gap-3">
