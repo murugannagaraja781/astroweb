@@ -1133,6 +1133,20 @@ useEffect(() => {
                     <Sparkles size={16} />
                     <span>Refresh</span>
                   </button>
+                  <button
+                    onClick={() => {
+                        if(window.confirm("Are you sure you want to clear all pending requests from this view?")) {
+                            setPendingSessions([]);
+                            setPendingVideoCalls([]);
+                            setPendingAudioCalls([]);
+                        }
+                    }}
+                    className="flex items-center gap-1 hover:text-red-600 transition-colors text-red-400"
+                    title="Clear All Requests"
+                  >
+                    <X size={16} />
+                    <span>Clear</span>
+                  </button>
                   <div className="flex items-center gap-2">
                     <span>🔔</span>
                     <span>Notifications enabled</span>
