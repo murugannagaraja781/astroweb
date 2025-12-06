@@ -1183,7 +1183,23 @@ useEffect(() => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {pendingSessions.map((session) => {
+                      {pendingSessions
+                        .filter(session => {
+                             if (!profile?.userId) return false;
+                             const myId = profile.userId._id || profile.userId;
+
+                             // 1. ID Check
+                             if (String(session.astrologerId) !== String(myId)) return false;
+
+                             // 2. Name Check (Strict if name exists)
+                             const myName = user?.name || profile.userId?.name || profile.name;
+                             if (session.astrologerName && myName) {
+                                if (session.astrologerName !== myName) return false;
+                             }
+
+                             return true;
+                        })
+                        .map((session) => {
                         const timeAgo = () => {
                           const now = new Date();
                           const created = new Date(session.createdAt);

@@ -329,7 +329,9 @@ const AstrologerDetail = () => {
       if (user.id) {
         socket.emit("chat:request", {
           clientId: user.id,
+          clientName: user.name,
           astrologerId: id,
+          astrologerName: astrologer.name, // Added astrologer name as requested
           ratePerMinute: ratePerMinute || 1,
           sessionId,
         });
