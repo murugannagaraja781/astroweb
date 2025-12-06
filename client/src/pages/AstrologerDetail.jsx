@@ -444,45 +444,50 @@ const AstrologerDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-orange-50/30 font-sans">
-      {/* Royal Orange-Gold Header */}
-      <div className="relative bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500 text-white py-4 px-4 shadow-lg sticky top-0 z-40">
+    <div className="min-h-screen bg-[#0a0a1a] pb-24 font-sans text-gray-100">
+      {/* Midnight Gold Header */}
+      <div className="relative bg-gradient-to-r from-[#0f0c29] via-[#302b63] to-[#24243e] text-white py-5 px-4 shadow-xl sticky top-0 z-40 border-b border-white/5">
         <div className="container mx-auto flex items-center justify-between">
            <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
-                className="p-1 hover:bg-black/10 rounded-full transition-colors"
+                className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"
               >
-                <ArrowLeft className="w-6 h-6 text-white" />
+                <ArrowLeft className="w-6 h-6 text-[#D4AF37]" />
               </button>
-              <h1 className="text-xl font-serif font-bold tracking-wide">Astrologer Profile</h1>
+              <h1 className="text-xl font-serif font-bold tracking-wide text-[#F8F8FF]">Profile</h1>
            </div>
-           <button className="bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-bold border border-white/20 flex items-center gap-1 hover:bg-black/30 transition-colors">
-             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
-             <span className="text-white">Help</span>
+           <button className="bg-black/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold border border-[#D4AF37]/30 flex items-center gap-2 hover:bg-[#D4AF37]/10 transition-colors">
+             <div className="relative">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-50"></div>
+             </div>
+             <span className="text-[#D4AF37] tracking-wider uppercase">Help</span>
            </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-6 min-h-[calc(100vh-60px)]">
+      <div className="container mx-auto px-4 py-6">
          {/* Profile Card */}
-         <div className="bg-white rounded-2xl shadow-md border border-orange-100 p-5 mb-4 relative overflow-hidden">
+         <div className="bg-[#13132b] rounded-3xl shadow-2xl border border-[#D4AF37]/20 p-6 mb-6 relative overflow-hidden">
             {/* Decorative bg element */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-full -z-0 opacity-50"></div>
+            <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-[#D4AF37]/10 to-transparent rounded-bl-[100px] -z-0"></div>
 
-            <div className="relative z-10 flex gap-5">
+            <div className="relative z-10 flex gap-6 items-center">
                {/* Avatar */}
                <div className="relative flex-shrink-0">
-                  <div className="w-28 h-28 rounded-full border-[3px] border-orange-400 p-1 shadow-sm">
-                     <img
-                       src={astrologer.profile?.profileImage || `https://ui-avatars.com/api/?name=${astrologer.name}&background=random`}
-                       alt={astrologer.name}
-                       className="w-full h-full rounded-full object-cover"
-                     />
+                  <div className="w-28 h-28 rounded-full p-1 shadow-[0_0_20px_rgba(212,175,55,0.3)]" style={{ background: 'linear-gradient(135deg, #D4AF37, #C5A028)' }}>
+                     <div className="w-full h-full rounded-full p-[2px] bg-[#13132b]">
+                        <img
+                          src={astrologer.profile?.profileImage || `https://ui-avatars.com/api/?name=${astrologer.name}&background=random`}
+                          alt={astrologer.name}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                     </div>
                   </div>
                   {astrologer.isOnline && (
-                    <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
+                    <div className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 border-4 border-[#13132b] rounded-full shadow-lg"></div>
                   )}
                </div>
 
@@ -490,30 +495,30 @@ const AstrologerDetail = () => {
                <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
                      <div>
-                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-1">
+                        <h2 className="text-2xl font-serif font-bold text-white flex items-center gap-2 mb-1">
                           {astrologer.name}
-                          <Shield className="w-4 h-4 text-blue-500 fill-blue-500" />
+                          <Shield className="w-4 h-4 text-[#D4AF37] fill-[#D4AF37]" />
                         </h2>
-                        <p className="text-sm text-gray-500 truncate">
-                          {astrologer.profile?.specialties?.join(', ') || 'Vedic, Prashana'}
+                        <p className="text-sm text-gray-400 truncate mb-1">
+                          {astrologer.profile?.specialties?.join(' • ') || 'Vedic • Prashana'}
                         </p>
-                        <p className="text-sm text-gray-500 truncate">
-                          {astrologer.profile?.languages?.join(', ') || 'English, Hindi'}
+                        <p className="text-xs text-gray-500 uppercase tracking-wider">
+                          {astrologer.profile?.languages?.join(' | ') || 'English | Hindi'}
                         </p>
                      </div>
                      <div className="text-right">
-                       <p className="text-xs text-gray-400">Experience</p>
-                       <p className="font-bold text-gray-900">{astrologer.profile?.experience || 0} Yrs</p>
+                       <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">Experience</p>
+                       <p className="font-bold text-[#D4AF37] text-lg">{astrologer.profile?.experience || 0} Yrs</p>
                      </div>
                   </div>
 
-                  <div className="mt-3 flex items-center gap-2">
-                     <span className="text-lg font-bold text-gray-900">
-                       ₹{astrologer.profile?.ratePerMinute || 20}/min
+                  <div className="mt-4 flex items-center gap-3 bg-black/20 p-2 rounded-xl border border-white/5 w-fit">
+                     <span className="text-xl font-bold text-white">
+                       ₹{astrologer.profile?.ratePerMinute || 20}<span className="text-xs text-gray-500 font-normal">/min</span>
                      </span>
                      {astrologer.profile?.ratePerMinute > 0 && (
-                        <span className="text-xs text-red-500 line-through">
-                          ₹{Math.round(astrologer.profile.ratePerMinute * 1.5)}/min
+                        <span className="text-xs text-red-400/70 line-through">
+                          ₹{Math.round(astrologer.profile.ratePerMinute * 1.5)}
                         </span>
                      )}
                   </div>
@@ -521,62 +526,64 @@ const AstrologerDetail = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-2 mt-6 border-t border-gray-100 pt-4">
-               <div className="text-center">
-                  <div className="text-lg font-bold text-gray-900 flex items-center justify-center gap-1">
-                     4.8 <Star size={14} className="fill-yellow-400 text-yellow-400" />
+            <div className="grid grid-cols-3 gap-4 mt-8 border-t border-white/10 pt-6">
+               <div className="text-center group">
+                  <div className="text-xl font-bold text-white flex items-center justify-center gap-1.5 mb-1 group-hover:text-[#D4AF37] transition-colors">
+                     4.9 <Star size={16} className="fill-[#D4AF37] text-[#D4AF37]" />
                   </div>
-                  <p className="text-xs text-gray-500">Rating</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Rating</p>
                </div>
-               <div className="text-center border-l border-gray-100">
-                  <div className="text-lg font-bold text-gray-900">
-                     2000+
+               <div className="text-center border-l border-white/10">
+                  <div className="text-xl font-bold text-white mb-1">
+                     2k+
                   </div>
-                  <p className="text-xs text-gray-500">Orders</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Orders</p>
                </div>
-               <div className="text-center border-l border-gray-100">
-                  <div className="text-lg font-bold text-gray-900">
+               <div className="text-center border-l border-white/10">
+                  <div className="text-xl font-bold text-white mb-1">
                      500+
                   </div>
-                  <p className="text-xs text-gray-500">Reviews</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Reviews</p>
                </div>
             </div>
          </div>
 
          {/* About Section */}
-         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-20">
-            <h3 className="font-bold text-gray-900 mb-2">About Astrologer</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
+         <div className="bg-[#13132b] rounded-2xl shadow-lg border border-white/5 p-6 mb-20">
+            <h3 className="font-serif font-bold text-[#D4AF37] mb-3 flex items-center gap-2">
+              <Sparkles size={16} /> About Astrologer
+            </h3>
+            <p className="text-sm text-gray-400 leading-7 font-light">
                {astrologer.profile?.bio || `Hello, I am ${astrologer.name}. I have extensive experience in Vedic astrology and verify all predictions with accuracy. Consult me for guidance on career, marriage, and finance.`}
             </p>
          </div>
 
          {/* Floating Action Bar */}
-         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-safe-or-4 z-50">
-            <div className="container mx-auto max-w-md grid grid-cols-2 gap-3">
+         <div className="fixed bottom-0 left-0 right-0 bg-[#0f0c29]/95 backdrop-blur-xl border-t border-[#D4AF37]/20 p-4 pb-safe-or-4 z-50">
+            <div className="container mx-auto max-w-md grid grid-cols-2 gap-4">
                <button
                  onClick={handleChatClick}
                  disabled={astrologer.profile?.isChatEnabled === false}
-                 className={`flex flex-col items-center justify-center gap-1 border py-2.5 rounded-xl font-bold transition-all ${
+                 className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl font-bold transition-all relative overflow-hidden group ${
                     astrologer.profile?.isChatEnabled === false
-                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white border-green-500 text-green-600 hover:bg-green-50 active:scale-95"
+                      ? "bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
+                      : "bg-[#1a1a2e] text-[#D4AF37] border border-[#D4AF37]/50 hover:bg-[#D4AF37] hover:text-[#0a0a1a]"
                  }`}
                >
                  <MessageCircle className="w-5 h-5" />
-                 <span>Chat</span>
+                 <span className="uppercase tracking-wider text-xs">Chat</span>
                </button>
                <button
                  onClick={handleAudioCall}
                  disabled={astrologer.profile?.isCallEnabled === false}
-                 className={`flex flex-col items-center justify-center gap-1 border py-2.5 rounded-xl font-bold transition-all shadow-sm ${
+                 className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl font-bold transition-all shadow-lg ${
                     astrologer.profile?.isCallEnabled === false
-                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-gradient-to-r from-orange-400 to-amber-500 text-white border-none hover:brightness-110 active:scale-95 shadow-orange-200"
+                      ? "bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
+                      : "bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-black hover:brightness-110 active:scale-95 shadow-[0_0_15px_rgba(212,175,55,0.4)]"
                  }`}
                >
-                 <Phone className="w-5 h-5" />
-                 <span>Call</span>
+                 <Phone className="w-5 h-5 fill-black/20" />
+                 <span className="uppercase tracking-wider text-xs">Call</span>
                </button>
             </div>
          </div>

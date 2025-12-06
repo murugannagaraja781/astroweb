@@ -1,14 +1,32 @@
- import { Link } from 'react-router-dom';
-import { Sparkles, Moon, Star, Menu, Bell } from 'lucide-react';
+ import { Link, useNavigate } from 'react-router-dom';
+import { Sparkles, Moon, Star, Menu, Bell, User } from 'lucide-react';
 import { useState, useContext } from 'react';
 import ThemeContext from '../../context/ThemeContext';
+import AuthContext from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import ClientProfileModal from '../ClientProfileModal';
 
 const MobileHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
   const { theme } = useContext(ThemeContext);
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleProfileClick = () => {
+    if (!user) {
+        navigate('/login');
+        return;
+    }
+    if (user.role === 'astrologer') {
+        navigate('/dashboard'); // Astrologer goes to dashboard to edit profile
+    } else {
+        setShowClientModal(true); // Client opens modal
+    }
+  };
 
   return (
+    <>
     <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-space-900 via-purple-900 to-space-900 border-b shadow-lg backdrop-blur-xl"
       style={{ borderColor: `${theme.hex}20` }}>
       {/* Mystical Glow Line */}
@@ -41,9 +59,17 @@ const MobileHeader = () => {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3">
-          <button className="relative p-2 rounded-full hover:bg-white/5 transition-colors">
-            <Bell className="w-5 h-5 text-gray-300" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-space-900"></span>
+          <button
+            onClick={handleProfileClick}
+            className="relative p-2 rounded-full hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
+          >
+             {user ? (
+               <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#C5A028] flex items-center justify-center text-black font-bold text-xs ring-2 ring-[#D4AF37]/30">
+                 {user.name?.[0]?.toUpperCase() || 'U'}
+               </div>
+             ) : (
+               <User className="w-5 h-5 text-gray-300" />
+             )}
           </button>
 
           <button
@@ -55,6 +81,9 @@ const MobileHeader = () => {
         </div>
       </div>
     </header>
+
+    <ClientProfileModal isOpen={showClientModal} onClose={() => setShowClientModal(false)} />
+    </>
   );
 };
 

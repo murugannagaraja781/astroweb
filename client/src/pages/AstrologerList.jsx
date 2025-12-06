@@ -83,39 +83,48 @@ const AstrologerList = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 font-sans">
-      {/* Royal Orange-Gold Header */}
-      <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 px-4 py-4 shadow-md sticky top-0 z-50">
+    <div className="min-h-screen bg-[#0a0a1a] pb-20 font-sans text-gray-100">
+      {/* Midnight Gold Header */}
+      <div className="bg-gradient-to-r from-[#0f0c29] via-[#302b63] to-[#24243e] px-4 py-5 shadow-xl sticky top-0 z-50 border-b border-white/5">
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')} className="p-1 hover:bg-white/10 rounded-full transition-colors">
-              <ArrowLeft size={24} className="text-white" />
+            <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95">
+              <ArrowLeft size={22} className="text-[#D4AF37]" />
             </button>
-            <h1 className="text-xl font-serif font-bold tracking-wide">Royal Astrologers</h1>
+            <div>
+              <h1 className="text-xl font-serif font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] via-[#F8F8FF] to-[#D4AF37]">
+                Royal Astrology
+              </h1>
+              <p className="text-[10px] text-gray-400 tracking-widest uppercase">Premium Consultations</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20 flex items-center gap-1">
-              <span className="text-yellow-200 text-lg">₹</span>
-              <span className="text-white">300.0</span>
+            <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold border border-[#D4AF37]/30 flex items-center gap-1 shadow-[0_0_10px_rgba(212,175,55,0.1)]">
+              <span className="text-[#D4AF37] text-lg">₹</span>
+              <span className="text-gray-100 font-mono">300.0</span>
             </div>
-            <Search size={20} className="text-white opacity-90" />
-            <Filter size={20} className="text-white opacity-90" />
+            <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
+               <Search size={20} className="text-[#D4AF37] opacity-80" />
+            </button>
+            <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
+               <Filter size={20} className="text-[#D4AF37] opacity-80" />
+            </button>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="mt-4 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="mt-6 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {filters.map(filter => (
             <button
               key={filter.id}
               onClick={() => setActiveFilter(filter.id)}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${
+              className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border ${
                 activeFilter === filter.id
-                  ? 'bg-white text-orange-600 shadow-md border-white transform scale-105'
-                  : 'bg-black/20 text-white/90 border-white/10 hover:bg-black/30'
+                  ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-black shadow-[0_0_15px_rgba(212,175,55,0.4)] border-transparent transform scale-105'
+                  : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:border-[#D4AF37]/30'
               }`}
             >
-              {filter.id === 'All' && <span className="text-lg">❖</span>}
+              {filter.id === 'All' && <span className="text-sm">✦</span>}
               {filter.id}
             </button>
           ))}
@@ -123,83 +132,93 @@ const AstrologerList = () => {
       </div>
 
       {/* List Content */}
-      <div className="max-w-md mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-md mx-auto px-4 py-6 space-y-5">
         {filteredAstrologers.map((astro, index) => (
           <motion.div
             key={astro._id}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             onClick={() => navigate(`/astrologer/${astro._id}`)}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-orange-100 flex gap-4 cursor-pointer active:scale-[0.99] transition-transform hover:shadow-md"
+            className="group relative bg-[#13132b] rounded-2xl p-4 shadow-lg border border-[#D4AF37]/10 hover:border-[#D4AF37]/30 transition-all active:scale-[0.99]"
           >
-            {/* Image Section */}
-            <div className="relative flex-shrink-0">
-               <div className="w-20 h-20 rounded-full border-2 border-orange-400 p-0.5 shadow-sm">
-                 <img
-                   src={astro.profile?.profileImage || `https://ui-avatars.com/api/?name=${astro.name}&background=random`}
-                   alt={astro.name}
-                   className="w-full h-full rounded-full object-cover"
-                 />
-               </div>
-               {/* Verified Badge */}
-               <div className="absolute bottom-0 right-0 bg-white rounded-full">
-                 <CheckCircle size={16} className="text-blue-500 fill-white" />
-               </div>
-            </div>
+            <div className="absolute inset-0 bg-gradient-to-br from-[#D4AF37]/5 to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
 
-            {/* Info Section */}
-            <div className="flex-1 min-w-0">
-               <div className="flex items-center justify-between mb-0.5">
-                  <h3 className="font-bold text-gray-900 truncate flex items-center gap-1">
-                    {astro.name}
-                    <CheckCircle size={12} className="text-blue-500" />
-                  </h3>
-                  <div className="flex gap-2">
-                    <CardButton
-                      icon={Phone}
-                      type="call"
-                      onClick={() => navigate(`/astrologer/${astro._id}?action=audio`)}
-                      disabled={astro.profile?.isCallEnabled === false}
-                    />
-                    <CardButton
-                      icon={Video}
-                      type="video"
-                      onClick={() => navigate(`/astrologer/${astro._id}?action=video`)}
-                      disabled={astro.profile?.isVideoEnabled === false}
-                    />
-                    <CardButton
-                      icon={MessageCircle}
-                      type="chat"
-                      onClick={() => navigate(`/astrologer/${astro._id}`)} // Chat usually opens profile first
-                      disabled={astro.profile?.isChatEnabled === false}
-                    />
-                  </div>
-               </div>
+            <div className="relative flex gap-4">
+              {/* Image Section */}
+              <div className="relative flex-shrink-0">
+                 <div className="w-20 h-20 rounded-full p-0.5" style={{ background: 'linear-gradient(135deg, #D4AF37, transparent)' }}>
+                   <div className="w-full h-full rounded-full p-[2px] bg-[#13132b]">
+                     <img
+                       src={astro.profile?.profileImage || `https://ui-avatars.com/api/?name=${astro.name}&background=random`}
+                       alt={astro.name}
+                       className="w-full h-full rounded-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all"
+                     />
+                   </div>
+                 </div>
+                 {/* Verified Badge */}
+                 <div className="absolute -bottom-1 -right-1 bg-[#13132b] rounded-full p-0.5">
+                   <CheckCircle size={18} className="text-[#D4AF37] fill-[#13132b]" />
+                 </div>
+              </div>
 
-               <p className="text-xs text-gray-500 truncate mb-0.5">
-                 {astro.specialties?.join(', ') || 'Prashana, Vedic'}
-               </p>
-               <p className="text-xs text-gray-500 truncate mb-1">
-                 {astro.languages?.join(', ') || 'English, Tamil'}
-               </p>
+              {/* Info Section */}
+              <div className="flex-1 min-w-0 pt-1">
+                 <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-serif font-bold text-gray-100 text-lg truncate flex items-center gap-1">
+                      {astro.name}
+                    </h3>
+                    <div className="flex items-center gap-1 text-[#D4AF37] text-xs font-bold bg-[#D4AF37]/10 px-2 py-0.5 rounded">
+                      <Star size={10} className="fill-[#D4AF37]" />
+                      4.9
+                    </div>
+                 </div>
 
-               <p className="text-xs text-gray-400 mb-2">
-                 Experience: {astro.experience || 0} Years
-               </p>
+                 <p className="text-xs text-gray-400 truncate mb-1">
+                   {astro.specialties?.join(' • ') || 'Vedic • Prashana'}
+                 </p>
+                 <p className="text-xs text-gray-500 truncate mb-3">
+                   {astro.languages?.join(', ') || 'English, Hindi'}
+                 </p>
 
-               <div className="flex items-center gap-1">
-                 <span className="text-sm font-bold text-gray-900">
-                   Price : ₹ {astro.profile?.ratePerMinute || 20}/min
-                 </span>
-               </div>
+                 <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm font-bold text-white">
+                       <span className="text-[#D4AF37]">₹{astro.profile?.ratePerMinute || 20}</span>
+                       <span className="text-xs text-gray-500 font-normal">/min</span>
+                    </span>
+
+                    <div className="flex gap-2">
+                      <CardButton
+                        icon={Phone}
+                        type="call"
+                        onClick={() => navigate(`/astrologer/${astro._id}?action=audio`)}
+                        disabled={astro.profile?.isCallEnabled === false}
+                      />
+                      <CardButton
+                        icon={Video}
+                        type="video"
+                        onClick={() => navigate(`/astrologer/${astro._id}?action=video`)}
+                        disabled={astro.profile?.isVideoEnabled === false}
+                      />
+                      <CardButton
+                        icon={MessageCircle}
+                        type="chat"
+                        onClick={() => navigate(`/astrologer/${astro._id}`)}
+                        disabled={astro.profile?.isChatEnabled === false}
+                      />
+                    </div>
+                 </div>
+              </div>
             </div>
           </motion.div>
         ))}
 
         {filteredAstrologers.length === 0 && (
-          <div className="text-center py-10 text-gray-400">
-             <p>No astrologers found in this category.</p>
+          <div className="text-center py-20 text-gray-500">
+             <div className="w-16 h-16 rounded-full bg-white/5 mx-auto flex items-center justify-center mb-4">
+               <Search size={24} className="opacity-50" />
+             </div>
+             <p className="font-serif">No astrologers found in this realm.</p>
           </div>
         )}
       </div>
