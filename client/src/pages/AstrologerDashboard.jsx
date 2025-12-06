@@ -794,6 +794,9 @@ const AstrologerDashboard = () => {
                         <Star size={12} className="text-yellow-400 fill-yellow-400" />
                         <span>4.9 (1.2k Reviews)</span>
                     </div>
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        ID: {profile.userId?._id || profile.userId}
+                    </div>
                 </div>
             </div>
 
