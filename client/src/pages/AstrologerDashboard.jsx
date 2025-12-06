@@ -1,11 +1,13 @@
+```javascript
  // AstrologerDashboard.jsx
 import { useState, useEffect, useRef, useCallback, useContext } from "react";
 import Modal from "../components/Modal";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
-import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
-import AudioCall from "./AudioCall";
+// import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
+// import AudioCall from "./AudioCall";
+import VideoCall from "../components/VideoCall";
 import ChartModal from "../components/ChartModal";
 import AstrologyQuickMenu from "../components/AstrologyQuickMenu";
 import AuthContext from "../context/AuthContext";
@@ -1708,6 +1710,21 @@ useEffect(() => {
 
       {/* Floating Action Button Menu */}
       <AstrologyQuickMenu onSelectChart={handleChartSelect} />
+
+      {/* Active Video Call Overlay */}
+      {activeCall && activeCall.type === 'video' && (
+        <VideoCall
+          roomId={activeCall.fromSocketId} // For Astrologer, destination is Client's Socket
+          socket={socket}
+          user={user}
+          isInitiator={false} // Client initiates offer
+          onEnd={() => {
+            setActiveCall(null);
+            // Optional: emit end call if not handled by component
+          }}
+          peerName={activeCall.fromName}
+        />
+      )}
     </div>
   );
 };

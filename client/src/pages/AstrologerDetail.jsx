@@ -5,6 +5,7 @@ import axios from "axios";
 import AuthContext from "../context/AuthContext";
 // import ClienttoAstrologyvideocall from "./AstrologertoClientVideoCall";
 // import AudioCall from "./AudioCall";
+import VideoCall from "../components/VideoCall";
 
 import {
   MessageCircle,
@@ -123,6 +124,8 @@ const AstrologerDetail = () => {
       newSocket.off("chat:rejected");
       newSocket.off("call:accepted");
       newSocket.off("call:rejected");
+      newSocket.off("audio:accepted");
+      newSocket.off("audio:rejected");
       newSocket.disconnect();
     };
   }, [user?.name, navigate]);
@@ -179,8 +182,34 @@ const AstrologerDetail = () => {
   // ============================
   // VIDEO CALL HANDLER
   // ============================
+  // VIDEO CALL HANDLER
   const handleVideoCall = () => {
-    alert("Video Call feature is currently disabled.");
+    if (!user) {
+      alert("Please login to continue");
+      navigate("/login");
+      return;
+    }
+    if (!astrologer || !astrologer.isOnline) {
+      alert("Astrologer is not available.");
+      return;
+    }
+    if (!socket || !socket.connected) {
+      alert("Connection not ready.");
+      return;
+    }
+
+    setWaiting(true);
+    setWaitingType("call");
+
+    console.log("[VideoCall] Requesting call...", { from: user.id, to: astrologer.userId });
+
+    // Emit Call Request
+    socket.emit("call:request", {
+      fromId: user.id,
+      toId: astrologer.userId,
+      fromName: user.name,
+      fromImage: user.avatar || ""
+    });
   };
 
   // ============================
@@ -298,17 +327,18 @@ const AstrologerDetail = () => {
 
   if (showVideoCall) {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-            <div className="text-white text-center">
-                <h3 className="text-2xl font-bold mb-4">Video Call Ended</h3>
-                <button
-                    onClick={() => setShowVideoCall(false)}
-                    className="px-6 py-3 bg-purple-600 rounded-xl"
-                >
-                    Return to Profile
-                </button>
-            </div>
-        </div>
+        <VideoCall
+            roomId={peerSocketId} // For Client, the room is the Astrologer's Socket ID (as per server logic for signal targeting)
+            socket={socket}
+            user={user}
+            isInitiator={true} // Client initiates the WebRTC offer when accepted
+            onEnd={() => {
+                setShowVideoCall(false);
+                setVideoRoomId(null);
+                setPeerSocketId(null);
+            }}
+            peerName={astrologer?.name}
+        />
     );
   }
 
