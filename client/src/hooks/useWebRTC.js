@@ -199,6 +199,12 @@ export const useWebRTC = ({
         socket.on('call:candidate', handleCandidate);
         socket.on('call:end', handleEnd);
 
+        socket.on('disconnect', () => {
+            console.log('[useWebRTC] Socket disconnected');
+            setError('Connection lost. Please check your internet or click Retry.');
+            setConnectionStatus('failed');
+        });
+
         return () => {
             socket.off('call:offer', handleOffer);
             socket.off('call:answer', handleAnswer);

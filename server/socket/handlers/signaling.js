@@ -3,9 +3,9 @@ const ActiveCall = require('../../models/ActiveCall');
 const Wallet = require('../../models/Wallet');
 
 /**
- * Signaling Socket Handlers
  * Handles WebRTC signaling events
  */
+const { onlineUsers } = require('./presence');
 
 module.exports = (io, socket) => {
 
@@ -13,6 +13,25 @@ module.exports = (io, socket) => {
     socket.on('join', (identifier) => {
         socket.join(identifier);
         console.log(`User ${socket.id} joined ${identifier}`);
+    });
+
+    // Client -> Server -> Astrologer: Call Request
+    socket.on("call:request", ({ fromId, toId, fromName, fromImage }) => {
+        console.log(`📞 Call request from ${fromId} to ${toId}`);
+        const targetSocketId = onlineUsers.get(toId);
+
+        if (targetSocketId) {
+            io.to(targetSocketId).emit("call:request", {
+                fromId,
+                fromName,
+                fromImage,
+                fromSocketId: socket.id // Send caller's socket ID for direct reply
+            });
+        } else {
+            // Astrologer offline
+            console.log(`User ${toId} is offline`);
+            socket.emit("call:offline");
+        }
     });
 
     // Initiate call

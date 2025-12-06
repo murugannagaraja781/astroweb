@@ -1,5 +1,4 @@
-```javascript
- // AstrologerDashboard.jsx
+// AstrologerDashboard.jsx
 import { useState, useEffect, useRef, useCallback, useContext } from "react";
 import Modal from "../components/Modal";
 import axios from "axios";
