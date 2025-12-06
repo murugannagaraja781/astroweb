@@ -1013,7 +1013,7 @@ useEffect(() => {
                 onClick={acceptCall}
                 className="bg-green-500 text-white px-8 py-4 rounded-2xl font-bold hover:bg-green-600 transform hover:scale-105 transition-all shadow-lg animate-pulse"
               >
-```
+
                 Accept
               </button>
             </div>
