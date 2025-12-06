@@ -712,19 +712,7 @@ useEffect(() => {
       icon: MessageCircle,
       label: "Inbox",
       color: "from-purple-500 to-pink-500",
-      badge: myPendingSessions.filter(session => {
-                             if (!profile?.userId) return false;
-                             const myName = user?.name || profile.userId?.name || profile.name;
-
-                             // Strict Name Check: Only show if session astrologer name matches my name
-                             if (session.astrologer?.name && myName) {
-                                return session.astrologer.name === myName;
-                             }
-
-                             // Fallback: If no name in session (legacy), use ID check
-                             const myId = profile.userId._id || profile.userId;
-                             return String(session.astrologerId) === String(myId);
-                        }).length,
+      badge: myPendingSessions.length + myPendingVideoCalls.length + myPendingAudioCalls.length,
       requiresOnline: true, // NEW: Requires online status
     },
     {
@@ -1046,21 +1034,9 @@ useEffect(() => {
                   className="relative p-2 hover:bg-white/20 rounded-full transition-colors"
                 >
                   <Bell className="w-6 h-6" />
-                  {(pendingSessions.filter(session => {
-                             if (!profile?.userId) return false;
-                             const myName = user?.name || profile.userId?.name || profile.name;
-
-                             // Strict Name Check: Only show if session astrologer name matches my name
-                             if (session.astrologer?.name && myName) {
-                                return session.astrologer.name === myName;
-                             }
-
-                             // Fallback: If no name in session (legacy), use ID check
-                             const myId = profile.userId._id || profile.userId;
-                             return String(session.astrologerId) === String(myId);
-                        }).length + pendingVideoCalls.length + pendingAudioCalls.length) > 0 && (
+                  {(myPendingSessions.length + myPendingVideoCalls.length + myPendingAudioCalls.length) > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                      {pendingSessions.length + pendingVideoCalls.length + pendingAudioCalls.length}
+                      {myPendingSessions.length + myPendingVideoCalls.length + myPendingAudioCalls.length}
                     </span>
                   )}
                 </button>
