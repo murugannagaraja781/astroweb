@@ -903,14 +903,8 @@ const AstrologerDashboard = () => {
                              <p className="text-xs text-slate-300 mt-1">Updates live automatically</p>
                         </div>
                     )}
-
-                    {pendingSessions
-                        .filter(session => {
-                            if (!profile?.userId) return false;
-                            const myId = profile.userId._id || profile.userId;
-                            return String(session.astrologerId) === String(myId);
-                        })
-                        .map(session => (
+{JSON.stringify(pendingSessions)}
+                    {pendingSessions.map(session => (
                         <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                              <div className="flex items-center gap-3">
                                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
