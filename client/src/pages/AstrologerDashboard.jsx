@@ -173,6 +173,16 @@ useEffect(() => {
     socket.on("call:request", (data) => {
       console.log("Incoming call request:", data);
 
+      // STRICT FILTER: Check ID and Name
+      const myId = profile?.userId?._id || profile?.userId;
+      const myName = user?.name || profile?.name;
+
+      // 1. ID Check
+      if (data.astrologerId && String(data.astrologerId) !== String(myId)) return;
+
+      // 2. Name Check
+      if (data.astrologerName && myName && data.astrologerName !== myName) return;
+
       const newVideoRequest = {
         id: `${data.fromId}_${Date.now()}`,
         type: "video",
@@ -197,6 +207,17 @@ useEffect(() => {
     // Chat request from client
     socket.on("chat:request", (payload) => {
       console.log("[Astrologer] Chat request received:", payload);
+
+      // STRICT FILTER: Check ID and Name
+      const myId = profile?.userId?._id || profile?.userId;
+      const myName = user?.name || profile?.name;
+
+      // 1. ID Check
+      // payload might have astrologerId at top level
+      if (payload.astrologerId && String(payload.astrologerId) !== String(myId)) return;
+
+      // 2. Name Check
+      if (payload.astrologerName && myName && payload.astrologerName !== myName) return;
 
       const newChatRequest = {
         id: payload.sessionId || `${payload.userId?._id}_${Date.now()}`,
@@ -237,6 +258,13 @@ useEffect(() => {
     // Audio call request
     socket.on("audio:request", (data) => {
       console.log("Incoming audio call request:", data);
+
+      // STRICT FILTER: Check ID and Name
+      const myId = profile?.userId?._id || profile?.userId;
+      const myName = user?.name || profile?.name;
+
+      if (data.astrologerId && String(data.astrologerId) !== String(myId)) return;
+      if (data.astrologerName && myName && data.astrologerName !== myName) return;
 
       const newAudioRequest = {
         id: `${data.fromId}_${Date.now()}`,
@@ -970,7 +998,7 @@ useEffect(() => {
             <div>
               <h1 className="text-2xl font-bold">Cosmic Dashboard</h1>
               <p className="text-purple-200">
-                Welcome back, Master {profile.name}
+                Welcome back, Master {user?.name || profile.name}
               </p>
             </div>
             <div className="flex items-center gap-4">
