@@ -397,11 +397,14 @@ const AstrologerDashboard = () => {
 
     // 4. Cleanup Local State
     if (request.type === "chat") {
-      setPendingSessions(prev => prev.filter(s => s.sessionId !== request.sessionId));
+      alert(request.type)
+      setPendingSessions(prev => prev.filter(s => s.sessionId == request.sessionId));
     } else if (request.type === "video") {
-      setPendingVideoCalls(prev => prev.filter(v => v.id !== request.id));
+       alert(request.type)
+      setPendingVideoCalls(prev => prev.filter(v => v.id == request.id));
     } else if (request.type === "audio") {
-      setPendingAudioCalls(prev => prev.filter(a => a.id !== request.id));
+       alert(request.type)
+      setPendingAudioCalls(prev => prev.filter(a => a.id == request.id));
     }
 
     // 5. Process Next Request
