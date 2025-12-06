@@ -1727,18 +1727,19 @@ useEffect(() => {
       <AstrologyQuickMenu onSelectChart={handleChartSelect} />
 
       {/* Active Video Call Overlay */}
-      {activeCall && activeCall.type === 'video' && (
+      {activeCallRoomId && activeCallType === 'video' && (
         <VideoCall
-          roomId={activeCall.roomId} // The shared room identifier
-          peerSocketId={activeCall.fromSocketId} // The specific peer to signal
+          roomId={activeCallRoomId} // The shared room identifier
+          peerSocketId={activeCallPeerId} // The specific peer to signal
           socket={socket}
           user={user}
-          isInitiator={false} // Client initiates offer
-          onEnd={() => {
-            setActiveCall(null);
-            // Optional: emit end call if not handled by component
+          isInitiator={false} // Astrologer accepted the call, so they are NOT the initiator of the signaling
+          onEndCall={() => {
+             setActiveCallRoomId(null);
+             setActiveCallType(null);
+             setActiveCallPeerId(null);
           }}
-          peerName={activeCall.fromName}
+          // peerName={activeCall.fromName} // We might not have this easily if we didn't store it separate
         />
       )}
     </div>
