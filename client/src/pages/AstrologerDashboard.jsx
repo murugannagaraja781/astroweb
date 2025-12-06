@@ -1,5 +1,5 @@
  // AstrologerDashboard.jsx
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useContext } from "react";
 import Modal from "../components/Modal";
 import axios from "axios";
 import { io } from "socket.io-client";
@@ -8,6 +8,7 @@ import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
 import AudioCall from "./AudioCall";
 import ChartModal from "../components/ChartModal";
 import AstrologyQuickMenu from "../components/AstrologyQuickMenu";
+import { AuthContext } from "../context/AuthContext";
 import {
   Home,
   MessageCircle,
@@ -27,6 +28,7 @@ import {
 const AstrologerDashboard = () => {
   const [activeTab, setActiveTab] = useState("inbox");
   const [inboxTab, setInboxTab] = useState("chat"); // 'chat' or 'video'
+  const { user } = useContext(AuthContext); // Consuming AuthContext
   const [profile, setProfile] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [activeCallRoomId, setActiveCallRoomId] = useState(null);
