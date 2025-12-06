@@ -9,7 +9,8 @@ const VideoCall = ({
     user,
     isInitiator,
     onEnd,
-    peerName
+    peerName,
+    peerSocketId // New prop for direct signaling
 }) => {
     const {
         localStream,
@@ -20,7 +21,7 @@ const VideoCall = ({
         endCall,
         toggleAudio,
         toggleVideo
-    } = useWebRTC({ socket, user, roomId, isInitiator, onCallEnd: onEnd });
+    } = useWebRTC({ socket, user, roomId, peerSocketId, isInitiator, onCallEnd: onEnd });
 
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);

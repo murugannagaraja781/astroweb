@@ -121,9 +121,10 @@ useEffect(() => {
 
   // Initialize socket connection once
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app";
+    const socketUrl =  "https://astroweb-production.up.railway.app";
+    console.log("[Astrologer] Initializing socket with URL:", socketUrl);
     const newSocket = io(socketUrl, {
-      transports: ["websocket"], // Force WebSocket to avoid XHR polling errors
+      // Default transports (polling -> upgrade to websocket) is safer now that CORS is fixed
       reconnection: true,
       reconnectionAttempts: 10,
     });
@@ -1728,7 +1729,8 @@ useEffect(() => {
       {/* Active Video Call Overlay */}
       {activeCall && activeCall.type === 'video' && (
         <VideoCall
-          roomId={activeCall.fromSocketId} // For Astrologer, destination is Client's Socket
+          roomId={activeCall.roomId} // The shared room identifier
+          peerSocketId={activeCall.fromSocketId} // The specific peer to signal
           socket={socket}
           user={user}
           isInitiator={false} // Client initiates offer

@@ -11,6 +11,7 @@ export const useWebRTC = ({
     socket,
     user,
     roomId,
+    peerSocketId, // Receive peerSocketId
     isInitiator = false,
     onCallEnd
 }) => {
@@ -22,6 +23,10 @@ export const useWebRTC = ({
 
     const peerConnection = useRef(null);
     const streamRef = useRef(null);
+
+    // Use peerSocketId for signaling if available, otherwise fallback to roomId (legacy/chat room behavior)
+    // But for 1:1 calling via socket.id, peerSocketId is critical.
+    const targetId = peerSocketId || roomId;
 
     // Cleanup function
     const cleanup = useCallback(() => {
@@ -102,7 +107,7 @@ export const useWebRTC = ({
             peerConnection.current.onicecandidate = (event) => {
                 if (event.candidate) {
                     socket.emit('call:candidate', {
-                        toSocketId: roomId,
+                        toSocketId: targetId,
                         candidate: event.candidate
                     });
                 }
@@ -125,7 +130,7 @@ export const useWebRTC = ({
                 const offer = await peerConnection.current.createOffer();
                 await peerConnection.current.setLocalDescription(offer);
                 socket.emit('call:offer', {
-                    toSocketId: roomId,
+                    toSocketId: targetId,
                     offer
                 });
                 setConnectionStatus('offering');
@@ -163,7 +168,7 @@ export const useWebRTC = ({
 
                 setConnectionStatus('answering');
                 socket.emit('call:answer', {
-                    toSocketId: fromSocketId,
+                    toSocketId: fromSocketId, // This comes from the offer event, so it's correct.
                     answer
                 });
             } catch (err) {
@@ -242,8 +247,8 @@ export const useWebRTC = ({
         error,
         retryConnection,
         endCall: () => {
-            if (socket && roomId) {
-                socket.emit('call:end', { toSocketId: roomId });
+            if (socket && targetId) {
+                socket.emit('call:end', { toSocketId: targetId });
             }
             cleanup();
             if (onCallEnd) onCallEnd();
