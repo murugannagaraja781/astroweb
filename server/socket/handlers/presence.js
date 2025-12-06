@@ -19,6 +19,8 @@ module.exports = (io, socket) => {
         }
 
         onlineUsers.set(String(userId), socket.id);
+        console.log(`[DEBUG] Map Updated: User ${userId} -> Socket ${socket.id}`);
+        console.log(`[DEBUG] Current Map Size: ${onlineUsers.size}`);
 
         // Update DB
         try {
