@@ -40,7 +40,7 @@ const DesktopHeader = () => {
     ...(user && (user.role === "admin" || user.role === "astrologer")
       ? [{ to: "/astrology", icon: Star, label: "Astrology" }]
       : []),
-    { to: "/chat/0", icon: MessageCircle, label: "Chat" },
+    { to: "/astrologers/chat", icon: MessageCircle, label: "Chat" },
     { to: "/astrologers/calls", icon: Video, label: "Call" },
   ];
 
