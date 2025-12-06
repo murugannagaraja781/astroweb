@@ -135,9 +135,22 @@ useEffect(() => {
       console.error("[Astrologer] Socket connection error:", err);
     });
 
+    });
+
     setSocket(newSocket);
 
     return () => {
+      newSocket.close();
+    };
+  }, []);
+
+  // Emit user_online when socket is ready and user is loaded
+  useEffect(() => {
+    if (socket && socket.connected && user?.id) {
+      console.log("[Astrologer] Emitting user_online for:", user.id);
+      socket.emit("user_online", { userId: user.id });
+    }
+  }, [socket, user]);
       newSocket.disconnect();
     };
   }, []);
