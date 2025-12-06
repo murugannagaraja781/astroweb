@@ -1506,13 +1506,20 @@ useEffect(() => {
                 </h3>
               </div>
               {activeCallType === "video" ? (
-                <ClientVideoCall roomId={activeCallRoomId} />
-              ) : (
-                <AudioCall
-                    roomId={activeCallRoomId}
-                    socket={socket}
-                    peerSocketId={activeCallPeerId}
+                <VideoCall
+                  roomId={activeCallRoomId}
+                  peerSocketId={activeCallPeerId}
+                  isInitiator={false}
+                  onEndCall={() => {
+                     setActiveCallRoomId(null);
+                     setActiveCallType(null);
+                     setActiveCallPeerId(null);
+                  }}
                 />
+              ) : (
+                <div className="flex items-center justify-center h-full text-white">
+                  Audio Call not yet fully migrated to new system. Use Video Call.
+                </div>
               )}
             </div>
           )}
