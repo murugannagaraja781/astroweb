@@ -340,34 +340,7 @@ exports.getSessionHistory = async (req, res) => {
 
 exports.getPendingSessions = async (req, res) => {
   try {
-    console.log(`[DEBUG] getPendingSessions called for user: ${req.user.id}`);
-
-    // Ensure we query with ObjectId if possible
     const astrologerId = new mongoose.Types.ObjectId(req.user.id);
-
-    // DEBUG: Check if ANY sessions exist for this astrologer
-    const allAstroSessions = await ChatSession.find({ astrologerId: astrologerId });
-    console.log(`[DEBUG] Total sessions for astrologer ${req.user.id}: ${allAstroSessions.length}`);
-    if (allAstroSessions.length > 0) {
-      console.log('[DEBUG] Sample session for astrologer:', JSON.stringify(allAstroSessions[0], null, 2));
-    }
-
-    // DEBUG: Check global sessions count
-    const globalSessions = await ChatSession.countDocuments({});
-    console.log(`[DEBUG] Total global sessions in DB: ${globalSessions}`);
-
-    // DEBUG: Show sample sessions to see what astrologer IDs exist
-    const sampleSessions = await ChatSession.find({}).limit(5).lean();
-    console.log('[DEBUG] Sample sessions from DB:', JSON.stringify(sampleSessions.map(s => ({
-      sessionId: s.sessionId,
-      astrologerId: s.astrologerId,
-      clientId: s.clientId,
-      status: s.status
-    })), null, 2));
-
-    // For astrologers, show ALL pending/active sessions (not just their own)
-    // This handles cases where astrologer IDs might not match exactly
-    // Only show sessions from the last 24 hours to avoid clutter
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const sessions = await ChatSession.find({
@@ -376,7 +349,7 @@ exports.getPendingSessions = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .lean();
-    console.log(`[DEBUG] Found ${sessions.length} pending sessions (last 24 hours)`);
+
     const userIds = Array.from(
       new Set(
         sessions.flatMap((s) => [
@@ -385,10 +358,20 @@ exports.getPendingSessions = async (req, res) => {
         ])
       )
     );
+
     const users = await User.find({ _id: { $in: userIds } })
       .select("name")
       .lean();
     const nameMap = new Map(users.map((u) => [u._id.toString(), u.name]));
+
+    // Patch: Also check AstrologerProfile for IDs (in case Profile ID was stored instead of User ID)
+    const profiles = await AstrologerProfile.find({ _id: { $in: userIds } }).populate('userId', 'name').lean();
+    profiles.forEach(p => {
+      if (p.userId && p.userId.name) {
+        nameMap.set(p._id.toString(), p.userId.name);
+      }
+    });
+
     const result = sessions.map((s) => ({
       sessionId: s.sessionId,
       status: s.status,
@@ -403,10 +386,10 @@ exports.getPendingSessions = async (req, res) => {
         name: nameMap.get(s.astrologerId.toString()) || "",
       },
     }));
-    console.log("[DEBUG] getPendingSessions result:", result);
+
     res.json(result);
   } catch (err) {
-    console.error("[DEBUG] getPendingSessions error:", err);
+    console.error("Error fetching pending sessions:", err);
     res.status(500).json({ msg: "Server error" });
   }
 };
