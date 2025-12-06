@@ -50,6 +50,7 @@ const AstrologerDashboard = () => {
   const [selectedChart, setSelectedChart] = useState(null);
   const [showChatPanel, setShowChatPanel] = useState(false); // New: For sliding chat panel
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showDebugModal, setShowDebugModal] = useState(false); // Debug modal state
   const [isOnline, setIsOnline] = useState(true); // Online status for polling
 
   const audioRef = useRef(null);
@@ -777,7 +778,7 @@ const AstrologerDashboard = () => {
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3">
         <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-                <div className="relative">
+                <div className="relative cursor-pointer" onClick={() => setShowDebugModal(true)}>
                     <img
                         src={profile.userId?.image || "https://ui-avatars.com/api/?name=" + profile.userId?.name}
                         alt="Profile"
@@ -1124,6 +1125,49 @@ const AstrologerDashboard = () => {
                  >
                    Save Changes
                  </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Debug Modal */}
+      {showDebugModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-scale-in">
+           <div className="bg-[#0F172A] text-gray-200 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-gray-700 shadow-2xl">
+              <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800 rounded-t-3xl">
+                 <h3 className="text-lg font-bold text-green-400 font-mono">System Debugger</h3>
+                 <button onClick={() => setShowDebugModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white">
+                    <X size={20} />
+                 </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-6 font-mono text-xs">
+
+                 <div className="bg-black/50 p-4 rounded-xl border border-gray-700">
+                    <p className="text-gray-400 mb-1 uppercase tracking-wider text-[10px]">Logged In Astrologer ID</p>
+                    <p className="text-yellow-400 text-lg select-all">{profile?.userId?._id || profile?.userId}</p>
+                 </div>
+
+                 <div>
+                    <p className="text-gray-400 mb-2 uppercase tracking-wider text-[10px]">Pending Sessions (Raw JSON)</p>
+                    <pre className="bg-black p-4 rounded-xl text-green-300 overflow-x-auto border border-gray-700">
+                        {JSON.stringify(pendingSessions, null, 2)}
+                    </pre>
+                 </div>
+
+                 <div>
+                    <p className="text-gray-400 mb-2 uppercase tracking-wider text-[10px]">Pending Video Calls (Raw JSON)</p>
+                    <pre className="bg-black p-4 rounded-xl text-green-300 overflow-x-auto border border-gray-700">
+                        {JSON.stringify(pendingVideoCalls, null, 2)}
+                    </pre>
+                 </div>
+
+                  <div>
+                    <p className="text-gray-400 mb-2 uppercase tracking-wider text-[10px]">Full Profile Object</p>
+                    <pre className="bg-black p-4 rounded-xl text-blue-300 overflow-x-auto border border-gray-700 h-40">
+                        {JSON.stringify(profile, null, 2)}
+                    </pre>
+                 </div>
+
               </div>
            </div>
         </div>
