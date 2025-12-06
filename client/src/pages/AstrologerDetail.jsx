@@ -444,34 +444,37 @@ const AstrologerDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
-      {/* Gold Header */}
-      <div className="relative bg-[#FFD700] text-black py-4 px-4 shadow-sm sticky top-0 z-40">
+    <div className="min-h-screen bg-orange-50/30 font-sans">
+      {/* Royal Orange-Gold Header */}
+      <div className="relative bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500 text-white py-4 px-4 shadow-lg sticky top-0 z-40">
         <div className="container mx-auto flex items-center justify-between">
            <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
-                className="p-1 hovered:bg-black/10 rounded-full transition-colors"
+                className="p-1 hover:bg-black/10 rounded-full transition-colors"
               >
-                <ArrowLeft className="w-6 h-6 text-black" />
+                <ArrowLeft className="w-6 h-6 text-white" />
               </button>
-              <h1 className="text-lg font-bold">Astrologer Profile</h1>
+              <h1 className="text-xl font-serif font-bold tracking-wide">Astrologer Profile</h1>
            </div>
-           <button className="bg-white/20 px-3 py-1.5 rounded-full text-sm font-bold border border-black/10 flex items-center gap-1">
-             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-             Help
+           <button className="bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-bold border border-white/20 flex items-center gap-1 hover:bg-black/30 transition-colors">
+             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
+             <span className="text-white">Help</span>
            </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-6 bg-gray-50 min-h-[calc(100vh-60px)]">
+      <div className="container mx-auto px-4 py-6 min-h-[calc(100vh-60px)]">
          {/* Profile Card */}
-         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
-            <div className="flex gap-4">
+         <div className="bg-white rounded-2xl shadow-md border border-orange-100 p-5 mb-4 relative overflow-hidden">
+            {/* Decorative bg element */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-full -z-0 opacity-50"></div>
+
+            <div className="relative z-10 flex gap-5">
                {/* Avatar */}
                <div className="relative flex-shrink-0">
-                  <div className="w-24 h-24 rounded-full border-2 border-[#FFD700] p-0.5">
+                  <div className="w-28 h-28 rounded-full border-[3px] border-orange-400 p-1 shadow-sm">
                      <img
                        src={astrologer.profile?.profileImage || `https://ui-avatars.com/api/?name=${astrologer.name}&background=random`}
                        alt={astrologer.name}
@@ -479,7 +482,7 @@ const AstrologerDetail = () => {
                      />
                   </div>
                   {astrologer.isOnline && (
-                    <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
+                    <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
                   )}
                </div>
 
@@ -569,7 +572,7 @@ const AstrologerDetail = () => {
                  className={`flex flex-col items-center justify-center gap-1 border py-2.5 rounded-xl font-bold transition-all shadow-sm ${
                     astrologer.profile?.isCallEnabled === false
                       ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-[#FFD700] text-black border-[#FFD700] hover:brightness-95 active:scale-95"
+                      : "bg-gradient-to-r from-orange-400 to-amber-500 text-white border-none hover:brightness-110 active:scale-95 shadow-orange-200"
                  }`}
                >
                  <Phone className="w-5 h-5" />

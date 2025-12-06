@@ -84,21 +84,22 @@ const AstrologerList = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
-      {/* Gold Header */}
-      <div className="bg-[#FFD700] px-4 py-3 shadow-sm sticky top-0 z-50">
-        <div className="flex items-center justify-between">
+      {/* Royal Orange-Gold Header */}
+      <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 px-4 py-4 shadow-md sticky top-0 z-50">
+        <div className="flex items-center justify-between text-white">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')} className="p-1">
-              <ArrowLeft size={24} className="text-black" />
+            <button onClick={() => navigate('/')} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+              <ArrowLeft size={24} className="text-white" />
             </button>
-            <h1 className="text-lg font-bold text-black">Chat with Astrologer</h1>
+            <h1 className="text-xl font-serif font-bold tracking-wide">Royal Astrologers</h1>
           </div>
           <div className="flex items-center gap-3">
-            <div className="bg-white/20 px-2 py-1 rounded text-xs font-bold border border-black/10">
-              ₹300.0
+            <div className="bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20 flex items-center gap-1">
+              <span className="text-yellow-200 text-lg">₹</span>
+              <span className="text-white">300.0</span>
             </div>
-            <Search size={20} className="text-black" />
-            <Filter size={20} className="text-black" />
+            <Search size={20} className="text-white opacity-90" />
+            <Filter size={20} className="text-white opacity-90" />
           </div>
         </div>
 
@@ -108,13 +109,13 @@ const AstrologerList = () => {
             <button
               key={filter.id}
               onClick={() => setActiveFilter(filter.id)}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${
                 activeFilter === filter.id
-                  ? 'bg-white text-black shadow-sm'
-                  : 'bg-white/40 text-black/70 hover:bg-white/60'
+                  ? 'bg-white text-orange-600 shadow-md border-white transform scale-105'
+                  : 'bg-black/20 text-white/90 border-white/10 hover:bg-black/30'
               }`}
             >
-              {filter.id === 'All' && <span className="text-lg">::</span>}
+              {filter.id === 'All' && <span className="text-lg">❖</span>}
               {filter.id}
             </button>
           ))}
@@ -130,11 +131,11 @@ const AstrologerList = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             onClick={() => navigate(`/astrologer/${astro._id}`)}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 cursor-pointer active:scale-[0.99] transition-transform"
+            className="bg-white rounded-2xl p-4 shadow-sm border border-orange-100 flex gap-4 cursor-pointer active:scale-[0.99] transition-transform hover:shadow-md"
           >
             {/* Image Section */}
             <div className="relative flex-shrink-0">
-               <div className="w-16 h-16 rounded-full border-2 border-[#FFD700] p-0.5">
+               <div className="w-20 h-20 rounded-full border-2 border-orange-400 p-0.5 shadow-sm">
                  <img
                    src={astro.profile?.profileImage || `https://ui-avatars.com/api/?name=${astro.name}&background=random`}
                    alt={astro.name}
