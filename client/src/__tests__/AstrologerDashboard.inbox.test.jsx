@@ -1,16 +1,24 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AstrologerDashboard from '../pages/AstrologerDashboard.jsx';
+import AuthContext from '../context/AuthContext';
 
 // Mock navigate
 const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => {
-  const actual = jest.requireActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
+jest.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+  useLocation: () => ({ pathname: '/' }),
+  Link: ({ children, to, onClick }) => (
+    <a href={to} onClick={(e) => { if (onClick) onClick(e); }}>
+      {children}
+    </a>
+  ),
+  NavLink: ({ children, to, onClick }) => (
+    <a href={to} onClick={(e) => { if (onClick) onClick(e); }}>
+      {children}
+    </a>
+  ),
+}));
 
 // Mock socket.io-client
 let handlers = {};
@@ -53,7 +61,12 @@ describe('AstrologerDashboard Inbox flow', () => {
   });
 
   test('shows pending request in Inbox and navigates only on chat:joined', async () => {
-    render(<AstrologerDashboard />);
+    const mockAuthContext = { user: { id: 'astro_1', name: 'Astro One', role: 'astrologer' } };
+    render(
+      <AuthContext.Provider value={mockAuthContext}>
+        <AstrologerDashboard />
+      </AuthContext.Provider>
+    );
 
     // Simulate incoming chat request from client
     const payload = { clientId: 'client_1', sessionId: 'sess_123' };

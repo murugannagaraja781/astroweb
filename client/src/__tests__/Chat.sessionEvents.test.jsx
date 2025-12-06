@@ -1,6 +1,8 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { TextEncoder } from 'util';
+global.TextEncoder = TextEncoder;
 import Chat from '../pages/Chat.jsx';
 import AuthContext from '../context/AuthContext';
 

@@ -611,6 +611,13 @@ const Chat = () => {
             </div>
           )}
 
+          {/* Chart Modal */}
+          <ChartModal
+            isOpen={showChartModal}
+            onClose={() => setShowChartModal(false)}
+            initialChart={selectedChart}
+          />
+
           {/* Show only for astrologers/admins */}
           {(user?.role === 'astrologer' || user?.role === 'admin') && (
             <div className="text-center mt-2">
@@ -619,12 +626,6 @@ const Chat = () => {
           )}
         </div>
       </div>
-      {/* Chart Modal */}
-      <ChartModal
-        isOpen={showChartModal}
-        onClose={() => setShowChartModal(false)}
-        initialChart={selectedChart}
-      />
       )}
     </div>
   );
