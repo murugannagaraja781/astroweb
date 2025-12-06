@@ -1,7 +1,6 @@
 const CallLog = require('../../models/CallLog');
 const ActiveCall = require('../../models/ActiveCall');
 const Wallet = require('../../models/Wallet');
-const { onlineUsers } = require('./presence'); // Import map for unicast lookup
 
 /**
  * Signaling Socket Handlers
@@ -16,58 +15,7 @@ module.exports = (io, socket) => {
         console.log(`User ${socket.id} joined ${identifier}`);
     });
 
-    // ===== CALL REQUEST HANDLERS (UNICAST) =====
-
-    // Video Call Request
-    socket.on('call:request', ({ fromId, toId, fromName, fromImage, callId, roomId }) => {
-        const targetIdString = String(toId);
-        console.log(`[Video Call] Request from ${fromId} to ${targetIdString}`);
-
-        const targetSocketId = onlineUsers.get(targetIdString);
-        console.log(`[Video Call] Target Socket: ${targetSocketId}`);
-
-        if (targetSocketId) {
-            console.log(`[Video Call] 🚀 Sending unicast request to ${targetSocketId}`);
-            io.to(targetSocketId).emit('call:request', {
-                fromId,
-                toId,
-                fromName,
-                fromImage,
-                fromSocketId: socket.id,
-                callId,
-                roomId
-            });
-        } else {
-            console.warn(`[Video Call] Target ${targetIdString} is OFFLINE or not in map.`);
-            socket.emit('call:offline', { userId: toId });
-        }
-    });
-
-    // Audio Call Request
-    socket.on('audio:request', ({ fromId, toId, fromName, fromImage, roomId }) => {
-        const targetIdString = String(toId);
-        console.log(`[Audio Call] Request from ${fromId} to ${targetIdString}`);
-
-        const targetSocketId = onlineUsers.get(targetIdString);
-        console.log(`[Audio Call] Target Socket: ${targetSocketId}`);
-
-        if (targetSocketId) {
-            console.log(`[Audio Call] 🚀 Sending unicast request to ${targetSocketId}`);
-            io.to(targetSocketId).emit('audio:request', {
-                fromId,
-                toId,
-                fromName,
-                fromImage,
-                fromSocketId: socket.id,
-                roomId
-            });
-        } else {
-            console.warn(`[Audio Call] Target ${targetIdString} is OFFLINE or not in map.`);
-            socket.emit('audio:offline', { userId: toId });
-        }
-    });
-
-    // Initiate call (Legacy/Fallback)
+    // Initiate call
     socket.on('callUser', ({ userToCall, signalData, from, name, type, callId }) => {
         console.log(`Call from ${from} to ${userToCall}, type: ${type}`);
         io.to(userToCall).emit('callUser', {

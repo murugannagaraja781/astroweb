@@ -3,9 +3,19 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { FiVideo, FiVideoOff, FiMic, FiMicOff, FiPhone } from "react-icons/fi";
 
-import { config } from "../config";
+const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVER || "https://astroweb-production.up.railway.app";
 
-const { SIGNALING_SERVER, ICE_SERVERS } = config;
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    ...(import.meta.env.VITE_TURN_URL ? [{
+        urls: import.meta.env.VITE_TURN_URL,
+        username: import.meta.env.VITE_TURN_USERNAME,
+        credential: import.meta.env.VITE_TURN_CREDENTIAL,
+    }] : []),
+  ],
+};
 
 export default function AstrologertoClientVideoCall({ roomId, socket: propSocket, astrologerId, peerSocketId }) {
   const localRef = useRef(null);

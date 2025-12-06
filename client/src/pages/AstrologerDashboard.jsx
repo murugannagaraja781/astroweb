@@ -1,6 +1,5 @@
-```javascript
 // AstrologerDashboard.jsx
-import { useState, useEffect, useContext, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Modal from "../components/Modal";
 import apiClient from "../utils/apiClient";
 import { io } from "socket.io-client";
@@ -124,12 +123,6 @@ const AstrologerDashboard = () => {
   }, []);
 
 
-  const profileRef = useRef(null);
-
-  useEffect(() => {
-      profileRef.current = profile;
-  }, [profile]);
-
   // Initialize socket connection once
   useEffect(() => {
     const newSocket = io(import.meta.env.VITE_API_URL, {
@@ -140,12 +133,6 @@ const AstrologerDashboard = () => {
 
     newSocket.on("connect", () => {
       console.log("[Astrologer] Socket connected:", newSocket.id);
-      // Re-register presence immediately on connection/reconnection
-      // Use ref to access current profile state inside closure
-      if (profileRef.current?.userId) {
-        console.log("[Astrologer] Emitting user_online on connect:", profileRef.current.userId);
-        newSocket.emit("user_online", { userId: profileRef.current.userId });
-      }
     });
 
     newSocket.on("connect_error", (err) => {

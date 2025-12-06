@@ -172,20 +172,10 @@ module.exports = (io, socket) => {
             );
 
             // Notify astrologer (optional, but good for UI updates if they are on dashboard)
-            // Notify astrologer (optional, but good for UI updates if they are on dashboard)
-            const targetAstroIdString = String(astrologerId);
-            const astroSock = onlineUsers.get(targetAstroIdString);
-
-            console.log(`[DEBUG] Looking up socket for Astrologer ID: ${targetAstroIdString}`);
-            console.log(`[DEBUG] Current Online Users Map Keys:`, Array.from(onlineUsers.keys()));
-            console.log(`[DEBUG] Found Socket ID: ${astroSock}`);
-
+            const astroSock = onlineUsers.get(String(astrologerId));
             if (astroSock) {
                 // Fetch user details to send to astrologer
                 const user = await User.findById(clientId).select('name _id avatar');
-
-                console.log(`[DEBUG] 🚀 Emitting 'chat:request' UNICAST to socket: ${astroSock} for session ${sid}`);
-
                 io.to(astroSock).emit('chat:request', {
                     sessionId: sid,
                     userId: user, // Send full user object as userId to match client expectation
@@ -193,8 +183,6 @@ module.exports = (io, socket) => {
                     astrologerId,
                     socketId: socket.id
                 });
-            } else {
-                console.warn(`[WARN] Astrologer ${targetAstroIdString} not found in onlineUsers map! Request created but live notification skipped.`);
             }
 
             socket.emit('chat:requested', { sessionId: sid });
