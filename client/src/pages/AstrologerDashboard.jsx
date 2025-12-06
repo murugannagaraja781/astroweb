@@ -135,8 +135,6 @@ useEffect(() => {
       console.error("[Astrologer] Socket connection error:", err);
     });
 
-    });
-
     setSocket(newSocket);
 
     return () => {
@@ -151,9 +149,6 @@ useEffect(() => {
       socket.emit("user_online", { userId: user.id });
     }
   }, [socket, user]);
-      newSocket.disconnect();
-    };
-  }, []);
 
   // Fetch pending sessions (Moved up & wrapped in useCallback)
   const fetchPendingSessions = useCallback(async () => {
