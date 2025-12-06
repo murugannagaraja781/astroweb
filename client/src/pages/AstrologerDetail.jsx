@@ -322,6 +322,9 @@ const AstrologerDetail = () => {
     setWaitingType("chat");
 
     try {
+      // Save intake details to localStorage for future auto-fill
+      localStorage.setItem("chatIntakeDetails", JSON.stringify(intakeData));
+
       const token = localStorage.getItem("token");
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/chat/request`,
@@ -665,6 +668,16 @@ const AstrologerDetail = () => {
         onClose={() => setShowIntakeModal(false)}
         onCancel={() => setShowIntakeModal(false)}
         onSubmit={handleIntakeSubmit}
+        initialData={(() => {
+          const saved = localStorage.getItem("chatIntakeDetails");
+          if (saved) {
+             try { return JSON.parse(saved); } catch(e) { return null; }
+          }
+          return {
+            name: user?.name || "",
+            gender: "male"
+          };
+        })()}
       />
     </div>
   );

@@ -2,17 +2,27 @@ import { useState, useEffect } from 'react';
 import { City } from 'country-state-city';
 import { Calendar, Clock, MapPin, User, X } from 'lucide-react';
 
-const IntakeModal = ({ isOpen, onSubmit, onClose, onCancel }) => {
+const IntakeModal = ({ isOpen, onSubmit, onClose, onCancel, initialData }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    gender: 'male',
-    dateOfBirth: '', // YYYY-MM-DD
-    timeOfBirth: '', // HH:MM
-    placeOfBirth: '',
-    latitude: '',
-    longitude: '',
-    timezone: 5.5
+    name: initialData?.name || '',
+    gender: initialData?.gender || 'male',
+    dateOfBirth: initialData?.dateOfBirth || '', // YYYY-MM-DD
+    timeOfBirth: initialData?.timeOfBirth || '', // HH:MM
+    placeOfBirth: initialData?.placeOfBirth || '',
+    latitude: initialData?.latitude || '',
+    longitude: initialData?.longitude || '',
+    timezone: initialData?.timezone || 5.5
   });
+
+  // Effect to update form if initialData changes while modal is kept mounted (though usually it unmounts)
+  useEffect(() => {
+    if (initialData && isOpen) {
+       setFormData(prev => ({ ...prev, ...initialData }));
+       if (initialData.placeOfBirth) {
+         setCitySearch(initialData.placeOfBirth);
+       }
+    }
+  }, [initialData, isOpen]);
   const [loading, setLoading] = useState(false);
   const [citySearch, setCitySearch] = useState('');
   const [citySuggestions, setCitySuggestions] = useState([]);
