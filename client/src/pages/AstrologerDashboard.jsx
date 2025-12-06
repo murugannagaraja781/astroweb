@@ -1204,7 +1204,7 @@ useEffect(() => {
               {inboxTab === "chat" && (
                 <div>
                   <pre className="bg-gray-100 p-2 text-xs overflow-auto mb-4 border border-gray-300 rounded">
-                    {JSON.stringify(pendingSessions, null, 2)}
+
                   </pre>
                   {pendingSessions.length === 0 ? (
                     <div className="text-center py-12">
