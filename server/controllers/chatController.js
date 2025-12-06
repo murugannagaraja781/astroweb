@@ -119,6 +119,9 @@ exports.getChatSessions = async (req, res) => {
     messages.forEach((msg) => {
       const peer =
         msg.sender._id.toString() === userId ? msg.receiver : msg.sender;
+
+      if (!peer) return; // Skip if peer not found (e.g. deleted user)
+
       const peerId = peer._id.toString();
 
       if (!sessions[peerId]) {

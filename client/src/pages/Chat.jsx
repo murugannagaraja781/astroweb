@@ -40,7 +40,7 @@ const Chat = () => {
 
   // Load chat history from REST
   const fetchChat = useCallback(async () => {
-    if (!id) return;
+    if (!id || id === "0") return;
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
@@ -55,7 +55,7 @@ const Chat = () => {
 
   // Fetch session info from REST
   const fetchSessionInfo = useCallback(async () => {
-    if (!id) return;
+    if (!id || id === "0") return;
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
@@ -70,7 +70,7 @@ const Chat = () => {
 
   // Initial load
   useEffect(() => {
-    if (id && user?.id) {
+    if (id && id !== "0" && user?.id) {
       fetchChat();
       fetchSessionInfo();
     }
@@ -300,6 +300,25 @@ const Chat = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto relative z-0">
+        {id === "0" ? (
+             <div className="flex-1 flex items-center justify-center text-center p-8">
+                <div>
+                   <div className="w-20 h-20 bg-purple-900/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-purple-500/30">
+                      <MessageCircle className="w-10 h-10 text-purple-300" />
+                   </div>
+                   <h2 className="text-2xl font-bold text-gray-200 mb-2">Select a Conversation</h2>
+                   <p className="text-gray-400 max-w-sm mx-auto">
+                     Choose an online astrologer from the list to start a cosmic consultation.
+                   </p>
+                   <button
+                     onClick={() => window.location.href = '/astrologers/chat'}
+                     className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-all"
+                   >
+                     Browse Astrologers
+                   </button>
+                </div>
+             </div>
+        ) : (
         <div className="max-w-4xl mx-auto h-full flex flex-col">
           <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container">
             {conversation.length === 0 ? (
@@ -457,10 +476,12 @@ const Chat = () => {
             <div ref={messagesEndRef} className="h-4" />
           </div>
         </div>
+       )}
       </div>
 
-      {/* Input */}
-      <div className="chat-footer relative z-10 bg-slate-900 pt-4 pb-safe-or-6 border-t border-slate-800">
+      {/* Input Area */}
+      {id !== "0" && (
+      <div className="chat-footer bg-slate-900/90 backdrop-blur-lg border-t border-purple-500/30 p-4 z-20">
         <div className="max-w-4xl mx-auto px-4">
           {isRecording && (
             <div className="text-center mb-3">
@@ -604,6 +625,7 @@ const Chat = () => {
         onClose={() => setShowChartModal(false)}
         initialChart={selectedChart}
       />
+      )}
     </div>
   );
 };
