@@ -21,7 +21,7 @@ const AstrologerDetail = lazy(() => import('./pages/AstrologerDetail'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AstrologerDashboard = lazy(() => import('./pages/AstrologerDashboard'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
-const VideoCall = lazy(() => import('./pages/AgoraVideoCall'));
+const VideoCall = lazy(() => import('./pages/VideoCall'));
 const Chat = lazy(() => import('./pages/Chat'));
 const AstrologyDashboard = lazy(() => import('./pages/AstrologyDashboard'));
 const PhonePeTest = lazy(() => import('./pages/PhonePeTest'));

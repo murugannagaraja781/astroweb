@@ -16,7 +16,7 @@ module.exports = function (io) {
         // =====================================================
 
         // Client -> Server -> Astrologer: Call Request
-        socket.on("call:request", ({ fromId, toId, fromName, fromImage, callId }) => {
+        socket.on("call:request", ({ fromId, toId, fromName, fromImage }) => {
             console.log(`📞 Call request from ${fromId} to ${toId}`);
             const targetSocketId = onlineUsers.get(toId);
 
@@ -25,9 +25,7 @@ module.exports = function (io) {
                     fromId,
                     fromName,
                     fromImage,
-                    fromSocketId: socket.id, // Send caller's socket ID for direct reply
-                    callId: data.callId, // Forward callId
-                    roomId: data.roomId
+                    fromSocketId: socket.id // Send caller's socket ID for direct reply
                 });
             } else {
                 // Astrologer offline

@@ -130,66 +130,12 @@ module.exports = (io, socket) => {
     });
 
     // ===== NEW: Call Acceptance Handlers =====
-    // ===== NEW: Call Acceptance Handlers =====
-    socket.on('call:accept', async ({ toSocketId, roomId, callId }) => {
-        console.log(`[Video Call] Accepted by ${socket.id} for ${toSocketId}, CallID: ${callId}`);
-
+    socket.on('call:accept', ({ toSocketId, roomId }) => {
+        console.log(`[Video Call] Accepted by ${socket.id} for ${toSocketId}`);
         io.to(toSocketId).emit('call:accepted', {
             roomId,
             fromSocketId: socket.id
         });
-
-        // Billing Logic: Start Active Call
-        if (callId) {
-            try {
-                const acceptedTime = new Date();
-
-                // Update CallLog
-                await CallLog.findByIdAndUpdate(callId, {
-                    status: 'active',
-                    acceptedTime
-                });
-
-                const callLog = await CallLog.findById(callId);
-                if (callLog) {
-                    // Create ActiveCall
-                    // Check if already exists to avoid duplicates
-                    let activeCall = await ActiveCall.findOne({ callId: callLog._id });
-                    if (!activeCall) {
-                        activeCall = new ActiveCall({
-                            callId: callLog._id,
-                            callerId: callLog.callerId,
-                            receiverId: callLog.receiverId,
-                            startTime: callLog.startTime,
-                            acceptedTime,
-                            status: 'active',
-                            rate: 1, // Default rate
-                            prepaid: 0
-                        });
-                        await activeCall.save();
-
-                        // Deduct Initial Charge (₹1)
-                        const callerWallet = await Wallet.findOne({ userId: callLog.callerId });
-                        if (callerWallet && callerWallet.balance >= 1) {
-                            callerWallet.balance -= 1;
-                            callerWallet.transactions.push({
-                                amount: 1,
-                                type: 'debit',
-                                description: 'Call started - 1 min prepaid',
-                                date: new Date()
-                            });
-                            await callerWallet.save();
-
-                            activeCall.prepaid = 1;
-                            await activeCall.save();
-                        }
-                        console.log(`[Billing] ActiveCall created for ${callId}`);
-                    }
-                }
-            } catch (err) {
-                console.error("[Billing] Error starting active call:", err);
-            }
-        }
     });
 
     socket.on('audio:accept', ({ toSocketId, roomId }) => {
