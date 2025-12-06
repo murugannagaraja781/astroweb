@@ -795,7 +795,10 @@ const AstrologerDashboard = () => {
                     <div className="flex items-center gap-1 text-xs text-slate-500">
                         <Star size={12} className="text-yellow-400 fill-yellow-400" />
                         <span>4.9 (1.2k Reviews)</span>
-                       <h1> {profile.userId}{profile.userId?.name}</h1>
+                    </div>
+                    {/* Unique Astrologer ID Display */}
+                    <div className="text-[10px] uppercase font-mono text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md mt-1 inline-block border border-purple-100">
+                        ID: {profile.userId?._id || profile.userId}
                     </div>
                 </div>
             </div>
@@ -895,7 +898,14 @@ const AstrologerDashboard = () => {
                         </div>
                     )}
 
-                    {pendingSessions.map(session => (
+                    {pendingSessions
+                        .filter(session => {
+                            // Robust filter: matches both String and ObjectId forms
+                            if (!profile?.userId) return false;
+                            const myId = profile.userId._id || profile.userId;
+                            return String(session.astrologerId) === String(myId);
+                        })
+                        .map(session => (
                         <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                              <div className="flex items-center gap-3">
                                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">

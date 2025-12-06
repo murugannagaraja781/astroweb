@@ -361,6 +361,7 @@ exports.getPendingSessions = async (req, res) => {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const sessions = await ChatSession.find({
+      astrologerId: req.user.id, // Strictly filter by current astrologer
       status: { $in: ["requested", "active"] },
       createdAt: { $gte: twentyFourHoursAgo }
     })
