@@ -25,11 +25,13 @@ const AstrologerListCalls = () => {
   };
 
   const handleVideoCall = (astrologerId) => {
-    navigate(`/astrologer/${astrologerId}?action=video`);
+    alert("Video Call feature is currently disabled.");
+    // navigate(`/astrologer/${astrologerId}?action=video`);
   };
 
   const handleAudioCall = (astrologerId) => {
-    navigate(`/astrologer/${astrologerId}?action=audio`);
+    alert("Audio Call feature is currently disabled.");
+    // navigate(`/astrologer/${astrologerId}?action=audio`);
   };
 
   const getInitials = (name) => {

@@ -3,8 +3,8 @@ import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../context/AuthContext";
-import ClienttoAstrologyvideocall from "./AstrologertoClientVideoCall";
-import AudioCall from "./AudioCall";
+// import ClienttoAstrologyvideocall from "./AstrologertoClientVideoCall";
+// import AudioCall from "./AudioCall";
 
 import {
   MessageCircle,
@@ -180,96 +180,14 @@ const AstrologerDetail = () => {
   // VIDEO CALL HANDLER
   // ============================
   const handleVideoCall = () => {
-    if (!user) {
-      alert("Please login to continue");
-      navigate("/login");
-      return;
-    }
-
-    if (user.role === "client" && balance < 1) {
-      alert("Insufficient balance! Please add money to your wallet.");
-      navigate("/dashboard");
-      return;
-    }
-
-    if (!astrologer) {
-      alert("Astrologer information not available. Please try again.");
-      return;
-    }
-
-    if (!astrologer.isOnline) {
-      alert("This astrologer is currently offline. Please try again later.");
-      return;
-    }
-
-    if (!socket || !socket.connected) {
-      alert("Connection not ready. Please refresh.");
-      return;
-    }
-
-    setWaiting(true);
-    setWaitingType("call");
-
-    console.log("[VideoCall] Sending call request to astrologer:", {
-      fromId: user.id,
-      toId: astrologer.userId,
-      astrologerProfileId: id,
-    });
-
-    socket.emit("call:request", {
-      fromId: user.id,
-      toId: astrologer.userId, // Use userId, not profile ID
-      fromName: user.name,
-      fromImage: user.avatar || "",
-    });
+    alert("Video Call feature is currently disabled.");
   };
 
   // ============================
   // AUDIO CALL HANDLER
   // ============================
   const handleAudioCall = () => {
-    if (!user) {
-      alert("Please login to continue");
-      navigate("/login");
-      return;
-    }
-
-    if (user.role === "client" && balance < 1) {
-      alert("Insufficient balance! Please add money to your wallet.");
-      navigate("/dashboard");
-      return;
-    }
-
-    if (!astrologer) {
-      alert("Astrologer information not available. Please try again.");
-      return;
-    }
-
-    if (!astrologer.isOnline) {
-      alert("This astrologer is currently offline. Please try again later.");
-      return;
-    }
-
-    if (!socket || !socket.connected) {
-      alert("Connection not ready. Please refresh.");
-      return;
-    }
-
-    setWaiting(true);
-    setWaitingType("audio");
-
-    console.log("[AudioCall] Sending audio call request to astrologer:", {
-      fromId: user.id,
-      toId: astrologer.userId,
-      astrologerProfileId: id,
-    });
-
-    socket.emit("audio:request", {
-      fromId: user.id,
-      toId: astrologer.userId,
-      fromName: user.name,
-      fromImage: user.avatar || "",
-    });
+    alert("Audio Call feature is currently disabled.");
   };
 
   // ============================
@@ -380,54 +298,17 @@ const AstrologerDetail = () => {
 
   if (showVideoCall) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="container mx-auto p-4">
-          <button
-            onClick={() => setShowVideoCall(false)}
-            className="flex items-center gap-2 text-white hover:text-purple-200 mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Profile
-          </button>
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-white text-center">
-            <div className="text-6xl mb-4">📹</div>
-            <h3 className="text-2xl font-bold mb-4">Video Call Feature</h3>
-            <div className="text-purple-200 mb-6">
-              <div className="text-purple-200 mb-6">
-                <ClienttoAstrologyvideocall
-                  roomId={videoRoomId}
-                  socket={socket}
-                  astrologerId={id}
-                  peerSocketId={peerSocketId}
-                />
-              </div>
+        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+            <div className="text-white text-center">
+                <h3 className="text-2xl font-bold mb-4">Video Call Ended</h3>
+                <button
+                    onClick={() => setShowVideoCall(false)}
+                    className="px-6 py-3 bg-purple-600 rounded-xl"
+                >
+                    Return to Profile
+                </button>
             </div>
-            {/* Audio Call Component */}
-            {showAudioCall && audioRoomId && (
-              <div className="text-purple-200 mb-6">
-                <AudioCall
-                  roomId={audioRoomId}
-                  socket={socket}
-                  peerSocketId={audioPeerSocketId}
-                  isInitiator={true}
-                />
-              </div>
-            )}
-
-            <div className="text-center">
-              <button
-                onClick={() => {
-                  setShowVideoCall(false);
-                  setShowAudioCall(false);
-                }}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
-              >
-                Return to Profile
-              </button>
-            </div>
-          </div>
         </div>
-      </div>
     );
   }
 
