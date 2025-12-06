@@ -121,7 +121,8 @@ useEffect(() => {
 
   // Initialize socket connection once
   useEffect(() => {
-    const newSocket = io(import.meta.env.VITE_API_URL, {
+    const socketUrl = import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app";
+    const newSocket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: 5,
@@ -360,17 +361,18 @@ useEffect(() => {
           }
         })
         .catch(err => {
-          // Ignore AbortError (happens when audio is interrupted)
+          // Ignore AbortError which happens when sound is interrupted
           if (err.name !== 'AbortError') {
-            console.warn("⚠️ Sound blocked by browser:", err.message);
-            // Show visual notification as fallback
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('New Request', {
-                body: 'You have a new chat/call request',
-                icon: '/logo.png',
-                requireInteraction: true
-              });
-            }
+             console.warn("⚠️ Sound play failed:", err);
+             // Fallback to visual notification
+             if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('New Request', {
+                  body: 'You have a new chat/call request',
+                  icon: '/logo.png',
+                  badge: '/logo.png',
+                  tag: 'astrologer-request',
+                });
+             }
           }
         });
     }

@@ -309,29 +309,28 @@ exports.getSessionHistory = async (req, res) => {
     const clientId = s.clientId ? s.clientId.toString() : null;
     const astrologerId = s.astrologerId ? s.astrologerId.toString() : null;
 
-    // TEMPORARY: Allow all authenticated users to access chat history for development
-    // TODO: Re-enable proper authorization in production
-    /*
+    // Authorization Check
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Normalize IDs to strings
+    const cId = clientId ? clientId.toString() : '';
+    const aId = astrologerId ? astrologerId.toString() : '';
+
     const isAuthorized =
-      req.user.role === 'admin' ||
-      req.user.id === clientId ||
-      req.user.id === astrologerId ||
-      (req.user.role === 'astrologer' && !astrologerId) ||
-      (req.user.role === 'client' && req.user.id === clientId);
+      userRole === 'admin' ||
+      userId === cId ||
+      userId === aId ||
+      (userRole === 'astrologer' && !aId) || // Astrologer accepting new session?
+      (userRole === 'client' && userId === cId);
 
     if (!isAuthorized) {
-      console.log(`[DEBUG] Unauthorized access to session history. User: ${req.user.id}, Role: ${req.user.role}, Client: ${clientId}, Astrologer: ${astrologerId}`);
+      console.log(`[AUTH FAILED] User:${userId} Role:${userRole} SessionClient:${cId} SessionAstro:${aId}`);
       return res.status(403).json({
-        msg: "Unauthorized",
-        debug: {
-          currentUserId: req.user.id,
-          currentUserRole: req.user.role,
-          sessionClientId: clientId,
-          sessionAstrologerId: astrologerId
-        }
+        msg: "Unauthorized to view this session history",
+        debug: { userId, userRole, cId, aId }
       });
     }
-    */
     const messages = await ChatMessage.find({ sessionId }).sort({
       timestamp: 1,
     });
