@@ -5,7 +5,7 @@ import axios from "axios";
 
 import AuthContext from "../context/AuthContext";
 import ChartModal from "../components/ChartModal";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock, User, Calendar, MapPin, X } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock, User } from "lucide-react";
 
 // Single shared socket instance
 const socket = io(
@@ -27,7 +27,6 @@ const Chat = () => {
   const [error, setError] = useState(null);
   const [showChartModal, setShowChartModal] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
-  const [showIntakeInfoModal, setShowIntakeInfoModal] = useState(false); // New state for intake modal
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -422,14 +421,26 @@ const Chat = () => {
         textarea,
         select {
           color: #1f2937 !important; /* gray-800 */
-          font-size: 16px; /* Prevent IOS zoom */
+          font-size: large;
         }
         .message-container {
-          padding-bottom: 20px; /* Space for scroll */
+          padding-bottom: 220px;
         }
-        /* Sticky Footer adjustments */
+        @media (min-width: 768px) {
+          .message-container {
+            padding-bottom: 140px;
+          }
+        }
         .chat-footer {
-          z-index: 30;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+        }
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+          .chat-footer {
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+          }
         }
       `}</style>
 
@@ -443,37 +454,36 @@ const Chat = () => {
       </div>
 
       {/* Header */}
-      <div className="flex-none relative flex items-center justify-between p-3 md:p-4 bg-slate-900/90 backdrop-blur-lg border-b border-purple-500/30 z-20">
-        <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+      <div className="relative flex items-center justify-between p-4 bg-slate-900/90 backdrop-blur-lg border-b border-purple-500/30 z-10">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => window.history.back()}
-            className="p-1.5 md:p-2 hover:bg-purple-500/20 rounded-full transition-colors flex-shrink-0"
+            className="p-2 hover:bg-purple-500/20 rounded-full transition-colors"
             title="Go back"
           >
             <ArrowLeft size={20} className="text-purple-200" />
           </button>
 
-          <div className="p-1.5 md:p-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex-shrink-0">
-            <Crown size={18} className="text-white md:w-5 md:h-5" />
+          <div className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full">
+            <Crown size={20} className="text-white" />
           </div>
 
-          <div className="min-w-0">
-            <h1 className="text-base md:text-xl font-bold text-gray-100 truncate">
+          <div>
+            <h1 className="text-xl font-bold text-gray-100">
               {user?.role === "client"
                 ? sessionInfo?.astrologer?.name || "Astrologer"
                 : sessionInfo?.client?.name || "Client"}
             </h1>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-          <div className="hidden md:flex items-center gap-2 text-sm text-purple-300">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-purple-300">
             <Star size={16} className="fill-purple-400 text-purple-400" />
             <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
           </div>
 
           {/* Timer Display */}
-          <div className="bg-slate-800/60 px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-purple-500/30 text-purple-200 font-mono text-xs md:text-sm">
+          <div className="bg-slate-800/60 px-3 py-1.5 rounded-lg border border-purple-500/30 text-purple-200 font-mono text-sm">
             {sessionDuration > 0 ? formatDuration(sessionDuration) : "00:00"}
           </div>
 
@@ -486,72 +496,34 @@ const Chat = () => {
                 window.history.back();
               }
             }}
-            className="p-2 md:px-4 md:py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl md:rounded-xl text-sm font-bold hover:bg-red-500/30 transition-all flex items-center justify-center"
-            title="End Chat"
+            className="px-4 py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-all"
           >
-             <span className="md:hidden">✕</span>
-             <span className="hidden md:inline">End Chat</span>
+            End Chat
           </button>
 
           {sessionInfo?.intakeDetails && (
              <button
-                onClick={() => setShowIntakeInfoModal(true)}
-                className="p-1.5 md:p-2 bg-purple-500/20 rounded-full text-purple-300 hover:bg-purple-500/30 transition-colors flex-shrink-0"
+                onClick={() => {
+                   alert(
+                     `Name: ${sessionInfo.intakeDetails.name}\n` +
+                     `DOB: ${sessionInfo.intakeDetails.dateOfBirth}\n` +
+                     `Time: ${sessionInfo.intakeDetails.timeOfBirth}\n` +
+                     `Place: ${sessionInfo.intakeDetails.placeOfBirth}`
+                   );
+                }}
+                className="p-2 bg-purple-500/20 rounded-full text-purple-300 hover:bg-purple-500/30 transition-colors"
                 title="View Client Intake Details"
              >
-                <User size={18} className="md:w-5 md:h-5" />
+                <User size={20} />
              </button>
           )}
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto relative z-0 scroll-smooth">
-        <div className="max-w-4xl mx-auto min-h-full flex flex-col justify-end">
-          <div className="px-4 py-4 space-y-4 message-container">
-
-            {/* System Message: Intake Details Card (Visible to Astrologers) */}
-            {sessionInfo?.intakeDetails && (user?.role === 'astrologer' || user?.role === 'admin') && (
-              <div className="mx-auto max-w-sm mb-6 relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-200"></div>
-                  <div className="relative bg-[#1a1a2e] border border-white/10 p-5 rounded-2xl shadow-xl">
-                    <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-2">
-                       <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                          <User size={16} className="text-purple-300" />
-                       </div>
-                       <h3 className="font-serif font-bold text-white tracking-wide">Birth Details</h3>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
-                       <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Name</p>
-                          <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.name}</p>
-                       </div>
-                       <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Date of Birth</p>
-                          <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.dateOfBirth}</p>
-                       </div>
-                       <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Time</p>
-                          <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.timeOfBirth}</p>
-                       </div>
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Place</p>
-                          <p className="text-gray-200 font-medium truncate" title={sessionInfo.intakeDetails.placeOfBirth}>
-                            {sessionInfo.intakeDetails.placeOfBirth}
-                          </p>
-                       </div>
-                       {(sessionInfo.intakeDetails.gender) && (
-                         <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Gender</p>
-                            <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.gender}</p>
-                         </div>
-                       )}
-                    </div>
-                  </div>
-              </div>
-            )}
-
+      <div className="flex-1 overflow-y-auto relative z-0">
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+          <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container">
             {conversation.length === 0 ? (
               <div className="text-center py-12">
                 {sessionInfo?.status === "requested" ? (
@@ -704,8 +676,8 @@ const Chat = () => {
       </div>
 
       {/* Input */}
-      <div className="flex-none chat-footer bg-slate-900 pt-3 pb-safe-or-4 border-t border-slate-800 w-full">
-        <div className="max-w-4xl mx-auto px-4 pb-4">
+      <div className="chat-footer relative z-10 bg-slate-900 pt-4 pb-safe-or-6 border-t border-slate-800">
+        <div className="max-w-4xl mx-auto px-4">
           {isRecording && (
             <div className="text-center mb-3">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full">
@@ -833,62 +805,6 @@ const Chat = () => {
         initialChart={selectedChart}
         intakeData={sessionInfo?.intakeDetails}
       />
-
-      {/* Intake Details Modal (Separate from Chart Modal for quick view) */}
-      {showIntakeInfoModal && sessionInfo?.intakeDetails && (
-         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowIntakeInfoModal(false)}>
-             <div className="bg-[#1a1a2e] border border-[#D4AF37]/30 rounded-2xl w-full max-w-sm shadow-2xl transform transition-all scale-100 p-6 relative"
-                  onClick={e => e.stopPropagation()}>
-
-                  <button className="absolute top-4 right-4 text-gray-400 hover:text-white"
-                          onClick={() => setShowIntakeInfoModal(false)}>
-                      <X size={20} />
-                  </button>
-
-                  <div className="flex items-center gap-3 mb-6">
-                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#8a701f] text-white flex items-center justify-center font-bold text-lg shadow-lg">
-                          {sessionInfo.intakeDetails.name?.[0]?.toUpperCase()}
-                       </div>
-                       <div>
-                          <h3 className="text-xl font-bold text-white font-serif">{sessionInfo.intakeDetails.name}</h3>
-                          <p className="text-sm text-[#D4AF37]">Birth Details</p>
-                       </div>
-                  </div>
-
-                  <div className="space-y-4">
-                      <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                         <div className="p-2 bg-black/20 rounded-lg text-purple-300"><Calendar size={18} /></div>
-                         <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-widest">Date of Birth</p>
-                            <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.dateOfBirth}</p>
-                         </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                         <div className="p-2 bg-black/20 rounded-lg text-blue-300"><Clock size={18} /></div>
-                         <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-widest">Time of Birth</p>
-                            <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.timeOfBirth}</p>
-                         </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                         <div className="p-2 bg-black/20 rounded-lg text-pink-300"><MapPin size={18} /></div>
-                         <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-widest">Place of Birth</p>
-                            <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.placeOfBirth}</p>
-                         </div>
-                      </div>
-                  </div>
-
-                  <button className="w-full mt-6 py-3 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/50 text-[#D4AF37] rounded-xl font-bold transition-all uppercase tracking-wider text-sm"
-                          onClick={() => setShowIntakeInfoModal(false)}>
-                      Close Details
-                  </button>
-             </div>
-         </div>
-      )}
     </div>
   );
 };

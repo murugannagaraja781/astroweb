@@ -26,7 +26,8 @@ const Chat = lazy(() => import('./pages/Chat'));
 const AstrologyDashboard = lazy(() => import('./pages/AstrologyDashboard'));
 const PhonePeTest = lazy(() => import('./pages/PhonePeTest'));
 const HealthTest = lazy(() => import('./pages/HealthTest'));
-const AstrologerList = lazy(() => import('./pages/AstrologerList'));
+const AstrologerListChat = lazy(() => import('./pages/AstrologerListChat'));
+const AstrologerListCalls = lazy(() => import('./pages/AstrologerListCalls'));
 
 // Loading component
 const LoadingFallback = () => (
@@ -169,8 +170,8 @@ function App() {
                   <Route path="/call/:id" element={<VideoCall />} />
                   <Route path="/chat/:id" element={<Chat />} />
                   <Route path="/astrology" element={<ProtectedAstrology />} />
-                  <Route path="/astrologers/chat" element={<AstrologerList />} />
-                  <Route path="/astrologers/calls" element={<AstrologerList />} />
+                  <Route path="/astrologers/chat" element={<AstrologerListChat />} />
+                  <Route path="/astrologers/calls" element={<AstrologerListCalls />} />
                   <Route path="/phonepe-test" element={<PhonePeTest />} />
                   <Route path="/health-test" element={<HealthTest />} />
                 </Routes>

@@ -26,81 +26,36 @@ exports.toggleStatus = async (req, res) => {
   }
 };
 
-// Update profile
 exports.updateProfile = async (req, res) => {
   try {
-    const {
-      languages, specialties, experience, education,
-      ratePerMinute, bio, profileImage, name,
-      isChatEnabled, isCallEnabled, isVideoEnabled
-    } = req.body;
+    const { languages, specialties, ratePerMinute, bio, experience, education } = req.body;
+    const profile = await AstrologerProfile.findOne({ userId: req.user.id });
 
-    const profileFields = {
-      languages,
-      specialties,
-      experience,
-      education,
-      ratePerMinute,
-      bio,
-      profileImage,
-      isChatEnabled,
-      isCallEnabled,
-      isVideoEnabled
-    };
+    if (!profile) return res.status(404).json({ msg: 'Profile not found' });
 
-    // Remove undefined fields
-    Object.keys(profileFields).forEach(key =>
-      profileFields[key] === undefined && delete profileFields[key]
-    );
+    if (languages) profile.languages = languages;
+    if (specialties) profile.specialties = specialties;
+    if (ratePerMinute) profile.ratePerMinute = ratePerMinute;
+    if (bio) profile.bio = bio;
+    if (experience) profile.experience = experience;
+    if (education) profile.education = education;
 
-    // Update Profile
-    let profile = await AstrologerProfile.findOneAndUpdate(
-      { userId: req.user.id },
-      { $set: profileFields },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-
-    // Sync Name to User model if provided
-    if (name) {
-      await User.findByIdAndUpdate(req.user.id, { name });
-    }
-
-    // Return combined data
-    const user = await User.findById(req.user.id);
-    const result = {
-      ...profile.toObject(),
-      name: user.name,
-      email: user.email,
-      phone: user.phone
-    };
-
-    res.json(result);
+    await profile.save();
+    res.json(profile);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).send('Server error');
   }
 };
 
-// Get current profile
 exports.getProfile = async (req, res) => {
   try {
-    const profile = await AstrologerProfile.findOne({ userId: req.user.id });
-
-    if (!profile) {
-      return res.status(404).json({ msg: 'Profile not found' });
-    }
-
-    const user = await User.findById(req.user.id);
-
-    res.json({
-      ...profile.toObject(),
-      name: user.name,
-      email: user.email,
-      phone: user.phone
-    });
+    const profile = await AstrologerProfile.findOne({ userId: req.user.id }).populate('userId', 'name email');
+    if (!profile) return res.status(404).json({ msg: 'Profile not found' });
+    res.json(profile);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).send('Server error');
   }
 };
 
