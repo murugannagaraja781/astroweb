@@ -514,37 +514,47 @@ const Chat = () => {
             {sessionInfo?.intakeDetails && (user?.role === 'astrologer' || user?.role === 'admin') && (
               <div className="mx-auto max-w-sm mb-6 relative group">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-200"></div>
-                  <div className="relative bg-[#1a1a2e] border border-white/10 p-5 rounded-2xl shadow-xl">
-                    <div className="flex items-center gap-3 mb-3 border-b border-white/10 pb-2">
+                  <div className="relative bg-[#1a1a2e] border border-white/10 p-5 rounded-2xl shadow-xl text-center">
+                    <div className="flex items-center justify-center gap-3 mb-4 border-b border-white/10 pb-3">
                        <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
                           <User size={16} className="text-purple-300" />
                        </div>
-                       <h3 className="font-serif font-bold text-white tracking-wide">Birth Details</h3>
+                       <h3 className="font-serif font-bold text-white tracking-wide text-lg">Birth Details</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                    <div className="space-y-4">
                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Name</p>
-                          <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.name}</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Name</p>
+                          <p className="text-gray-100 font-bold text-lg font-serif">{sessionInfo.intakeDetails.name}</p>
                        </div>
+
+                       <div className="grid grid-cols-2 gap-4">
+                           <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Date</p>
+                              <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.dateOfBirth}</p>
+                           </div>
+                           <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Time</p>
+                              <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.timeOfBirth}</p>
+                           </div>
+                       </div>
+
                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Date of Birth</p>
-                          <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.dateOfBirth}</p>
-                       </div>
-                       <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Time</p>
-                          <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.timeOfBirth}</p>
-                       </div>
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Place</p>
-                          <p className="text-gray-200 font-medium truncate" title={sessionInfo.intakeDetails.placeOfBirth}>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Place of Birth</p>
+                          <p className="text-gray-200 font-medium" title={sessionInfo.intakeDetails.placeOfBirth}>
                             {sessionInfo.intakeDetails.placeOfBirth}
                           </p>
+                          {(sessionInfo.intakeDetails.latitude && sessionInfo.intakeDetails.longitude) && (
+                             <p className="text-[10px] text-gray-500 mt-1 font-mono">
+                                Lat: {Number(sessionInfo.intakeDetails.latitude).toFixed(4)}, Long: {Number(sessionInfo.intakeDetails.longitude).toFixed(4)}
+                             </p>
+                          )}
                        </div>
+
                        {(sessionInfo.intakeDetails.gender) && (
-                         <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Gender</p>
-                            <p className="text-gray-200 font-medium">{sessionInfo.intakeDetails.gender}</p>
+                         <div className="pt-2 border-t border-white/5">
+                            <span className="text-xs text-gray-500 uppercase tracking-wider mr-2">Gender:</span>
+                            <span className="text-gray-200 font-medium">{sessionInfo.intakeDetails.gender}</span>
                          </div>
                        )}
                     </div>
