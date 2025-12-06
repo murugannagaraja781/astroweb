@@ -152,7 +152,7 @@ useEffect(() => {
     }
   }, [socket, user]);
 
-  // Fetch pending sessions (Moved up & wrapped in useCallback)
+  // Fetch pending sessions (Optimized to avoid re-renders)
   const fetchPendingSessions = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -162,14 +162,22 @@ useEffect(() => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
       if (res.data && Array.isArray(res.data)) {
-        setPendingSessions(res.data);
+        setPendingSessions(prev => {
+          // Optimization: Only update state if data has changed
+          const isSame = JSON.stringify(prev) === JSON.stringify(res.data);
+          return isSame ? prev : res.data;
+        });
       } else {
-        setPendingSessions([]);
+        setPendingSessions(prev => (prev.length === 0 ? prev : []));
       }
     } catch (err) {
       console.error("Error fetching sessions:", err);
-      setPendingSessions([]);
+      // Don't clear sessions on error to prevent UI flash, unless it's a 401/403
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+         setPendingSessions([]);
+      }
     }
   }, []);
 
