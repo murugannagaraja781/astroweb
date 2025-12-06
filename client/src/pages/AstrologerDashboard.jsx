@@ -182,8 +182,8 @@ useEffect(() => {
       // 1. ID Check
       if (data.astrologerId && String(data.astrologerId) !== String(myId)) return;
 
-      // 2. Name Check
-      if (data.astrologerName && myName && data.astrologerName !== myName) return;
+      // 2. Name Check - DISABLED (Name mismatches shouldn't block calls if ID matches)
+      // if (data.astrologerName && myName && data.astrologerName !== myName) return;
 
       const newVideoRequest = {
         id: `${data.fromId}_${Date.now()}`,
@@ -218,8 +218,8 @@ useEffect(() => {
       // payload might have astrologerId at top level
       if (payload.astrologerId && String(payload.astrologerId) !== String(myId)) return;
 
-      // 2. Name Check
-      if (payload.astrologerName && myName && payload.astrologerName !== myName) return;
+      // 2. Name Check - DISABLED
+      // if (payload.astrologerName && myName && payload.astrologerName !== myName) return;
 
       const newChatRequest = {
         id: payload.sessionId || `${payload.userId?._id}_${Date.now()}`,
