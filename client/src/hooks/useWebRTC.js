@@ -76,13 +76,16 @@ export const useWebRTC = ({
         window.alert(`Call Error: ${message}`);
     };
 
+    // Initialize Call
     const initCall = useCallback(async () => {
-        try {
-            if (!socket || !roomId) return;
-            console.log('[useWebRTC] Initializing call... Attempt:', retryCount + 1);
-            setError(null);
-            setConnectionStatus('initializing');
+        if (!socket || !roomId) return;
 
+        console.log('[useWebRTC] Initializing call... Attempt:', retryCount + 1);
+        setError(null);
+        setConnectionStatus('initializing');
+
+        try {
+            // 1. Get User Media
             const videoConstraints = {
                 width: { min: 240, ideal: 640, max: 640 },
                 height: { min: 180, ideal: 480, max: 480 },
@@ -98,14 +101,34 @@ export const useWebRTC = ({
                 }
             });
 
+            // Check if component unmounted or cleaned up during await
+            if (!streamRef.current && connectionStatus === 'disconnected') {
+                // This implies cleanup ran. Stop.
+                stream.getTracks().forEach(t => t.stop());
+                return;
+            }
+            // Better: use a ref for "isActive" managed by useEffect, but here we can check if peerConnection is null?
+            // Actually, useEffect cleanup sets peerConnection.current to null.
+
+            // Let's rely on checking if we are still "initializing" and not cleaned up.
+            // But simpler is to allow the useEffect to handle 'started' flag.
+
             console.log('[useWebRTC] Stream acquired:', stream.id);
             setLocalStream(stream);
             streamRef.current = stream;
 
-            peerConnection.current = new RTCPeerConnection(ICE_SERVERS);
+            // 2. Create Peer Connection
+            // Helper to prevent potential leak if re-assignment happens
+            if (peerConnection.current) {
+                peerConnection.current.close();
+            }
 
+            peerConnection.current = new RTCPeerConnection(ICE_SERVERS);
+            const pc = peerConnection.current; // Capture local reference
+
+            // Add Tracks
             stream.getTracks().forEach(track => {
-                const sender = peerConnection.current.addTrack(track, stream);
+                const sender = pc.addTrack(track, stream);
                 if (track.kind === 'video') {
                     try {
                         const parameters = sender.getParameters();
@@ -118,7 +141,7 @@ export const useWebRTC = ({
                 }
             });
 
-            peerConnection.current.ontrack = (event) => {
+            pc.ontrack = (event) => {
                 console.log('[useWebRTC] Received remote track');
                 if (event.streams && event.streams[0]) {
                     setRemoteStream(event.streams[0]);
@@ -126,21 +149,18 @@ export const useWebRTC = ({
                 }
             };
 
-            peerConnection.current.onicecandidate = (event) => {
+            pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    socket.emit('call:candidate', {
-                        toSocketId: targetId,
-                        candidate: event.candidate
-                    });
+                    socket.emit('call:candidate', { toSocketId: targetId, candidate: event.candidate });
                 }
             };
 
-            peerConnection.current.onconnectionstatechange = () => {
-                if (peerConnection.current) {
-                    console.log('[useWebRTC] Connection State:', peerConnection.current.connectionState);
-                    if (peerConnection.current.connectionState === 'connected') {
+            pc.onconnectionstatechange = () => {
+                if (pc) { // Ensure pc is not null if cleanup ran concurrently
+                    console.log('[useWebRTC] Connection State:', pc.connectionState);
+                    if (pc.connectionState === 'connected') {
                         setConnectionStatus('connected');
-                    } else if (peerConnection.current.connectionState === 'failed') {
+                    } else if (pc.connectionState === 'failed') {
                         const msg = 'ICE Connection Failed. Check network/firewall.';
                         console.error('[CRITICAL]', msg);
                         setConnectionStatus('failed');
@@ -150,30 +170,41 @@ export const useWebRTC = ({
                 }
             };
 
+            // 3. Negotiate
             if (isInitiator) {
                 console.log('[useWebRTC] Creating offer...');
-                const offer = await peerConnection.current.createOffer();
-                await peerConnection.current.setLocalDescription(offer);
-                socket.emit('call:offer', {
-                    toSocketId: targetId,
-                    offer
-                });
+                const offer = await pc.createOffer();
+                // Check if PC is still same (race check)
+                if (peerConnection.current !== pc) return;
+
+                await pc.setLocalDescription(offer);
+                socket.emit('call:offer', { toSocketId: targetId, offer });
                 setConnectionStatus('offering');
             }
 
         } catch (err) {
             handleError(err);
         }
-    }, [socket, roomId, isInitiator, retryCount, targetId, audioOnly]);
+    }, [socket, roomId, isInitiator, retryCount, targetId, audioOnly, connectionStatus]); // Added connectionStatus to deps
 
+    // Retry Function
     const retryConnection = () => {
         cleanup();
         setRetryCount(prev => prev + 1);
     };
 
+    // Initialize on mount or retry
     useEffect(() => {
-        initCall();
-        return () => cleanup();
+        let active = true;
+        // Wrapper to check active
+        const run = async () => {
+            if (active) await initCall();
+        };
+        run();
+        return () => {
+            active = false;
+            cleanup();
+        };
     }, [initCall, cleanup]);
 
     useEffect(() => {
