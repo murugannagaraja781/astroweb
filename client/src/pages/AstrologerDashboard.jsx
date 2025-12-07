@@ -1729,14 +1729,15 @@ useEffect(() => {
       {/* Floating Action Button Menu */}
       <AstrologyQuickMenu onSelectChart={handleChartSelect} />
 
-      {/* Active Video Call Overlay */}
-      {activeCallRoomId && activeCallType === 'video' && (
+      {/* Active Video/Audio Call Overlay */}
+      {activeCallRoomId && (activeCallType === 'video' || activeCallType === 'audio') && (
         <VideoCall
-          roomId={activeCallRoomId} // The shared room identifier
-          peerSocketId={activeCallPeerId} // The specific peer to signal
+          roomId={activeCallRoomId}
+          peerSocketId={activeCallPeerId}
           socket={socket}
           user={user}
-          isInitiator={false} // Astrologer accepted the call, so they are NOT the initiator of the signaling
+          isInitiator={false}
+          audioOnly={activeCallType === 'audio'}
           onEndCall={() => {
              setActiveCallRoomId(null);
              setActiveCallType(null);

@@ -221,8 +221,36 @@ const AstrologerDetail = () => {
   // ============================
   // AUDIO CALL HANDLER
   // ============================
+  // ============================
+  // AUDIO CALL HANDLER
+  // ============================
   const handleAudioCall = () => {
-    alert("Audio Call feature is currently disabled.");
+    if (!user) {
+      alert("Please login to continue");
+      navigate("/login");
+      return;
+    }
+    if (!astrologer || !astrologer.isOnline) {
+      alert("Astrologer is not available.");
+      return;
+    }
+    if (!socket || !socket.connected) {
+      alert("Connection not ready.");
+      return;
+    }
+
+    setWaiting(true);
+    setWaitingType("audio"); // New waiting type
+
+    console.log("[AudioCall] Requesting call...", { from: user.id, to: astrologer.userId });
+
+    // Emit Audio Call Request
+    socket.emit("audio:request", {
+      fromId: user.id,
+      toId: astrologer.userId,
+      fromName: user.name,
+      fromImage: user.avatar || ""
+    });
   };
 
   // ============================
@@ -342,6 +370,24 @@ const AstrologerDetail = () => {
                 setShowVideoCall(false);
                 setVideoRoomId(null);
                 setPeerSocketId(null);
+            }}
+            peerName={astrologer?.name}
+        />
+    );
+  }
+
+  if (showAudioCall) {
+    return (
+        <VideoCall
+            roomId={audioPeerSocketId}
+            socket={socket}
+            user={user}
+            isInitiator={true}
+            audioOnly={true}
+            onEnd={() => {
+                setShowAudioCall(false);
+                setAudioRoomId(null);
+                setAudioPeerSocketId(null);
             }}
             peerName={astrologer?.name}
         />
@@ -608,6 +654,8 @@ const AstrologerDetail = () => {
             <p className="text-gray-600 mb-6">
               {waitingType === "call"
                 ? "Establishing cosmic video connection..."
+                : waitingType === "audio"
+                ? "Connecting to astrologer via audio..."
                 : "Waiting for astrologer to accept your chat request..."}
             </p>
 

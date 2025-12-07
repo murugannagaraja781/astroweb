@@ -29,6 +29,7 @@ export const useWebRTC = ({
     roomId,
     peerSocketId, // Receive peerSocketId
     isInitiator = false,
+    audioOnly = false,
     onCallEnd
 }) => {
     const [localStream, setLocalStream] = useState(null);
@@ -71,7 +72,123 @@ export const useWebRTC = ({
         }
     }, [connectionStatus]); // onCallEnd removed from dep
 
-    // ... (initCall, retryConnection, etc.)
+    // Handle specific errors
+    const handleError = (err) => {
+        console.error('[useWebRTC] Error:', err);
+        let message = 'An unknown error occurred.';
+
+        if (err.name === 'NotAllowedError') {
+            message = 'Camera/Microphone permission denied. Please allow access in browser settings.';
+        } else if (err.name === 'NotFoundError') {
+            message = 'No camera or microphone found on this device.';
+        } else if (err.name === 'NotReadableError') {
+            message = 'Camera/Microphone is being used by another application on your system.';
+        } else if (err.message) {
+            message = err.message;
+        }
+
+        setError(message);
+        setConnectionStatus('failed');
+    };
+
+    const initCall = useCallback(async () => {
+        try {
+            if (!socket || !roomId) return;
+            console.log('[useWebRTC] Initializing call... Attempt:', retryCount + 1);
+            setError(null);
+            setConnectionStatus('initializing');
+
+            // 1. Get User Media - Optimized for Speed & Adaptation
+            // If audioOnly is true, video is false. Otherwise use constraints.
+            const videoConstraints = {
+                width: { min: 240, ideal: 640, max: 640 },
+                height: { min: 180, ideal: 480, max: 480 },
+                frameRate: { min: 10, ideal: 24, max: 24 }
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: audioOnly ? false : videoConstraints,
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            });
+
+            setLocalStream(stream);
+            streamRef.current = stream;
+
+            // 2. Create Peer Connection
+            peerConnection.current = new RTCPeerConnection(ICE_SERVERS);
+
+            // Add Tracks
+            stream.getTracks().forEach(track => {
+                const sender = peerConnection.current.addTrack(track, stream);
+                if (track.kind === 'video') {
+                    try {
+                        const parameters = sender.getParameters();
+                        if (!parameters.encodings) parameters.encodings = [{}];
+                        parameters.degradationPreference = 'maintain-framerate';
+                        sender.setParameters(parameters).catch(e => console.warn('Degradation pref error:', e));
+                    } catch (e) {
+                        console.warn('Sender params error:', e);
+                    }
+                }
+            });
+
+            // Handle Incoming Tracks
+            peerConnection.current.ontrack = (event) => {
+                console.log('[useWebRTC] Received remote track');
+                if (event.streams && event.streams[0]) {
+                    setRemoteStream(event.streams[0]);
+                    setConnectionStatus('connected');
+                }
+            };
+
+            // Handle ICE Candidates
+            peerConnection.current.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('call:candidate', {
+                        toSocketId: targetId,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            peerConnection.current.onconnectionstatechange = () => {
+                if (peerConnection.current) {
+                    console.log('[useWebRTC] Connection State:', peerConnection.current.connectionState);
+                    if (peerConnection.current.connectionState === 'connected') {
+                        setConnectionStatus('connected');
+                    } else if (peerConnection.current.connectionState === 'failed') {
+                        setConnectionStatus('failed');
+                        setError('Connection failed. Retrying...');
+                    }
+                }
+            };
+
+            // 3. Negotiate (Initiator logic)
+            if (isInitiator) {
+                console.log('[useWebRTC] Creating offer...');
+                const offer = await peerConnection.current.createOffer();
+                await peerConnection.current.setLocalDescription(offer);
+                socket.emit('call:offer', {
+                    toSocketId: targetId,
+                    offer
+                });
+                setConnectionStatus('offering');
+            }
+
+        } catch (err) {
+            handleError(err);
+        }
+    }, [socket, roomId, isInitiator, retryCount, targetId, audioOnly]);
+
+    // Retry Function
+    const retryConnection = () => {
+        cleanup();
+        setRetryCount(prev => prev + 1);
+    };
 
     // Initialize on mount or retry
     useEffect(() => {
@@ -82,7 +199,40 @@ export const useWebRTC = ({
     // Socket Event Listeners
     useEffect(() => {
         if (!socket) return;
-        // ... handlers ...
+        const handleOffer = async ({ fromSocketId, offer }) => {
+            if (!peerConnection.current) return;
+            try {
+                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await peerConnection.current.createAnswer();
+                await peerConnection.current.setLocalDescription(answer);
+
+                setConnectionStatus('answering');
+                socket.emit('call:answer', {
+                    toSocketId: fromSocketId,
+                    answer
+                });
+            } catch (err) {
+                console.error('[useWebRTC] Offer handling failed', err);
+            }
+        };
+
+        const handleAnswer = async ({ answer }) => {
+            if (!peerConnection.current) return;
+            try {
+                await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
+            } catch (err) {
+                console.error('[useWebRTC] Answer handling failed', err);
+            }
+        };
+
+        const handleCandidate = async ({ candidate }) => {
+            if (!peerConnection.current) return;
+            try {
+                await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+                console.error('[useWebRTC] Candidate handling failed', err);
+            }
+        };
         const handleEnd = () => {
             cleanup();
             if (onCallEndRef.current) onCallEndRef.current();

@@ -10,7 +10,8 @@ const VideoCall = ({
     isInitiator,
     onEnd,
     peerName,
-    peerSocketId // New prop for direct signaling
+    peerSocketId, // New prop for direct signaling
+    audioOnly = false
 }) => {
     const {
         localStream,
@@ -21,7 +22,7 @@ const VideoCall = ({
         endCall,
         toggleAudio,
         toggleVideo
-    } = useWebRTC({ socket, user, roomId, peerSocketId, isInitiator, onCallEnd: onEnd });
+    } = useWebRTC({ socket, user, roomId, peerSocketId, isInitiator, onCallEnd: onEnd, audioOnly });
 
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
@@ -129,51 +130,74 @@ const VideoCall = ({
 
             {/* VIDEO CONTAINER */}
             <div className="relative w-full h-full flex flex-col md:flex-row">
-                {/* REMOTE VIDEO */}
-                <div className="flex-1 relative bg-gray-900 flex items-center justify-center">
-                    {remoteStream ? (
-                        <video
-                            className="w-full h-full object-cover"
-                            autoPlay
-                            playsInline
-                            ref={remoteVideoRef}
-                        />
-
-
-                    ) : (
-                        <div className="text-center p-8 animate-pulse">
-                             <div className="w-24 h-24 bg-gray-800 rounded-full mx-auto mb-4 flex items-center justify-center border border-white/5">
-                                <Video className="text-gray-600 w-10 h-10" />
+                {audioOnly ? (
+                     /* AUDIO ONLY UI */
+                     <div className="flex-1 bg-slate-900 flex items-center justify-center flex-col p-8">
+                        <div className="relative">
+                            <div className="w-40 h-40 bg-indigo-500/20 rounded-full flex items-center justify-center border-4 border-indigo-500 animate-pulse">
+                                <div className="w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/50">
+                                    <span className="text-5xl font-bold text-white">
+                                        {peerName ? peerName.charAt(0).toUpperCase() : <User size={48} />}
+                                    </span>
+                                </div>
                             </div>
-                            <p className="text-gray-400 font-medium">Waiting for video stream...</p>
+                            <div className="absolute -bottom-2 right-4 bg-green-500 border-4 border-slate-900 w-10 h-10 rounded-full flex items-center justify-center">
+                                <Mic size={20} className="text-white" />
+                            </div>
                         </div>
-                    )}
-                </div>
 
-                {/* LOCAL VIDEO PIP */}
-                <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    drag
-                    dragConstraints={{ left: 0, right: 200, top: 0, bottom: 200 }}
-                    className="absolute top-24 right-4 md:bottom-24 md:right-8 md:top-auto w-32 h-48 md:w-56 md:h-80 bg-gray-800 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 z-20 cursor-move hover:border-purple-500 transition-colors"
-                >
-                     {localStream ? (
-                        <video
-                            className="w-full h-full object-cover mirror"
-                            autoPlay
-                            playsInline
-                            muted
-                            ref={localVideoRef}
-                            style={{ transform: 'scaleX(-1)' }}
-                        />
-                    ) : (
-                        <div className="flex items-center justify-center h-full bg-black">
-                            <VideoOff className="text-gray-500" />
+                        <h2 className="mt-8 text-3xl font-bold text-white tracking-tight">{peerName || "Unknown User"}</h2>
+                        <p className="text-indigo-300 font-medium mt-2 text-lg animate-pulse">Audio Call in Progress</p>
+                        <p className="text-gray-500 mt-4 text-xl font-mono">{formatTime(duration)}</p>
+                     </div>
+                ) : (
+                    /* VIDEO UI */
+                    <>
+                        {/* REMOTE VIDEO */}
+                        <div className="flex-1 relative bg-gray-900 flex items-center justify-center">
+                            {remoteStream ? (
+                                <video
+                                    className="w-full h-full object-cover"
+                                    autoPlay
+                                    playsInline
+                                    ref={remoteVideoRef}
+                                />
+                            ) : (
+                                <div className="text-center p-8 animate-pulse">
+                                    <div className="w-24 h-24 bg-gray-800 rounded-full mx-auto mb-4 flex items-center justify-center border border-white/5">
+                                        <Video className="text-gray-600 w-10 h-10" />
+                                    </div>
+                                    <p className="text-gray-400 font-medium">Waiting for video stream...</p>
+                                </div>
+                            )}
                         </div>
-                    )}
-                    <div className="absolute bottom-2 left-2 text-[10px] uppercase tracking-wider font-bold bg-black/60 px-2 py-1 rounded-md text-white/80">You</div>
-                </motion.div>
+
+                        {/* LOCAL VIDEO PIP */}
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            drag
+                            dragConstraints={{ left: 0, right: 200, top: 0, bottom: 200 }}
+                            className="absolute top-24 right-4 md:bottom-24 md:right-8 md:top-auto w-32 h-48 md:w-56 md:h-80 bg-gray-800 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 z-20 cursor-move hover:border-purple-500 transition-colors"
+                        >
+                            {localStream ? (
+                                <video
+                                    className="w-full h-full object-cover mirror"
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                    ref={localVideoRef}
+                                    style={{ transform: 'scaleX(-1)' }}
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full bg-black">
+                                    <VideoOff className="text-gray-500" />
+                                </div>
+                            )}
+                            <div className="absolute bottom-2 left-2 text-[10px] uppercase tracking-wider font-bold bg-black/60 px-2 py-1 rounded-md text-white/80">You</div>
+                        </motion.div>
+                    </>
+                )}
             </div>
 
 
