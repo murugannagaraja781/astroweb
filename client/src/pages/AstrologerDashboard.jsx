@@ -33,8 +33,9 @@ const AstrologerDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [activeCallRoomId, setActiveCallRoomId] = useState(null);
-  const [activeCallType, setActiveCallType] = useState("video");
+  const [activeCallType, setActiveCallType] = useState(null); // 'video' or 'audio'
   const [activeCallPeerId, setActiveCallPeerId] = useState(null);
+  const [activeCallPeerName, setActiveCallPeerName] = useState(null); // New state for peer name
   const [pendingSessions, setPendingSessions] = useState([]);
   const [pendingVideoCalls, setPendingVideoCalls] = useState([]);
   const [pendingAudioCalls, setPendingAudioCalls] = useState([]);
@@ -1383,11 +1384,11 @@ useEffect(() => {
                                           roomId
                                         });
                                         // Set activeCall to trigger VideoCall component overlay
-                                        // Set activeCall to trigger VideoCall component overlay
                                         // Explicitly set states to avoid reference errors or flickering
                                         setActiveCallRoomId(roomId);
                                         setActiveCallType('video');
                                         setActiveCallPeerId(call.fromSocketId);
+                                        setActiveCallPeerName(call.fromName); // Set name
                                       }
                                     setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
                                   }}
@@ -1471,6 +1472,7 @@ useEffect(() => {
                                       setActiveCallRoomId(roomId);
                                       setActiveCallType("audio");
                                       setActiveCallPeerId(call.fromSocketId);
+                                      setActiveCallPeerName(call.fromName);
                                       setActiveTab("calls");
                                     }
                                     setPendingAudioCalls((prev) => prev.filter((c) => c.id !== call.id));
@@ -1738,12 +1740,15 @@ useEffect(() => {
           user={user}
           isInitiator={false}
           audioOnly={activeCallType === 'audio'}
-          onEndCall={() => {
+          isInitiator={false}
+          audioOnly={activeCallType === 'audio'}
+          onEnd={() => {
              setActiveCallRoomId(null);
              setActiveCallType(null);
              setActiveCallPeerId(null);
+             setActiveCallPeerName(null);
           }}
-          // peerName={activeCall.fromName} // We might not have this easily if we didn't store it separate
+          peerName={activeCallPeerName || "Client"}
         />
       )}
     </div>
