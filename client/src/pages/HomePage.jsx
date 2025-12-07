@@ -1,4 +1,4 @@
-// pages/HomePage.jsx - Premium Home Screen
+import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -182,13 +182,15 @@ const HomePage = () => {
 
 const AstrologerCard = ({ astro, index, detailed = false }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className={`bg-space-700/50 backdrop-blur-xl border border-purple-500/20 rounded-3xl overflow-hidden ${
+      onClick={() => navigate(`/astrologer/${astro._id}`)}
+      className={`bg-space-700/50 backdrop-blur-xl border border-purple-500/20 rounded-3xl overflow-hidden cursor-pointer ${
         detailed ? 'p-4' : 'w-24 flex-shrink-0'
       }`}
     >
@@ -218,7 +220,10 @@ const CompactAstrologerCard = ({ astro }) => (
   </div>
 );
 
-const DetailedAstrologerCard = ({ astro }) => (
+const DetailedAstrologerCard = ({ astro }) => {
+  const navigate = useNavigate();
+
+  return (
   <div className="flex space-x-4">
     <div className="relative">
       <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center">
@@ -274,6 +279,10 @@ const DetailedAstrologerCard = ({ astro }) => (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/astrologer/${astro._id}`);
+            }}
             className="p-2 bg-purple-600 rounded-xl text-white"
           >
             <MessageCircle className="w-4 h-4" />
@@ -281,6 +290,10 @@ const DetailedAstrologerCard = ({ astro }) => (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/astrologer/${astro._id}`);
+            }}
             className="p-2 bg-gold-500 rounded-xl text-white"
           >
             <Video className="w-4 h-4" />
@@ -289,7 +302,8 @@ const DetailedAstrologerCard = ({ astro }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const AstrologerSkeleton = () => (
   <div className="bg-space-700/50 backdrop-blur-xl border border-purple-500/20 rounded-3xl p-4 animate-pulse">

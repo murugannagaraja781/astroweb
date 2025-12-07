@@ -22,7 +22,7 @@ import {
   Camera,
   Phone,
 } from "lucide-react";
-import { io } from "socket.io-client";
+import socketManager from "../utils/socketManager";
 
 const AstrologerDetail = () => {
   const { id } = useParams(); // astrologerId
@@ -59,80 +59,88 @@ const AstrologerDetail = () => {
   // ============================
   // SOCKET SETUP (CLIENT SIDE)
   // ============================
+  // ============================
+  // SOCKET SETUP (CLIENT SIDE)
+  // ============================
   useEffect(() => {
+    // Determine if we are the user (Client) or just viewing
+    // Socket connection is global, so we just attach listeners
+
+    // We can get the socket instance from manager, or use manager's helper methods if available
+    // But since the original code used 'socket' state, let's keep it but set it from manager
+
+    // Actually, better to just use socketManager directly for listeners
+    // But we need 'socket' state for VideoCall component props
+
     if (!user?.name) return;
 
-    const newSocket = io(import.meta.env.VITE_API_URL, {
-      query: { username: user.name },
-    });
+    const s = socketManager.connect(import.meta.env.VITE_API_URL); // Should already be connected from App.jsx
+    setSocket(s);
 
-    setSocket(newSocket);
+    console.log("[Client] Using global socket:", s.id);
 
-    newSocket.on("connect", () => {
-      console.log("[Client] Socket connected:", newSocket.id);
-      // Register user in onlineUsers map
-      if (user?.id) {
-        newSocket.emit("user_online", { userId: user.id });
-      }
-    });
-
-    // When astrologer accepts, redirect client to /chat/:sessionId
-    newSocket.on("chat:accepted", ({ sessionId }) => {
+    // Register listeners
+    const onChatAccepted = ({ sessionId }) => {
       console.log("[Client] Chat accepted → redirecting...", sessionId);
       setWaiting(false);
       setLastSessionId(sessionId);
       navigate(`/chat/${sessionId}`);
-    });
+    };
 
-    // When astrologer rejects
-    newSocket.on("chat:rejected", ({ sessionId }) => {
+    const onChatRejected = ({ sessionId }) => {
       console.log("[Client] Chat rejected for session", sessionId);
       setWaiting(false);
       alert("Astrologer rejected your chat request.");
-    });
+    };
 
-    // Video Call Listeners
-    newSocket.on("call:accepted", ({ roomId, fromSocketId }) => {
+    const onCallAccepted = ({ roomId, fromSocketId }) => {
       console.log("Video call accepted:", roomId, fromSocketId);
       setWaiting(false);
       setVideoRoomId(roomId);
       setPeerSocketId(fromSocketId);
       setShowVideoCall(true);
-    });
+    };
 
-    newSocket.on("call:rejected", () => {
+    const onCallRejected = () => {
       setWaiting(false);
       alert("Astrologer is busy or rejected the call.");
-    });
+    };
 
-    newSocket.on("call:offline", () => {
+    const onCallOffline = () => {
       setWaiting(false);
       alert("Astrologer is offline or unreachable.");
-    });
+    };
 
-    // Audio Call Listeners
-    newSocket.on("audio:accepted", ({ roomId, fromSocketId }) => {
+    const onAudioAccepted = ({ roomId, fromSocketId }) => {
       console.log("Audio call accepted:", roomId, fromSocketId);
       setWaiting(false);
       setAudioRoomId(roomId);
       setAudioPeerSocketId(fromSocketId);
       setShowAudioCall(true);
-    });
+    };
 
-    newSocket.on("audio:rejected", () => {
+    const onAudioRejected = () => {
       setWaiting(false);
       alert("Astrologer rejected the audio call.");
-    });
+    };
+
+    socketManager.on("chat:accepted", onChatAccepted);
+    socketManager.on("chat:rejected", onChatRejected);
+    socketManager.on("call:accepted", onCallAccepted);
+    socketManager.on("call:rejected", onCallRejected);
+    socketManager.on("call:offline", onCallOffline);
+    socketManager.on("audio:accepted", onAudioAccepted);
+    socketManager.on("audio:rejected", onAudioRejected);
 
     return () => {
-      newSocket.off("chat:accepted");
-      newSocket.off("chat:rejected");
-      newSocket.off("call:accepted");
-      newSocket.off("call:rejected");
-      newSocket.off("call:offline");
-      newSocket.off("audio:accepted");
-      newSocket.off("audio:rejected");
-      newSocket.disconnect();
+      socketManager.off("chat:accepted", onChatAccepted);
+      socketManager.off("chat:rejected", onChatRejected);
+      socketManager.off("call:accepted", onCallAccepted);
+      socketManager.off("call:rejected", onCallRejected);
+      socketManager.off("call:offline", onCallOffline);
+      socketManager.off("audio:accepted", onAudioAccepted);
+      socketManager.off("audio:rejected", onAudioRejected);
+      // Do NOT disconnect global socket
     };
   }, [user?.name, navigate]);
 
@@ -218,7 +226,7 @@ const AstrologerDetail = () => {
         const { callId } = res.data;
         console.log("Call API Requested:", callId);
 
-        socket.emit("call:request", {
+        socketManager.emit("call:request", {
           fromId: user.id,
           toId: astrologer.userId,
           fromName: user.name,
@@ -267,7 +275,7 @@ const AstrologerDetail = () => {
         const { callId } = res.data;
         console.log("Audio Call API Requested:", callId);
 
-        socket.emit("audio:request", {
+        socketManager.emit("audio:request", {
           fromId: user.id,
           toId: astrologer.userId,
           fromName: user.name,
@@ -336,7 +344,7 @@ const AstrologerDetail = () => {
 
       // Emit socket event to astrologer(s)
       if (user.id) {
-        socket.emit("chat:request", {
+        socketManager.emit("chat:request", {
           clientId: user.id,
           clientName: user.name,
           astrologerId: id,

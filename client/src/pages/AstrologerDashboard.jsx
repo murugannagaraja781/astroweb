@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, useContext } from "react";
 import Modal from "../components/Modal";
 import axios from "axios";
-import { io } from "socket.io-client";
+// import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 // import ClientVideoCall from "./ClientcalltoAstrologerVideoCall";
 // import AudioCall from "./AudioCall";
@@ -120,42 +120,47 @@ useEffect(() => {
 }, []);
 
 
+import socketManager from "../utils/socketManager";
+
+// ... inside component ...
+
   // Initialize socket connection once
   useEffect(() => {
-    const socketUrl =  "https://astroweb-production.up.railway.app";
-    console.log("[Astrologer] Initializing socket with URL:", socketUrl);
-    const newSocket = io(socketUrl, {
-      transports: ['websocket'], // Force WebSocket for faster connection
-      reconnection: true,
-      reconnectionAttempts: 10,
-    });
+    // connect() returns the singleton socket.
+    // It handles ensuring it's connected.
+    const newSocket = socketManager.connect(import.meta.env.VITE_API_URL || "https://astroweb-production.up.railway.app");
 
-    newSocket.on("connect", () => {
-      console.log("[Astrologer] Socket connected:", newSocket.id);
+    console.log("[Astrologer] Using global socket:", newSocket.id);
 
-      // REGISTER ONLINE STATUS
-      // Critical for call routing: Must match what Clients use to call us (toId)
-      // We prioritize user.id if available (likely the "User_..." string)
-      const registrationId = user?.id || profile?.userId?._id || profile?.userId;
+    // Instead of manual on('connect'), we rely on the global manager/App.jsx
+    // BUT we still want to ensure we are receiving events here.
 
-      if (registrationId) {
-          console.log("[Astrologer] Registering online as:", registrationId);
-          newSocket.emit("user_online", { userId: registrationId });
-      } else {
-          console.warn("[Astrologer] No ID found to register online status!");
-      }
-    });
-
-    newSocket.on("connect_error", (err) => {
-      console.error("[Astrologer] Socket connection error:", err);
-    });
-
+    // We update the local state to trigger other effects
     setSocket(newSocket);
 
-    return () => {
-      newSocket.close();
+    // Note: App.jsx handles the global 'user_online' emission.
+    // However, if we want to be double-sure or if this page is standalone:
+    const onConnect = () => {
+         console.log("[Astrologer] Socket connected/reconnected");
+         alert(`Socket Connected! ID: ${newSocket.id}`); // Show alert with Socket ID
+         const registrationId = user?.id || profile?.userId?._id || profile?.userId;
+         if (registrationId) {
+            newSocket.emit("user_online", { userId: registrationId });
+         }
     };
-  }, []);
+
+    newSocket.on("connect", onConnect);
+
+    // If already connected, run logic immediately
+    if (newSocket.connected) {
+        onConnect();
+    }
+
+    return () => {
+      newSocket.off("connect", onConnect);
+      // Do NOT close the global socket here as it breaks navigation
+    };
+  }, [user, profile]);
 
   // Emit user_online when socket is ready and user is loaded
 
@@ -545,6 +550,7 @@ useEffect(() => {
       const roomId = request.roomId || `video_${Date.now()}_${request.fromId}`;
       socket.emit("call:accept", {
         toSocketId: request.fromSocketId,
+        toUserId: request.fromId, // Add User ID for robust targeting
         roomId
       });
       setActiveCallRoomId(roomId);
@@ -555,6 +561,7 @@ useEffect(() => {
       const roomId = request.roomId || `audio_${Date.now()}_${request.fromId}`;
       socket.emit("audio:accept", {
         toSocketId: request.fromSocketId,
+        toUserId: request.fromId, // Add User ID
         roomId
       });
       setActiveCallRoomId(roomId);
@@ -596,9 +603,15 @@ useEffect(() => {
       if (request.type === "chat") {
         socket.emit("chat:reject", { sessionId: request.sessionId });
       } else if (request.type === "video") {
-        socket.emit("call:reject", { toSocketId: request.fromSocketId });
+        socket.emit("call:reject", {
+            toSocketId: request.fromSocketId,
+            toUserId: request.fromId
+        });
       } else if (request.type === "audio") {
-        socket.emit("audio:reject", { toSocketId: request.fromSocketId });
+        socket.emit("audio:reject", {
+            toSocketId: request.fromSocketId,
+            toUserId: request.fromId
+        });
       }
     } else {
       console.warn("⚠️ Socket not connected, cannot send reject event to server");

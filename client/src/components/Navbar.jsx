@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useContext, useState, useEffect, useRef } from 'react';
 import AuthContext from '../context/AuthContext';
 import { Sparkles, LogOut, User, LayoutDashboard, MessageCircle, Video, Menu, X } from 'lucide-react';
-import { io } from 'socket.io-client';
+import socketManager from '../utils/socketManager';
 import axios from 'axios';
 import ChatHistoryList from './ChatHistoryList';
 import CallHistoryList from './CallHistoryList';
@@ -12,7 +12,6 @@ const Navbar = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-  const socket = io(import.meta.env.VITE_API_URL);
 
   const [activeDropdown, setActiveDropdown] = useState(null); // 'chat', 'call', 'profile', null
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -27,7 +26,23 @@ const Navbar = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    // Alert Socket ID on connect (for debugging)
+    const onConnect = () => {
+        if (socketManager.socket?.id) {
+            alert(`Client Socket Connected! ID: ${socketManager.socket.id}`);
+        }
+    };
+    socketManager.on('connect', onConnect);
+    // If already connected when component mounts
+    if (socketManager.socket?.connected) {
+        onConnect();
+    }
+
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        socketManager.off('connect', onConnect);
+    };
   }, []);
 
   const fetchChatSessions = async () => {
@@ -64,7 +79,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     if (user) {
-      socket.emit('user_offline', { userId: user.id });
+      socketManager.emit('user_offline', { userId: user.id });
     }
     logout();
     navigate('/');

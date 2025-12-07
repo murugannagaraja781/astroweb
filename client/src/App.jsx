@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { lazy, Suspense, useContext } from 'react';
+import { lazy, Suspense, useContext, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import AuthContext from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -67,6 +67,35 @@ const ProtectedAstrology = () => {
 const AppLayout = ({ children }) => {
   const location = useLocation();
   const { user } = useContext(AuthContext);
+
+  // Initialize Global Socket Connection
+  useEffect(() => {
+    if (user) {
+      console.log("[App] Connecting global socket for user:", user.name);
+      import('./utils/socketManager').then(({ default: socketManager }) => {
+        const socket = socketManager.connect(import.meta.env.VITE_API_URL, {
+          query: { username: user.name },
+          transports: ['websocket']
+        });
+
+        const registrationId = user.id; // Or handle Astrologer vs Client ID logic if needed
+        if (registrationId) {
+             socket.on('connect', () => {
+                console.log("[App] Socket connected, registering online:", registrationId);
+                socket.emit("user_online", { userId: registrationId });
+             });
+             // If already connected, emit immediately
+             if (socket.connected) {
+                socket.emit("user_online", { userId: registrationId });
+             }
+        }
+      });
+    } else {
+       import('./utils/socketManager').then(({ default: socketManager }) => {
+         socketManager.disconnect();
+       });
+    }
+  }, [user]);
 
   // Hide global layout for admin dashboard
   const isAdminPage = location.pathname === '/admin-dashboard' ||

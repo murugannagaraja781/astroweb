@@ -170,31 +170,69 @@ module.exports = (io, socket) => {
     });
 
     // ===== NEW: Call Acceptance Handlers =====
-    socket.on('call:accept', ({ toSocketId, roomId }) => {
-        console.log(`[Video Call] Accepted by ${socket.id} for ${toSocketId}`);
-        io.to(toSocketId).emit('call:accepted', {
-            roomId,
-            fromSocketId: socket.id
-        });
+    socket.on('call:accept', ({ toSocketId, toUserId, roomId }) => {
+        let targetSocketId = toSocketId;
+
+        // If we have a userId, prioritize looking up their *current* socket ID
+        // This handles cases where the caller refreshed the page
+        if (toUserId) {
+            const currentSocketId = onlineUsers.get(toUserId);
+            if (currentSocketId) {
+                targetSocketId = currentSocketId;
+            }
+        }
+
+        console.log(`[Video Call] Accepted by ${socket.id} for ${toUserId || toSocketId} (Target Socket: ${targetSocketId})`);
+
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('call:accepted', {
+                roomId,
+                fromSocketId: socket.id
+            });
+        }
     });
 
-    socket.on('audio:accept', ({ toSocketId, roomId }) => {
-        console.log(`[Audio Call] Accepted by ${socket.id} for ${toSocketId}`);
-        io.to(toSocketId).emit('audio:accepted', {
-            roomId,
-            fromSocketId: socket.id
-        });
+    socket.on('audio:accept', ({ toSocketId, toUserId, roomId }) => {
+        let targetSocketId = toSocketId;
+        if (toUserId) {
+            const currentSocketId = onlineUsers.get(toUserId);
+            if (currentSocketId) targetSocketId = currentSocketId;
+        }
+
+        console.log(`[Audio Call] Accepted by ${socket.id} for ${toUserId || toSocketId}`);
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('audio:accepted', {
+                roomId,
+                fromSocketId: socket.id
+            });
+        }
     });
 
     // Call Rejection Handlers
-    socket.on('call:reject', ({ toSocketId }) => {
-        console.log(`[Video Call] Rejected by ${socket.id} for ${toSocketId}`);
-        io.to(toSocketId).emit('call:rejected');
+    socket.on('call:reject', ({ toSocketId, toUserId }) => {
+        let targetSocketId = toSocketId;
+        if (toUserId) {
+            const currentSocketId = onlineUsers.get(toUserId);
+            if (currentSocketId) targetSocketId = currentSocketId;
+        }
+
+        console.log(`[Video Call] Rejected by ${socket.id} for ${toUserId || toSocketId}`);
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('call:rejected');
+        }
     });
 
-    socket.on('audio:reject', ({ toSocketId }) => {
-        console.log(`[Audio Call] Rejected by ${socket.id} for ${toSocketId}`);
-        io.to(toSocketId).emit('audio:rejected');
+    socket.on('audio:reject', ({ toSocketId, toUserId }) => {
+        let targetSocketId = toSocketId;
+        if (toUserId) {
+            const currentSocketId = onlineUsers.get(toUserId);
+            if (currentSocketId) targetSocketId = currentSocketId;
+        }
+
+        console.log(`[Audio Call] Rejected by ${socket.id} for ${toUserId || toSocketId}`);
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('audio:rejected');
+        }
     });
 
     // ===== NEW: Video Call Handlers =====
