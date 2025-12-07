@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWebRTC } from '../hooks/useWebRTC';
-import { Mic, MicOff, Video, VideoOff, Phone, Maximize2, Minimize2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, Phone, Maximize2, Minimize2, RefreshCw, AlertTriangle, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const VideoCall = ({

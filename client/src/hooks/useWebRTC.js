@@ -115,6 +115,7 @@ export const useWebRTC = ({
                 }
             });
 
+            console.log('[useWebRTC] Stream acquired:', stream.id, 'Tracks:', stream.getTracks().map(t => t.kind));
             setLocalStream(stream);
             streamRef.current = stream;
 
