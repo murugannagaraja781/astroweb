@@ -1,15 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const ICE_SERVERS = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        { urls: 'stun:stun.services.mozilla.com' }
-    ],
+iceServers: [
+    // 1. Primary STUN (Necessary for NAT traversal)
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:global.stun.twilio.com:3478' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+
+    // 2. TURN Server (Mandatory for strict firewalls - Fill credentials below)
+    /*
+    {
+        urls: 'turn:YOUR_TURN_SERVER.com:3478',
+        username: 'user',
+        credential: 'password'
+    }
+    */
+
+    { urls: 'stun:stun.services.mozilla.com' }
+],
     iceCandidatePoolSize: 10 // Pre-gather candidates for faster connection
 };
 
