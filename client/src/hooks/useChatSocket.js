@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 
 const socket = io(
     "https://astroweb-production.up.railway.app",
-    { autoConnect: false, transports: ['websocket', 'polling'] }
+    { autoConnect: false, transports: ['websocket'] }
 );
 
 export const useChatSocket = (sessionId, user) => {

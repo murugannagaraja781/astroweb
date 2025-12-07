@@ -124,7 +124,7 @@ useEffect(() => {
     const socketUrl =  "https://astroweb-production.up.railway.app";
     console.log("[Astrologer] Initializing socket with URL:", socketUrl);
     const newSocket = io(socketUrl, {
-      // Default transports (polling -> upgrade to websocket) is safer now that CORS is fixed
+      transports: ['websocket'], // Force WebSocket for faster connection
       reconnection: true,
       reconnectionAttempts: 10,
     });
@@ -149,6 +149,10 @@ useEffect(() => {
 
   // Fetch pending sessions (Optimized to avoid re-renders)
   const fetchPendingSessions = useCallback(async () => {
+    if (!navigator.onLine) {
+        console.warn("OFFLINE: Skipping session fetch");
+        return;
+    }
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
@@ -267,8 +271,11 @@ useEffect(() => {
       setNotifications((n) => n + 1);
       playNotificationSound();
 
-      // Refresh list from server to be safe
-      fetchPendingSessions();
+      setNotifications((n) => n + 1);
+      playNotificationSound();
+
+      // Refresh list from server to be safe - REMOVED to prevent API spam
+      // fetchPendingSessions();
     });
 
     // Audio call request
@@ -475,22 +482,7 @@ useEffect(() => {
     }
   }, [activeTab, fetchPendingSessions]);
 
-  // Poll for new messages every second when online
-  useEffect(() => {
-    if (!isOnline) return;
 
-    console.log("📡 Starting message polling (every 1 second)");
-
-    const pollInterval = setInterval(() => {
-      // Silently fetch pending sessions
-      fetchPendingSessions();
-    }, 1000); // Check every 1 second
-
-    return () => {
-      console.log("🛑 Stopping message polling");
-      clearInterval(pollInterval);
-    };
-  }, [isOnline, fetchPendingSessions]);
 
 
 

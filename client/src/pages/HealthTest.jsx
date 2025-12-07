@@ -18,7 +18,7 @@ export default function HealthTest() {
       .catch(() => setServerStatus("FAIL"));
 
     // 2) CHECK SOCKET CONNECT
-    const socket = io(SIGNALING_URL);
+    const socket = io(SIGNALING_URL, { transports: ['websocket'] });
 
     socket.on("connect", () => {
       setSocketStatus("PASS");

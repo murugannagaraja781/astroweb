@@ -9,7 +9,8 @@ const ICE_SERVERS = {
         { urls: 'stun:stun3.l.google.com:19302' },
         { urls: 'stun:stun4.l.google.com:19302' },
         { urls: 'stun:stun.services.mozilla.com' }
-    ]
+    ],
+    iceCandidatePoolSize: 10 // Pre-gather candidates for faster connection
 };
 
 export const useWebRTC = ({
@@ -83,10 +84,19 @@ export const useWebRTC = ({
             setError(null);
             setConnectionStatus('initializing');
 
-            // 1. Get User Media
+            // 1. Get User Media - Optimized for Speed
+            // Lower resolution/fps starts faster and is more reliable on mobile/slow nets
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
+                video: {
+                    width: { ideal: 640 },   // SD Quality is faster
+                    height: { ideal: 480 },
+                    frameRate: { ideal: 24, max: 30 } // Smooth enough, saves bandwidth
+                },
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
             });
             setLocalStream(stream);
             streamRef.current = stream;
