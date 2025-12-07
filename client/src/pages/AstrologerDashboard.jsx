@@ -1222,6 +1222,8 @@ useEffect(() => {
         notificationSoundRef.current.pause();
         notificationSoundRef.current.currentTime = 0;
         console.log("🔓 Audio unlocked");
+      }).catch(err => {
+         console.log("Audio unlock interrupted (harmless):", err);
       });
     }
   }}

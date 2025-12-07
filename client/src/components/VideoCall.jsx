@@ -41,6 +41,21 @@ const VideoCall = ({
         return () => clearInterval(interval);
     }, [connectionStatus]);
 
+    const localVideoRef = React.useRef(null);
+    const remoteVideoRef = React.useRef(null);
+
+    useEffect(() => {
+        if (localVideoRef.current) {
+            localVideoRef.current.srcObject = localStream;
+        }
+    }, [localStream]);
+
+    useEffect(() => {
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+        }
+    }, [remoteStream]);
+
     const formatTime = (secs) => {
         const mins = Math.floor(secs / 60);
         const second = secs % 60;
@@ -121,8 +136,10 @@ const VideoCall = ({
                             className="w-full h-full object-cover"
                             autoPlay
                             playsInline
-                            ref={video => { if (video) video.srcObject = remoteStream }}
+                            ref={remoteVideoRef}
                         />
+
+
                     ) : (
                         <div className="text-center p-8 animate-pulse">
                              <div className="w-24 h-24 bg-gray-800 rounded-full mx-auto mb-4 flex items-center justify-center border border-white/5">
@@ -147,7 +164,7 @@ const VideoCall = ({
                             autoPlay
                             playsInline
                             muted
-                            ref={video => { if (video) video.srcObject = localStream }}
+                            ref={localVideoRef}
                             style={{ transform: 'scaleX(-1)' }}
                         />
                     ) : (
