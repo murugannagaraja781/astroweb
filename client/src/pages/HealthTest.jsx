@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
-const SIGNALING_URL = import.meta.env.VITE_SIGNALING_SERVER || import.meta.env.VITE_API_URL || "http://localhost:5000";
+const SIGNALING_URL = import.meta.env.VITE_SIGNALING_SERVER || import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export default function HealthTest() {
   const [serverStatus, setServerStatus] = useState("Checking...");

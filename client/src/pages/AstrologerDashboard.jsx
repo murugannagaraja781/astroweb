@@ -1383,12 +1383,11 @@ useEffect(() => {
                                           roomId
                                         });
                                         // Set activeCall to trigger VideoCall component overlay
-                                        setActiveCall({
-                                            type: 'video',
-                                            fromSocketId: call.fromSocketId,
-                                            fromName: call.fromName,
-                                            roomId
-                                        });
+                                        // Set activeCall to trigger VideoCall component overlay
+                                        // Explicitly set states to avoid reference errors or flickering
+                                        setActiveCallRoomId(roomId);
+                                        setActiveCallType('video');
+                                        setActiveCallPeerId(call.fromSocketId);
                                       }
                                     setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
                                   }}
