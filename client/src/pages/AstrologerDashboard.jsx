@@ -1416,7 +1416,9 @@ useEffect(() => {
                                               }
                                               setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
                                           }).catch(err => {
-                                              alert("Failed to accept call: " + (err.response?.data?.msg || err.message));
+                                              const errMsg = err.response?.data?.msg || err.message;
+                                              console.error("Accept Call Failed:", errMsg);
+                                              window.alert(`Failed to accept call: ${errMsg}`);
                                           });
                                       } else {
                                           // Legacy Fallback (No callId)
