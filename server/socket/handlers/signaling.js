@@ -34,6 +34,25 @@ module.exports = (io, socket) => {
         }
     });
 
+    // Client -> Server -> Astrologer: Audio Call Request
+    socket.on("audio:request", ({ fromId, toId, fromName, fromImage }) => {
+        console.log(`📞 Audio request from ${fromId} to ${toId}`);
+        const targetSocketId = onlineUsers.get(toId);
+
+        if (targetSocketId) {
+            io.to(targetSocketId).emit("audio:request", {
+                fromId,
+                fromName,
+                fromImage,
+                fromSocketId: socket.id // Send caller's socket ID for direct reply
+            });
+        } else {
+            // Astrologer offline
+            console.log(`User ${toId} is offline`);
+            socket.emit("call:offline"); // Reuse offline, or audio:offline if preferred
+        }
+    });
+
     // Initiate call
     socket.on('callUser', ({ userToCall, signalData, from, name, type, callId }) => {
         console.log(`Call from ${from} to ${userToCall}, type: ${type}`);
