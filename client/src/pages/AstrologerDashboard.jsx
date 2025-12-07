@@ -132,6 +132,18 @@ useEffect(() => {
 
     newSocket.on("connect", () => {
       console.log("[Astrologer] Socket connected:", newSocket.id);
+
+      // REGISTER ONLINE STATUS
+      // Critical for call routing: Must match what Clients use to call us (toId)
+      // We prioritize user.id if available (likely the "User_..." string)
+      const registrationId = user?.id || profile?.userId?._id || profile?.userId;
+
+      if (registrationId) {
+          console.log("[Astrologer] Registering online as:", registrationId);
+          newSocket.emit("user_online", { userId: registrationId });
+      } else {
+          console.warn("[Astrologer] No ID found to register online status!");
+      }
     });
 
     newSocket.on("connect_error", (err) => {
@@ -1738,8 +1750,6 @@ useEffect(() => {
           peerSocketId={activeCallPeerId}
           socket={socket}
           user={user}
-          isInitiator={false}
-          audioOnly={activeCallType === 'audio'}
           isInitiator={false}
           audioOnly={activeCallType === 'audio'}
           onEnd={() => {
