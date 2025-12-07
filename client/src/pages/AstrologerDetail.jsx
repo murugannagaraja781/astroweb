@@ -209,12 +209,26 @@ const AstrologerDetail = () => {
 
     console.log("[VideoCall] Requesting call...", { from: user.id, to: astrologer.userId });
 
-    // Emit Call Request
-    socket.emit("call:request", {
-      fromId: user.id,
-      toId: astrologer.userId,
-      fromName: user.name,
-      fromImage: user.avatar || ""
+    // Emit Call Request via API then Socket
+    axios.post(
+      `${import.meta.env.VITE_API_URL}/api/call/request`,
+      { receiverId: astrologer.userId, type: 'video' },
+      { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+    ).then(res => {
+        const { callId } = res.data;
+        console.log("Call API Requested:", callId);
+
+        socket.emit("call:request", {
+          fromId: user.id,
+          toId: astrologer.userId,
+          fromName: user.name,
+          fromImage: user.avatar || "",
+          callId: callId // Pass callId to socket
+        });
+    }).catch(err => {
+        console.error("Call API Request Failed:", err);
+        setWaiting(false);
+        alert(err.response?.data?.msg || "Failed to initiate call");
     });
   };
 
@@ -244,12 +258,26 @@ const AstrologerDetail = () => {
 
     console.log("[AudioCall] Requesting call...", { from: user.id, to: astrologer.userId });
 
-    // Emit Audio Call Request
-    socket.emit("audio:request", {
-      fromId: user.id,
-      toId: astrologer.userId,
-      fromName: user.name,
-      fromImage: user.avatar || ""
+    // Emit Audio Call Request via API then Socket
+    axios.post(
+      `${import.meta.env.VITE_API_URL}/api/call/request`,
+      { receiverId: astrologer.userId, type: 'audio' },
+      { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+    ).then(res => {
+        const { callId } = res.data;
+        console.log("Audio Call API Requested:", callId);
+
+        socket.emit("audio:request", {
+          fromId: user.id,
+          toId: astrologer.userId,
+          fromName: user.name,
+          fromImage: user.avatar || "",
+          callId: callId
+        });
+    }).catch(err => {
+        console.error("Audio Call API Request Failed:", err);
+        setWaiting(false);
+        alert(err.response?.data?.msg || "Failed to initiate audio call");
     });
   };
 

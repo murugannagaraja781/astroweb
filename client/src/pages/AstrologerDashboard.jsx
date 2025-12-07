@@ -1378,10 +1378,17 @@ useEffect(() => {
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => {
-                                    if (socket) {
-                                      socket.emit("call:reject", { toSocketId: call.fromSocketId });
-                                    }
-                                    setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
+                                      if(call.callId) {
+                                          axios.post(
+                                              `${import.meta.env.VITE_API_URL}/api/call/reject`,
+                                              { callId: call.callId },
+                                              { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+                                          ).catch(console.error);
+                                      }
+                                      if (socket) {
+                                        socket.emit("call:reject", { toSocketId: call.fromSocketId });
+                                      }
+                                      setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
                                   }}
                                   className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition-all transform hover:scale-105"
                                 >
@@ -1389,20 +1396,40 @@ useEffect(() => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    if (socket) {
-                                      const roomId = call.roomId || `video_${Date.now()}_${call.fromId}`;
-                                        socket.emit("call:accept", {
-                                          toSocketId: call.fromSocketId,
-                                          roomId
-                                        });
-                                        // Set activeCall to trigger VideoCall component overlay
-                                        // Explicitly set states to avoid reference errors or flickering
-                                        setActiveCallRoomId(roomId);
-                                        setActiveCallType('video');
-                                        setActiveCallPeerId(call.fromSocketId);
-                                        setActiveCallPeerName(call.fromName); // Set name
+                                      // Accept via API first (Billing)
+                                      if(call.callId) {
+                                          axios.post(
+                                              `${import.meta.env.VITE_API_URL}/api/call/accept`,
+                                              { callId: call.callId },
+                                              { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+                                          ).then(() => {
+                                              if (socket) {
+                                                const roomId = call.roomId || `video_${Date.now()}_${call.fromId}`;
+                                                  socket.emit("call:accept", {
+                                                    toSocketId: call.fromSocketId,
+                                                    roomId
+                                                  });
+                                                  setActiveCallRoomId(roomId);
+                                                  setActiveCallType('video');
+                                                  setActiveCallPeerId(call.fromSocketId);
+                                                  setActiveCallPeerName(call.fromName);
+                                              }
+                                              setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
+                                          }).catch(err => {
+                                              alert("Failed to accept call: " + (err.response?.data?.msg || err.message));
+                                          });
+                                      } else {
+                                          // Legacy Fallback (No callId)
+                                          if (socket) {
+                                              const roomId = call.roomId || `video_${Date.now()}_${call.fromId}`;
+                                              socket.emit("call:accept", { toSocketId: call.fromSocketId, roomId });
+                                              setActiveCallRoomId(roomId);
+                                              setActiveCallType('video');
+                                              setActiveCallPeerId(call.fromSocketId);
+                                              setActiveCallPeerName(call.fromName);
+                                          }
+                                          setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
                                       }
-                                    setPendingVideoCalls((prev) => prev.filter((c) => c.id !== call.id));
                                   }}
                                   className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-all transform hover:scale-105"
                                 >
@@ -1464,6 +1491,13 @@ useEffect(() => {
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => {
+                                    if(call.callId) {
+                                          axios.post(
+                                              `${import.meta.env.VITE_API_URL}/api/call/reject`,
+                                              { callId: call.callId },
+                                              { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+                                          ).catch(console.error);
+                                      }
                                     if (socket) {
                                       socket.emit("audio:reject", { toSocketId: call.fromSocketId });
                                     }
@@ -1475,19 +1509,45 @@ useEffect(() => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    if (socket) {
-                                      const roomId = call.roomId || `audio_${Date.now()}_${call.fromId}`;
-                                      socket.emit("audio:accept", {
-                                        toSocketId: call.fromSocketId,
-                                        roomId
-                                      });
-                                      setActiveCallRoomId(roomId);
-                                      setActiveCallType("audio");
-                                      setActiveCallPeerId(call.fromSocketId);
-                                      setActiveCallPeerName(call.fromName);
-                                      setActiveTab("calls");
+                                    // Accept via API first (Billing)
+                                    if(call.callId) {
+                                          axios.post(
+                                              `${import.meta.env.VITE_API_URL}/api/call/accept`,
+                                              { callId: call.callId },
+                                              { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+                                          ).then(() => {
+                                              if (socket) {
+                                                const roomId = call.roomId || `audio_${Date.now()}_${call.fromId}`;
+                                                socket.emit("audio:accept", {
+                                                  toSocketId: call.fromSocketId,
+                                                  roomId
+                                                });
+                                                setActiveCallRoomId(roomId);
+                                                setActiveCallType("audio");
+                                                setActiveCallPeerId(call.fromSocketId);
+                                                setActiveCallPeerName(call.fromName);
+                                                setActiveTab("calls");
+                                              }
+                                              setPendingAudioCalls((prev) => prev.filter((c) => c.id !== call.id));
+                                          }).catch(err => {
+                                              alert("Failed to accept call: " + (err.response?.data?.msg || err.message));
+                                          });
+                                    } else {
+                                        // Legacy Fallback
+                                        if (socket) {
+                                          const roomId = call.roomId || `audio_${Date.now()}_${call.fromId}`;
+                                          socket.emit("audio:accept", {
+                                            toSocketId: call.fromSocketId,
+                                            roomId
+                                          });
+                                          setActiveCallRoomId(roomId);
+                                          setActiveCallType("audio");
+                                          setActiveCallPeerId(call.fromSocketId);
+                                          setActiveCallPeerName(call.fromName);
+                                          setActiveTab("calls");
+                                        }
+                                        setPendingAudioCalls((prev) => prev.filter((c) => c.id !== call.id));
                                     }
-                                    setPendingAudioCalls((prev) => prev.filter((c) => c.id !== call.id));
                                   }}
                                   className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-all transform hover:scale-105"
                                 >

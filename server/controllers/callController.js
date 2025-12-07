@@ -3,84 +3,102 @@ const Wallet = require('../models/Wallet');
 const User = require('../models/User');
 const AstrologerProfile = require('../models/AstrologerProfile');
 
-exports.initiateCall = async (req, res) => {
+exports.requestCall = async (req, res) => {
   const { receiverId, type = 'video' } = req.body;
   const callerId = req.user.id;
   const callerRole = req.user.role;
 
-  console.log('Initiating Call:', { callerId, receiverId, type, role: callerRole });
+  console.log('Requesting Call:', { callerId, receiverId, type, role: callerRole });
 
   try {
     // Validate receiverId
     if (!receiverId || !receiverId.match(/^[0-9a-fA-F]{24}$/)) {
-      console.error('Invalid receiver ID:', receiverId);
       return res.status(400).json({ msg: 'Invalid receiver ID' });
     }
 
-    // Admin and Astrologer can call without balance checks
-    if (callerRole === 'admin') {
-      console.log('✅ Admin user - skipping balance check');
-      const newCall = new CallLog({
-        callerId: callerId,
-        receiverId: receiverId,
-        startTime: Date.now(),
-        type: type
-      });
-      await newCall.save();
-      return res.json({ callId: newCall._id, msg: 'Call initiated (Admin)' });
+    // Check balance (but don't deduct yet)
+    if (callerRole === 'client') {
+      const wallet = await Wallet.findOne({ userId: callerId });
+      if (!wallet || wallet.balance < 1) {
+        return res.status(400).json({ msg: 'Insufficient balance. Minimum ₹1 required.' });
+      }
     }
-
-    if (callerRole === 'astrologer') {
-      console.log('✅ Astrologer user - skipping balance check');
-      const newCall = new CallLog({
-        callerId: callerId,
-        receiverId: receiverId,
-        startTime: Date.now(),
-        type: type
-      });
-      await newCall.save();
-      return res.json({ callId: newCall._id, msg: 'Call initiated (Astrologer)' });
-    }
-
-    // For clients, check balance and astrologer profile
-    const wallet = await Wallet.findOne({ userId: callerId });
-    const astrologerProfile = await AstrologerProfile.findOne({ userId: receiverId });
-
-    if (!wallet) {
-      console.error(`Wallet not found for user ${callerId}`);
-      return res.status(404).json({ msg: 'Wallet not found. Please contact support.' });
-    }
-
-    console.log(`User ${callerId} balance: ₹${wallet.balance}`);
-
-    if (!astrologerProfile) {
-      console.error(`Astrologer not found for receiverId ${receiverId}`);
-      return res.status(404).json({ msg: 'Astrologer not found' });
-    }
-
-    // Check if user has at least ₹1 balance (₹1 per minute rate)
-    // if (wallet.balance < 1) {
-    //   console.warn(`Insufficient balance for user ${callerId}: ₹${wallet.balance}`);
-    //   return res.status(400).json({
-    //     msg: 'Insufficient balance. Minimum ₹1 required to start call/chat.',
-    //     balance: wallet.balance
-    //   });
-    // }
 
     const newCall = new CallLog({
       callerId: callerId,
       receiverId: receiverId,
-      startTime: Date.now(),
+      startTime: Date.now(), // Request time
+      status: 'requested',
       type: type
     });
 
     await newCall.save();
-    console.log(`✅ Call initiated successfully: ${newCall._id}`);
+    console.log(`✅ Call requested: ${newCall._id}`);
 
-    res.json({ callId: newCall._id, msg: 'Call initiated', balance: wallet.balance });
+    res.json({ callId: newCall._id, msg: 'Call requested', status: 'requested' });
   } catch (err) {
-    console.error('❌ Error in initiateCall:', err);
+    console.error('❌ Error in requestCall:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+};
+
+exports.acceptCall = async (req, res) => {
+  const { callId } = req.body;
+
+  try {
+    const call = await CallLog.findById(callId);
+    if (!call) return res.status(404).json({ msg: 'Call not found' });
+
+    if (call.status !== 'requested') return res.status(400).json({ msg: 'Call already processed' });
+
+    // Billing Logic
+    const callerWallet = await Wallet.findOne({ userId: call.callerId });
+    if (callerWallet && callerWallet.balance >= 1) {
+      // Deduct initial 1 minute
+      callerWallet.balance -= 1;
+      await callerWallet.save();
+
+      // Update Call
+      call.status = 'active';
+      call.acceptedTime = new Date();
+      await call.save();
+
+      // Create ActiveCall tracker for ongoing billing
+      const ActiveCall = require('../models/ActiveCall');
+      const activeCall = new ActiveCall({
+        callId: call._id,
+        callerId: call.callerId,
+        receiverId: call.receiverId,
+        startTime: call.startTime,
+        acceptedTime: new Date(),
+        status: 'active',
+        rate: 1,
+        prepaid: 1
+      });
+      await activeCall.save();
+
+      res.json({ success: true, callId: call._id, status: 'active' });
+    } else {
+      return res.status(400).json({ msg: 'Caller has insufficient balance' });
+    }
+  } catch (err) {
+    console.error('❌ Error in acceptCall:', err);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+};
+
+exports.rejectCall = async (req, res) => {
+  const { callId } = req.body;
+  try {
+    const call = await CallLog.findById(callId);
+    if (call) {
+      call.status = 'rejected';
+      call.endTime = new Date();
+      await call.save();
+    }
+    res.json({ success: true, msg: 'Call rejected' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server Error' });
   }
 };
 
