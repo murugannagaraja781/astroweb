@@ -84,13 +84,13 @@ export const useWebRTC = ({
             setError(null);
             setConnectionStatus('initializing');
 
-            // 1. Get User Media - Optimized for Speed
-            // Lower resolution/fps starts faster and is more reliable on mobile/slow nets
+            // 1. Get User Media - Optimized for Speed & Adaptation
+            // Allow downgrading to 240p/10fps on poor networks
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    width: { ideal: 640 },   // SD Quality is faster
-                    height: { ideal: 480 },
-                    frameRate: { ideal: 24, max: 30 } // Smooth enough, saves bandwidth
+                    width: { min: 240, ideal: 640, max: 640 },
+                    height: { min: 180, ideal: 480, max: 480 },
+                    frameRate: { min: 10, ideal: 24, max: 24 }
                 },
                 audio: {
                     echoCancellation: true,
@@ -104,9 +104,20 @@ export const useWebRTC = ({
             // 2. Create Peer Connection
             peerConnection.current = new RTCPeerConnection(ICE_SERVERS);
 
-            // Add Tracks
+            // Add Tracks & Configure Low-Bandwidth Handling
             stream.getTracks().forEach(track => {
-                peerConnection.current.addTrack(track, stream);
+                const sender = peerConnection.current.addTrack(track, stream);
+                if (track.kind === 'video') {
+                    // Prefer keeping motion smooth (blurrier) over high-res (stuttery)
+                    try {
+                        const parameters = sender.getParameters();
+                        if (!parameters.encodings) parameters.encodings = [{}];
+                        parameters.degradationPreference = 'maintain-framerate';
+                        sender.setParameters(parameters).catch(e => console.warn('Degradation pref error:', e));
+                    } catch (e) {
+                        console.warn('Sender params error:', e);
+                    }
+                }
             });
 
             // Handle Incoming Tracks

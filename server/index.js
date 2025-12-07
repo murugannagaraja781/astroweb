@@ -47,8 +47,7 @@ app.use("/api/dasha", require("./routes/dashaRoutes")); // Dasha calculation rou
 app.use("/api/vimshottari", require("./routes/vimshottariRoutes")); // New Vimshottari routes
 app.use("/api/charts", require("./routes/chartRoutes")); // Chart generation routes
 app.use("/api/behavior", require("./routes/behaviorRoutes")); // Behavior analysis routes
-// Agora token endpoint
-app.use("/api/agora", require("./routes/agoraRoutes"));
+
 
 // Database Connection
 mongoose
