@@ -16,8 +16,8 @@ module.exports = (io, socket) => {
     });
 
     // Client -> Server -> Astrologer: Call Request
-    socket.on("call:request", ({ fromId, toId, fromName, fromImage }) => {
-        console.log(`📞 Call request from ${fromId} to ${toId}`);
+    socket.on("call:request", ({ fromId, toId, fromName, fromImage, callId }) => {
+        console.log(`📞 Call request from ${fromId} to ${toId} (CallID: ${callId})`);
         const targetSocketId = onlineUsers.get(toId);
 
         if (targetSocketId) {
@@ -25,6 +25,7 @@ module.exports = (io, socket) => {
                 fromId,
                 fromName,
                 fromImage,
+                callId, // Forward callId
                 fromSocketId: socket.id // Send caller's socket ID for direct reply
             });
         } else {
@@ -35,8 +36,8 @@ module.exports = (io, socket) => {
     });
 
     // Client -> Server -> Astrologer: Audio Call Request
-    socket.on("audio:request", ({ fromId, toId, fromName, fromImage }) => {
-        console.log(`📞 Audio request from ${fromId} to ${toId}`);
+    socket.on("audio:request", ({ fromId, toId, fromName, fromImage, callId }) => {
+        console.log(`📞 Audio request from ${fromId} to ${toId} (CallID: ${callId})`);
         const targetSocketId = onlineUsers.get(toId);
 
         if (targetSocketId) {
@@ -44,6 +45,7 @@ module.exports = (io, socket) => {
                 fromId,
                 fromName,
                 fromImage,
+                callId, // Forward callId
                 fromSocketId: socket.id // Send caller's socket ID for direct reply
             });
         } else {
