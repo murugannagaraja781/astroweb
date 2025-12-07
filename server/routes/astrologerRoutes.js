@@ -14,7 +14,7 @@ const {
 const auth = require('../middleware/auth');
 
 const astrologerCheck = (req, res, next) => {
-  if (req.user.role !== 'astrologer') {
+  if (req.user.role !== 'astrologer' && req.user.role !== 'admin') {
     return res.status(403).json({ msg: 'Access denied. Astrologers only.' });
   }
   next();

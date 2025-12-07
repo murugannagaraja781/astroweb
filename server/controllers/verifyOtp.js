@@ -78,6 +78,26 @@ exports.verifyOtp = (req, res) => {
                         }
                     }
 
+                    // Create Astrologer Profile if role is admin or astrologer and doesn't exist
+                    if (user.role === 'admin' || user.role === 'astrologer') {
+                        const AstrologerProfile = require('../models/AstrologerProfile');
+                        const existingProfile = await AstrologerProfile.findOne({ userId: user._id });
+                        if (!existingProfile) {
+                            const newProfile = new AstrologerProfile({
+                                userId: user._id,
+                                name: user.name,
+                                bio: "Super Admin / Astrologer",
+                                experience: 10,
+                                languages: ["English", "Tamil"],
+                                specialties: ["Vedic", "Numerology"],
+                                ratePerMinute: 10,
+                                isOnline: true
+                            });
+                            await newProfile.save();
+                            console.log(`Created AstrologerProfile for ${user.role} (${user.phone})`);
+                        }
+                    }
+
                     const payload = { user: { id: user._id, role: user.role } };
 
                     jwt.sign(
