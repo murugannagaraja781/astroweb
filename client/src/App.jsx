@@ -47,7 +47,7 @@ const Dashboard = () => {
   if (!user) return <Navigate to="/login" />;
 
   if (user.role === 'admin') return <AdminDashboard />;
-  if (user.role === 'astrologer') return <AstrologerDashboard />;
+  if (user.role === 'astrologer') return <Navigate to="/astrologer-dashboard" />;
   return <ClientDashboard />;
 };
 
