@@ -147,7 +147,8 @@ useEffect(() => {
     // However, if we want to be double-sure or if this page is standalone:
     const onConnect = () => {
          console.log("[Astrologer] Socket connected/reconnected");
-         addToast(`Socket Connected! ID: ${newSocket.id}`, 'success'); // Show toast instead of alert
+         // Removed toast notification to prevent annoyance during status toggles
+         // addToast(`Socket Connected! ID: ${newSocket.id}`, 'success');
          const registrationId = user?.id || profile?.userId?._id || profile?.userId;
          if (registrationId) {
             newSocket.emit("user_online", { userId: registrationId });
@@ -163,507 +164,47 @@ useEffect(() => {
 
     return () => {
       newSocket.off("connect", onConnect);
-      // Do NOT close the global socket here as it breaks navigation
     };
-  }, [user, profile]);
+  }, [user, profile?.userId]); // Changed dependency from 'profile' to 'profile.userId' to avoid unnecessary re-runs
 
-  // Emit user_online when socket is ready and user is loaded
-
-
-  // Fetch pending sessions (Optimized to avoid re-renders)
-  const fetchPendingSessions = useCallback(async () => {
-    if (!navigator.onLine) {
-        console.warn("OFFLINE: Skipping session fetch");
-        return;
-    }
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (res.data && Array.isArray(res.data)) {
-        setPendingSessions(prev => {
-          // Optimization: Only update state if data has changed
-          const isSame = JSON.stringify(prev) === JSON.stringify(res.data);
-          return isSame ? prev : res.data;
-        });
-      } else {
-        setPendingSessions(prev => (prev.length === 0 ? prev : []));
-      }
-    } catch (err) {
-      console.error("Error fetching sessions:", err);
-      // Don't clear sessions on error to prevent UI flash, unless it's a 401/403
-      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-         setPendingSessions([]);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchProfile();
-    fetchEarnings();
-  }, []);
-
-  // Setup socket listeners when socket is ready
-  useEffect(() => {
-    if (!socket) return;
-
-    // Video call request
-    socket.on("call:request", (data) => {
-      console.log("Incoming call request:", data);
-
-      // STRICT FILTER: Check ID and Name
-      const myId = profile?.userId?._id || profile?.userId;
-      const myName = user?.name || profile?.name;
-
-      // 1. ID Check
-      if (data.astrologerId && String(data.astrologerId) !== String(myId)) return;
-
-      // 2. Name Check - DISABLED (Name mismatches shouldn't block calls if ID matches)
-      // if (data.astrologerName && myName && data.astrologerName !== myName) return;
-
-      const newVideoRequest = {
-        id: `${data.fromId}_${Date.now()}`,
-        type: "video",
-        fromId: data.fromId,
-        fromName: data.fromName || "Client",
-        fromSocketId: data.fromSocketId,
-        fromImage: data.fromImage,
-        timestamp: new Date(),
-        roomId: data.roomId,
-        status: "pending"
-      };
-
-      setPendingVideoCalls((prev) => [...prev, newVideoRequest]);
-
-      // Add to incoming popup queue
-      addToRequestQueue(newVideoRequest);
-
-      setNotifications((n) => n + 1);
-      playNotificationSound();
-    });
-
-    // Chat request from client
-    socket.on("chat:request", (payload) => {
-      console.log("[Astrologer] Chat request received:", payload);
-
-      // STRICT FILTER: Check ID and Name
-      const myId = profile?.userId?._id || profile?.userId;
-      const myName = user?.name || profile?.name;
-
-      // 1. ID Check
-      // payload might have astrologerId at top level
-      if (payload.astrologerId && String(payload.astrologerId) !== String(myId)) return;
-
-      // 2. Name Check - DISABLED
-      // if (payload.astrologerName && myName && payload.astrologerName !== myName) return;
-
-      const newChatRequest = {
-        id: payload.sessionId || `${payload.userId?._id}_${Date.now()}`,
-        type: "chat",
-        fromId: payload.userId?._id,
-        fromName: payload.userId?.name || "Client",
-        fromSocketId: payload.socketId,
-        sessionId: payload.sessionId,
-        timestamp: new Date(),
-        status: "pending"
-      };
-
-      // Add to pending sessions if not already there
-      setPendingSessions((prev) => {
-        const exists = prev.some(s => s.sessionId === payload.sessionId);
-        if (!exists) {
-          return [...prev, {
-            sessionId: payload.sessionId,
-            userId: payload.userId,
-            client: payload.userId,
-            createdAt: new Date(),
-            ...newChatRequest
-          }];
-        }
-        return prev;
-      });
-
-      // Add to incoming popup queue
-      addToRequestQueue(newChatRequest);
-
-      setNotifications((n) => n + 1);
-      playNotificationSound();
-
-      setNotifications((n) => n + 1);
-      playNotificationSound();
-
-      // Refresh list from server to be safe - REMOVED to prevent API spam
-      // fetchPendingSessions();
-    });
-
-    // Audio call request
-    socket.on("audio:request", (data) => {
-      console.log("Incoming audio call request:", data);
-
-      // STRICT FILTER: Check ID and Name
-      const myId = profile?.userId?._id || profile?.userId;
-      const myName = user?.name || profile?.name;
-
-      if (data.astrologerId && String(data.astrologerId) !== String(myId)) return;
-      if (data.astrologerName && myName && data.astrologerName !== myName) return;
-
-      const newAudioRequest = {
-        id: `${data.fromId}_${Date.now()}`,
-        type: "audio",
-        fromId: data.fromId,
-        fromName: data.fromName || "Client",
-        fromSocketId: data.fromSocketId,
-        fromImage: data.fromImage,
-        timestamp: new Date(),
-        roomId: data.roomId,
-        status: "pending"
-      };
-
-      setPendingAudioCalls((prev) => [...prev, newAudioRequest]);
-
-      // Add to incoming popup queue
-      addToRequestQueue(newAudioRequest);
-
-      setNotifications((n) => n + 1);
-      playNotificationSound();
-    });
-
-    return () => {
-      socket.off("call:request");
-      socket.off("chat:request");
-      socket.off("audio:request");
-    };
-  }, [socket, fetchPendingSessions]);
-useEffect(() => {
-  window.testNotificationSound = () => {
-    if (notificationSoundRef.current) {
-      notificationSoundRef.current.play()
-        .then(() => console.log("Sound played"))
-        .catch(err => console.log("Sound blocked:", err));
-    } else {
-      console.log("Audio ref not ready");
-    }
-  };
-}, []);
-
-  useEffect(() => {
-    if (profile?.userId && socket) {
-      // Register astrologer in onlineUsers map
-      socket.emit("user_online", { userId: profile.userId });
-      fetchPendingSessions();
-    }
-  }, [profile?.userId, socket, fetchPendingSessions]);
-
-  // Play notification sound
-  // SUPER RELIABLE Notification Sound (works always when tab is open)
-  const playNotificationSound = () => {
-    const audio = notificationSoundRef.current;
-    if (!audio) {
-      console.warn("⚠️ Audio not initialized");
-      // Try browser notification sound as fallback
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('New Request', {
-          body: 'You have a new chat/call request',
-          icon: '/logo.png',
-          badge: '/logo.png',
-          tag: 'astrologer-request',
-          requireInteraction: true
-        });
-      }
-      return;
-    }
-
-    // Reset audio to beginning
-    audio.pause();
-    audio.currentTime = 0;
-
-    // Play with error handling
-    const playPromise = audio.play();
-
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          console.log("🔔 Notification sound played successfully");
-          // Vibrate on mobile if supported
-          if ('vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200]);
-          }
-        })
-        .catch(err => {
-          // Ignore AbortError which happens when sound is interrupted
-          if (err.name !== 'AbortError') {
-             console.warn("⚠️ Sound play failed:", err);
-             // Fallback to visual notification
-             if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('New Request', {
-                  body: 'You have a new chat/call request',
-                  icon: '/logo.png',
-                  badge: '/logo.png',
-                  tag: 'astrologer-request',
-                });
-             }
-          }
-        });
-    }
-  };
-
-
-
-  // Add request to queue and show popup
-  // Add request to queue
-  const addToRequestQueue = (request) => {
-    setRequestQueue((prev) => [...prev, request]);
-  };
-
-  // Auto-decline timer state
-  const [autoDeclineTimer, setAutoDeclineTimer] = useState(30);
-
-  // Process queue: Show popup if queue has items and no popup is showing
-  useEffect(() => {
-    if (!showIncomingPopup && requestQueue.length > 0) {
-      setIncomingRequest(requestQueue[0]);
-      setShowIncomingPopup(true);
-      setAutoDeclineTimer(30); // Reset timer
-      playNotificationSound();
-
-      // Vibrate device - Strong pattern for incoming request
-      if ('vibrate' in navigator) {
-        // Pattern: [vibrate, pause, vibrate, pause, vibrate]
-        navigator.vibrate([400, 200, 400, 200, 400]);
-      }
-    }
-  }, [requestQueue, showIncomingPopup]);
-
-  // Auto-decline countdown timer
-  useEffect(() => {
-    if (!showIncomingPopup || !incomingRequest) return;
-
-    const timer = setInterval(() => {
-      setAutoDeclineTimer((prev) => {
-        if (prev <= 1) {
-          // Auto-decline when timer reaches 0
-          console.log("⏰ Auto-declining request due to timeout");
-          rejectIncomingRequest(incomingRequest);
-          return 30;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [showIncomingPopup, incomingRequest]);
-
-  // Handle next request in queue
-  const handleNextRequest = () => {
-    setShowIncomingPopup(false);
-    setIncomingRequest(null);
-    setRequestQueue((prev) => {
-      const [, ...remaining] = prev;
-      return remaining;
-    });
-  };
-
-  const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/astrologer/profile`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setProfile(res.data);
-    } catch (err) {
-      console.error("Error fetching profile:", err);
-    }
-  };
-
-  const fetchEarnings = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/astrologer/earnings`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setEarnings(res.data.totalEarnings || 0);
-    } catch (err) {
-      console.error("Error fetching earnings:", err);
-      setEarnings(0);
-    }
-  };
-
-  const fetchChatHistory = async () => {
-    try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/sessions`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        setChatSessions(res.data);
-    } catch (err) {
-        console.error("Error fetching chat history", err);
-    }
-  };
-
-
-  useEffect(() => {
-    if (activeTab === "inbox") {
-      fetchPendingSessions();
-    }
-    if (activeTab === "history") {
-        fetchChatHistory();
-    }
-  }, [activeTab, fetchPendingSessions]);
-
-
-
-
-  const acceptCall = () => {
-    if (!incomingCall || !socket) return;
-
-    if (incomingCall.type === "chat") {
-      socket.emit("chat:accept", { sessionId: incomingCall.callId });
-      navigate(`/chat/${incomingCall.callId}`);
-    } else if (incomingCall.type === "video") {
-      const roomId = `video_${Date.now()}_${incomingCall.from}`;
-      socket.emit("call:accept", {
-        toSocketId: incomingCall.socketId,
-        roomId
-      });
-      setActiveCallRoomId(roomId);
-      setActiveTab("calls");
-    }
-    setIncomingCall(null);
-  };
-
-  const rejectCall = () => {
-    if (incomingCall && socket) {
-      if (incomingCall.type === "video") {
-          socket.emit("call:reject", { toSocketId: incomingCall.socketId });
-      } else {
-          // Chat reject logic if needed
-      }
-    }
-    setIncomingCall(null);
-  };
-
-  // Accept incoming request from popup
-  const acceptIncomingRequest = (request) => {
-    if (!socket) return;
-
-    // Stop notification sound
-    if (notificationSoundRef.current) {
-      notificationSoundRef.current.pause();
-      notificationSoundRef.current.currentTime = 0;
-    }
-
-    if (request.type === "chat") {
-      socket.emit("chat:accept", { sessionId: request.sessionId });
-      navigate(`/chat/${request.sessionId}`);
-    } else if (request.type === "video") {
-      const roomId = request.roomId || `video_${Date.now()}_${request.fromId}`;
-      socket.emit("call:accept", {
-        toSocketId: request.fromSocketId,
-        toUserId: request.fromId, // Add User ID for robust targeting
-        roomId
-      });
-      setActiveCallRoomId(roomId);
-      setActiveCallType("video");
-      setActiveCallPeerId(request.fromSocketId);
-      setActiveTab("calls");
-    } else if (request.type === "audio") {
-      const roomId = request.roomId || `audio_${Date.now()}_${request.fromId}`;
-      socket.emit("audio:accept", {
-        toSocketId: request.fromSocketId,
-        toUserId: request.fromId, // Add User ID
-        roomId
-      });
-      setActiveCallRoomId(roomId);
-      setActiveCallType("audio");
-      setActiveCallPeerId(request.fromSocketId);
-      setActiveTab("calls");
-    }
-
-    // Remove from pending lists
-    if (request.type === "chat") {
-      setPendingSessions(prev => prev.filter(s => s.sessionId !== request.sessionId));
-    } else if (request.type === "video") {
-      setPendingVideoCalls(prev => prev.filter(v => v.id !== request.id));
-    } else if (request.type === "audio") {
-      setPendingAudioCalls(prev => prev.filter(a => a.id !== request.id));
-    }
-
-    // Show next request in queue
-    handleNextRequest();
-  };
-
-  // Reject incoming request from popup
-  // Reject incoming request from popup
-  const rejectIncomingRequest = (request) => {
-    console.log("❌ Rejecting request:", request);
-
-    // 1. Optimistic UI Update: Close popup immediately
-    setShowIncomingPopup(false);
-    setIncomingRequest(null);
-
-    // 2. Stop Sound
-    if (notificationSoundRef.current) {
-      notificationSoundRef.current.pause();
-      notificationSoundRef.current.currentTime = 0;
-    }
-
-    // 3. Emit Reject Event (Background)
-    setTimeout(() => {
-       if (socket) {
-          if (request.type === "chat") {
-             rejectChat(request.sessionId);
-          } else if (request.type === "video") {
-             socket.emit("call:reject", { toSocketId: request.fromSocketId });
-             // Remove locally
-             setPendingVideoCalls(prev => prev.filter(v => v.id !== request.id));
-          } else if (request.type === "audio") {
-             socket.emit("audio:reject", { toSocketId: request.fromSocketId });
-             setPendingAudioCalls(prev => prev.filter(v => v.id !== request.id));
-          }
-       }
-    }, 100);
-
-    // 4. Process Next Request
-    handleNextRequest();
-  };
-
+  // ...
 
   const toggleStatus = async () => {
+    // 1. Optimistic Update (Immediate Feedback)
+    const oldStatus = profile.isOnline;
+    const newStatus = !oldStatus;
+
+    setProfile(prev => ({ ...prev, isOnline: newStatus }));
+
+    // Toggle socket event immediately for responsiveness
+    if (socket) {
+        if (newStatus) {
+             socket.emit("user_online", { userId: profile.userId });
+        } else {
+             socket.emit("user_offline", { userId: profile.userId });
+        }
+    }
+
     try {
       const token = localStorage.getItem("token");
+      // 2. API Call (Background)
       const res = await axios.put(
         `${import.meta.env.VITE_API_URL}/api/astrologer/status`,
-        // Just toggle isOnline. The backend might reset call availability, or we preserve it.
-        // Assuming backend works with just status toggle or we send full object.
-        // For now, let's just send the toggle request.
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // 3. Sync with Server Response (Optional, usually matches)
       setProfile(res.data);
-      // Also emit via socket
-      if (socket) {
-        if (!res.data.isOnline) {
-             socket.emit("user_offline", { userId: profile.userId });
-        } else {
-             socket.emit("user_online", { userId: profile.userId });
-        }
-      }
+
       if(showOfflinePopup && res.data.isOnline) {
           setShowOfflinePopup(false);
       }
     } catch (err) {
       console.error("Error toggling status:", err);
+      // 4. Revert on Error
+      setProfile(prev => ({ ...prev, isOnline: oldStatus }));
+      addToast("Failed to update status", "error");
     }
   };
 
@@ -837,7 +378,7 @@ useEffect(() => {
 
       {/* Offline Status Popup */}
       {showOfflinePopup && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+        <div className="fixed inset-0 bg-indigo-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl relative">
             <button
               onClick={() => setShowOfflinePopup(false)}
@@ -864,7 +405,7 @@ useEffect(() => {
 
       {/* Incoming Request Popup */}
       {showIncomingPopup && incomingRequest && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fadeIn">
+        <div className="fixed inset-0 bg-indigo-900/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fadeIn">
           <div className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl relative border-4 border-yellow-400 animate-bounce" style={{
             animation: 'bounce 0.5s ease-in-out 3'
           }}>
@@ -1032,13 +573,13 @@ useEffect(() => {
                </div>
 
                <div className="flex gap-2 pb-2 overflow-x-auto">
-                    <button onClick={() => setInboxTab('chat')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'chat' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    <button onClick={() => setInboxTab('chat')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'chat' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200'}`}>
                        Chat ({myPendingSessions.length})
                     </button>
-                    <button onClick={() => setInboxTab('video')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'video' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    <button onClick={() => setInboxTab('video')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'video' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200'}`}>
                        Video ({myPendingVideoCalls.length})
                     </button>
-                    <button onClick={() => setInboxTab('audio')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'audio' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    <button onClick={() => setInboxTab('audio')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'audio' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200'}`}>
                        Audio ({myPendingAudioCalls.length})
                     </button>
                </div>
@@ -1053,10 +594,10 @@ useEffect(() => {
                         </div>
                      ) : (
                         myPendingSessions.map(session => (
-                           <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                           <div key={session.sessionId || session.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
                               <div>
-                                 <h3 className="font-bold text-gray-900">{session.userId?.name || session.client?.name || 'Client'}</h3>
-                                 <p className="text-xs text-gray-500">Waited {Math.floor((new Date() - new Date(session.createdAt))/60000)}m ago</p>
+                                 <h3 className="font-bold text-gray-900">{session.userId?.name || session.client?.name || session.fromName || 'Client'}</h3>
+                                 <p className="text-xs text-gray-500">Waited {Math.floor((new Date() - new Date(session.createdAt || session.timestamp))/60000)}m ago</p>
                               </div>
                               <div className="flex gap-2">
                                  <button onClick={() => rejectChat(session.sessionId)} className="p-3 bg-gray-100 text-gray-600 rounded-xl active:scale-95"><X size={18} /></button>
@@ -1107,7 +648,7 @@ useEffect(() => {
                       {pendingAudioCalls.map((call) => (
                         <div
                           key={call.id}
-                          className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-2xl p-6"
+                          className="bg-white border border-blue-200 rounded-2xl p-6 shadow-sm"
                         >
                           <div className="flex justify-between items-center">
                             <div>
@@ -1230,7 +771,7 @@ useEffect(() => {
          </button>
 
          <div className="relative -top-5">
-            <button onClick={toggleStatus} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transform transition-transform active:scale-95 border-4 border-white ${profile.isOnline ? 'bg-yellow-400 text-black' : 'bg-gray-800 text-white'}`}>
+            <button onClick={toggleStatus} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transform transition-transform active:scale-95 border-4 border-white ${profile.isOnline ? 'bg-yellow-400 text-black' : 'bg-slate-500 text-white'}`}>
                <Zap size={24} className="fill-current" />
             </button>
          </div>

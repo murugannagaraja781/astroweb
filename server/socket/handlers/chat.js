@@ -222,6 +222,31 @@ module.exports = (io, socket) => {
         }
     });
 
+    socket.on('chat:reject', async (payload) => {
+        try {
+            const { sessionId } = payload;
+            console.log(`[DEBUG] Astrologer rejected chat session: ${sessionId}`);
+
+            const session = await ChatSession.findOne({ sessionId });
+            if (session) {
+                session.status = 'rejected';
+                session.endedAt = new Date();
+                await session.save();
+
+                // Notify client
+                const clientSocketId = onlineUsers.get(session.clientId.toString());
+                if (clientSocketId) {
+                    io.to(clientSocketId).emit('chat:rejected', {
+                        sessionId,
+                        message: 'Astrologer is busy and cannot take your request right now.'
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Error in chat:reject:', err);
+        }
+    });
+
     socket.on('chat:message', async (data) => {
         try {
             const { sessionId, senderId, text = '', type = 'text', tempId } = data;

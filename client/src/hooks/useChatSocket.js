@@ -92,6 +92,24 @@ export const useChatSocket = (sessionId, user) => {
         };
 
         // Events
+        const onChatAccepted = () => {
+            console.log("[Chat] Accepted! Joining room & Setting active...");
+            socket.emit("join_chat", { sessionId, userId: user.id });
+            setSessionInfo(prev => ({ ...prev, status: 'active' }));
+        };
+
+        const onChatStarted = (data) => {
+            console.log("Chat started", data);
+            setSessionInfo(prev => ({ ...prev, status: 'active', startedAt: data.startedAt }));
+        };
+
+        const onChatRejected = (data) => {
+            console.log("[Chat] Rejected:", data);
+            setSessionInfo(prev => ({ ...prev, status: 'rejected' }));
+            setError(data.message || 'Request rejected');
+        };
+
+        // Events
         socket.on("connect", onConnect);
         socket.on("connect_error", onConnectError);
         socket.on("disconnect", onDisconnect);
@@ -99,8 +117,13 @@ export const useChatSocket = (sessionId, user) => {
         socket.on("chat:message", onChatMessage);
         socket.on("chat:typing", onChatTyping);
         socket.on("chat:session_info", onChatSessionInfo);
-        socket.on("chat:accepted", () => socket.emit("join_chat", { sessionId, userId: user.id }));
-        socket.on("chat:started", (data) => console.log("Chat started", data)); // Refresh info usually handled by component fetching
+
+        // Handle all accept variations
+        socket.on("chat:accepted", onChatAccepted);
+        socket.on("chat:accepted_by_astrologer", onChatAccepted);
+        socket.on("chat:started", onChatStarted);
+        socket.on("chat:rejected", onChatRejected);
+
         socket.on("wallet:update", onWalletUpdate);
 
         return () => {
@@ -111,8 +134,10 @@ export const useChatSocket = (sessionId, user) => {
             socket.off("chat:message", onChatMessage);
             socket.off("chat:typing", onChatTyping);
             socket.off("chat:session_info", onChatSessionInfo);
-            socket.off("chat:accepted");
-            socket.off("chat:started");
+            socket.off("chat:accepted", onChatAccepted);
+            socket.off("chat:accepted_by_astrologer", onChatAccepted);
+            socket.off("chat:started", onChatStarted);
+            socket.off("chat:rejected", onChatRejected);
             socket.off("wallet:update", onWalletUpdate);
         };
     }, [sessionId, user?.id, user?.name]);

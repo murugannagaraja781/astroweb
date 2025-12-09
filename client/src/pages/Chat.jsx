@@ -200,7 +200,7 @@ const Chat = () => {
     <div className="h-[100dvh] flex flex-col bg-gray-50 text-gray-800 relative overflow-hidden">
       {/* Error Popup */}
       {socketError && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-indigo-900/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md mx-4">
             <div className="text-red-500 text-6xl mb-4 text-center">⚠️</div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -328,6 +328,21 @@ const Chat = () => {
                       Waiting for astrologer to accept your chat request...
                     </p>
                   </>
+                ) : sessionInfo?.status === "rejected" || (socketError && socketError.includes("rejected")) ? (
+                   <>
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                      <div className="text-red-500 text-2xl">⛔</div>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Request Rejected
+                    </h3>
+                    <p className="text-gray-500 text-sm max-w-md mx-auto mb-4">
+                      The astrologer is currently busy or unavailable. Please try again later or choose another astrologer.
+                    </p>
+                    <button onClick={() => window.history.back()} className="px-6 py-2 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors">
+                       Go Back
+                    </button>
+                  </>
                 ) : (
                   <>
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-full mb-4">
@@ -416,7 +431,7 @@ const Chat = () => {
                           <div className="mt-2">
                             <audio
                               controls
-                              className="w-48 h-8 rounded-lg bg-black/10 border border-black/5"
+                              className="w-48 h-8 rounded-lg bg-gray-100 border border-gray-200"
                             >
                               <source src={msg.audioUrl} type="audio/mp3" />
                             </audio>
@@ -424,8 +439,8 @@ const Chat = () => {
                         )}
 
                          {msg.mediaUrl && msg.type === 'image' && (
-                          <div className="mt-2">
-                            <img src={msg.mediaUrl} alt="shared" className="rounded-lg max-w-full h-auto border border-black/5" />
+                          <div className="mt-2 text-center">
+                            <img src={msg.mediaUrl} alt="shared" className="rounded-lg max-w-full h-auto border border-gray-200" />
                           </div>
                         )}
 
