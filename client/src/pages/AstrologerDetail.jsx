@@ -125,6 +125,7 @@ const AstrologerDetail = () => {
     };
 
     socketManager.on("chat:accepted", onChatAccepted);
+    socketManager.on("chat:accepted_by_astrologer", onChatAccepted); // Added listener
     socketManager.on("chat:rejected", onChatRejected);
     socketManager.on("call:accepted", onCallAccepted);
     socketManager.on("call:rejected", onCallRejected);
@@ -134,6 +135,7 @@ const AstrologerDetail = () => {
 
     return () => {
       socketManager.off("chat:accepted", onChatAccepted);
+      socketManager.off("chat:accepted_by_astrologer", onChatAccepted);
       socketManager.off("chat:rejected", onChatRejected);
       socketManager.off("call:accepted", onCallAccepted);
       socketManager.off("call:rejected", onCallRejected);
@@ -341,6 +343,9 @@ const AstrologerDetail = () => {
       }
 
       const { sessionId, ratePerMinute } = res.data;
+
+      // Explicitly join the chat room so we receive room-level events
+      socketManager.emit("join_chat", { sessionId });
 
       // Emit socket event to astrologer(s)
       if (user.id) {
