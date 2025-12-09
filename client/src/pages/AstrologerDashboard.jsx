@@ -639,30 +639,50 @@ useEffect(() => {
 
 
   const toggleStatus = async () => {
+    // 1. Optimistic Update (Immediate UI response)
+    const oldStatus = profile ? profile.isOnline : false;
+    const newStatus = !oldStatus;
+
+    // Update local state instantly
+    if (profile) {
+        setProfile(prev => ({ ...prev, isOnline: newStatus }));
+    }
+
+    // Update socket instantly
+    if (socket && profile?.userId) {
+        if (newStatus) {
+             socket.emit("user_online", { userId: profile.userId });
+        } else {
+             socket.emit("user_offline", { userId: profile.userId });
+        }
+    }
+
+    // Close popup instantly if going online
+    if (newStatus && showOfflinePopup) {
+         setShowOfflinePopup(false);
+    }
+
     try {
       const token = localStorage.getItem("token");
+      // 2. API Call in Background
       const res = await axios.put(
         `${import.meta.env.VITE_API_URL}/api/astrologer/status`,
-        // Just toggle isOnline. The backend might reset call availability, or we preserve it.
-        // Assuming backend works with just status toggle or we send full object.
-        // For now, let's just send the toggle request.
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setProfile(res.data);
-      // Also emit via socket
-      if (socket) {
-        if (!res.data.isOnline) {
-             socket.emit("user_offline", { userId: profile.userId });
-        } else {
-             socket.emit("user_online", { userId: profile.userId });
-        }
-      }
-      if(showOfflinePopup && res.data.isOnline) {
-          setShowOfflinePopup(false);
+
+      // 3. Sync with Server (Optional, usually matches)
+      // Only update if server response differs to avoid flicker
+      if (res.data.isOnline !== newStatus) {
+           setProfile(res.data);
       }
     } catch (err) {
       console.error("Error toggling status:", err);
+      // 4. Revert on Error
+      if (profile) {
+          setProfile(prev => ({ ...prev, isOnline: oldStatus }));
+      }
+      addToast("Failed to update status", "error");
     }
   };
 

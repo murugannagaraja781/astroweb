@@ -74,10 +74,15 @@ const AstrologerDetail = () => {
 
     if (!user?.name) return;
 
-    const s = socketManager.connect(import.meta.env.VITE_API_URL); // Should already be connected from App.jsx
+    const s = socketManager.connect(import.meta.env.VITE_API_URL);
     setSocket(s);
 
     console.log("[Client] Using global socket:", s.id);
+
+    // CRITICAL FIX: Tell server we are online so it can map UserID -> SocketID
+    if (user?.id) {
+        socketManager.emit("user_online", { userId: user.id });
+    }
 
     // Register listeners
     const onChatAccepted = ({ sessionId }) => {
