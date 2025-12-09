@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-const PoruthamForm = ({ onClose }) => {
+const PoruthamForm = ({ onClose, initialData }) => {
   const [person1, setPerson1] = useState({
     name: '',
     gender: 'male',
-    year: 1990,
-    month: 1,
-    day: 1,
-    hour: 12,
-    minute: 0,
-    latitude: 13.0827,
-    longitude: 80.2707,
-    timezone: 5.5
+    year: initialData?.year || 1990,
+    month: initialData?.month || 1,
+    day: initialData?.day || 1,
+    hour: initialData?.hour !== undefined ? initialData.hour : 12,
+    minute: initialData?.minute !== undefined ? initialData.minute : 0,
+    latitude: initialData?.latitude || 13.0827,
+    longitude: initialData?.longitude || 80.2707,
+    timezone: initialData?.timezone || 5.5
   });
 
   const [person2, setPerson2] = useState({

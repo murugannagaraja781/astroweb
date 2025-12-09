@@ -586,14 +586,11 @@ exports.getSessionInfo = async (req, res) => {
     const clientId = session.clientId ? session.clientId._id.toString() : null;
     const astrologerId = session.astrologerId ? session.astrologerId._id.toString() : null;
 
-    // TEMPORARY: Allow all authenticated users to access session info for development
-    // TODO: Re-enable proper authorization in production
-    /*
     const isAuthorized =
       req.user.role === 'admin' ||
       req.user.id === clientId ||
       req.user.id === astrologerId ||
-      (req.user.role === 'astrologer' && !astrologerId) ||
+      (req.user.role === 'astrologer' && !astrologerId) || // Astrologer trying to accept/join pending
       (req.user.role === 'client' && req.user.id === clientId);
 
     if (!isAuthorized) {
@@ -608,7 +605,6 @@ exports.getSessionInfo = async (req, res) => {
         }
       });
     }
-    */
 
     res.json({
       sessionId: session.sessionId,

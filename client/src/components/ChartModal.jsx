@@ -155,9 +155,9 @@ const ChartModal = ({ isOpen, onClose, initialChart = null, initialData = null }
               /* Chart Form */
               <div className="animate-fadeIn">
                 {selectedChart === 'birth-chart' && <BirthChartForm onClose={handleClose} initialData={initialData} />}
-                {selectedChart === 'navamsa' && <NavamsaChartForm onClose={handleClose} />}
-                {selectedChart === 'porutham' && <PoruthamForm onClose={handleClose} />}
-                {selectedChart === 'behavior' && <BehaviorPredictionForm onClose={handleClose} />}
+                {selectedChart === 'navamsa' && <NavamsaChartForm onClose={handleClose} initialData={initialData} />}
+                {selectedChart === 'porutham' && <PoruthamForm onClose={handleClose} initialData={initialData} />}
+                {selectedChart === 'behavior' && <BehaviorPredictionForm onClose={handleClose} initialData={initialData} />}
               </div>
             )}
           </div>

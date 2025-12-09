@@ -5,7 +5,7 @@ import axios from "axios";
 import AuthContext from "../context/AuthContext";
 import { useChatSocket } from "../hooks/useChatSocket";
 import ChartModal from "../components/ChartModal";
-import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock, Paperclip } from "lucide-react";
+import { Send, Mic, MicOff, Star, Crown, Gem, Sparkles, ArrowLeft, Brain, Heart, Clock, Paperclip, Calendar, MessageCircle } from "lucide-react";
 
 const Chat = () => {
   const { user } = useContext(AuthContext);
@@ -197,7 +197,7 @@ const Chat = () => {
 
   // ---------- UI ----------
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-gray-300 relative overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-gray-50 text-gray-800 relative overflow-hidden">
       {/* Error Popup */}
       {socketError && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
@@ -215,48 +215,26 @@ const Chat = () => {
         input,
         textarea,
         select {
-          color: #1f2937 !important; /* gray-800 */
           font-size: large;
         }
-        .message-container {
-          padding-bottom: 220px;
-        }
-        @media (min-width: 768px) {
-          .message-container {
-            padding-bottom: 140px;
-          }
-        }
+        /* Mobile-friendly safe area padding */
         .chat-footer {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-        }
-        @supports (padding-bottom: env(safe-area-inset-bottom)) {
-          .chat-footer {
-            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
-          }
+          padding-bottom: env(safe-area-inset-bottom);
         }
       `}</style>
 
-      {/* Background stars */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-10 w-2 h-2 bg-purple-400 rounded-full opacity-60 animate-pulse"></div>
-        <div className="absolute top-20 right-20 w-1 h-1 bg-blue-300 rounded-full opacity-40"></div>
-        <div className="absolute bottom-32 left-1/4 w-1 h-1 bg-indigo-500 rounded-full opacity-50 animate-pulse delay-700"></div>
-        <div className="absolute top-1/2 right-16 w-1 h-1 bg-purple-300 rounded-full opacity-30"></div>
-        <div className="absolute bottom-20 right-1/3 w-2 h-2 bg-blue-400 rounded-full opacity-40 animate-pulse delay-300"></div>
-      </div>
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
 
       {/* Header */}
-      <div className="relative flex items-center justify-between p-4 bg-slate-900/90 backdrop-blur-lg border-b border-purple-500/30 z-10">
+      <div className="relative flex items-center justify-between p-4 bg-white/90 backdrop-blur-lg border-b border-gray-200 shadow-sm z-10">
         <div className="flex items-center gap-3">
           <button
             onClick={() => window.history.back()}
-            className="p-2 hover:bg-purple-500/20 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             title="Go back"
           >
-            <ArrowLeft size={20} className="text-purple-200" />
+            <ArrowLeft size={20} className="text-gray-600" />
           </button>
 
           <div className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full">
@@ -264,21 +242,36 @@ const Chat = () => {
           </div>
 
           <div>
-            <h1 className="text-xl font-bold text-gray-100">
+            <h1 className="text-xl font-bold text-gray-800">
               {user?.role === "client"
                 ? sessionInfo?.astrologer?.name || "Astrologer"
                 : sessionInfo?.client?.name || "Client"}
             </h1>
+            {user?.role === "astrologer" && sessionInfo?.client?.birthDetails && (
+               <div className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                  <span className="flex items-center gap-1">
+                     <Calendar size={12} />
+                     {`${sessionInfo.client.birthDetails.day}/${sessionInfo.client.birthDetails.month}/${sessionInfo.client.birthDetails.year}`}
+                  </span>
+                  <span className="flex items-center gap-1 border-l border-gray-300 pl-2">
+                     <Clock size={12} />
+                     {`${String(sessionInfo.client.birthDetails.hour).padStart(2, '0')}:${String(sessionInfo.client.birthDetails.minute).padStart(2, '0')}`}
+                  </span>
+                  <span className="flex items-center gap-1 border-l border-gray-300 pl-2">
+                     📍 {sessionInfo.client.birthDetails.latitude?.toFixed(2)}, {sessionInfo.client.birthDetails.longitude?.toFixed(2)}
+                  </span>
+               </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-purple-300">
-            <Star size={16} className="fill-purple-400 text-purple-400" />
+          <div className="flex items-center gap-2 text-sm text-purple-600 font-medium">
+            <Star size={16} className="fill-purple-600 text-purple-600" />
             <span>₹{sessionInfo?.ratePerMinute || 0}/min</span>
           </div>
 
           {/* Timer Display */}
-          <div className="bg-slate-800/60 px-3 py-1.5 rounded-lg border border-purple-500/30 text-purple-200 font-mono text-sm">
+          <div className="bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 font-mono text-sm">
             {sessionDuration > 0 ? formatDuration(sessionDuration) : "00:00"}
           </div>
 
@@ -291,7 +284,7 @@ const Chat = () => {
                 window.history.back();
               }
             }}
-            className="px-4 py-2 bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-all"
+            className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-bold hover:bg-red-100 transition-all"
           >
             End Chat
           </button>
@@ -299,20 +292,20 @@ const Chat = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto relative z-0">
+      <div className="flex-1 overflow-hidden relative z-0">
         {id === "0" ? (
              <div className="flex-1 flex items-center justify-center text-center p-8">
                 <div>
-                   <div className="w-20 h-20 bg-purple-900/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-purple-500/30">
-                      <MessageCircle className="w-10 h-10 text-purple-300" />
+                   <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-purple-200">
+                      <MessageCircle className="w-10 h-10 text-purple-600" />
                    </div>
-                   <h2 className="text-2xl font-bold text-gray-200 mb-2">Select a Conversation</h2>
-                   <p className="text-gray-400 max-w-sm mx-auto">
+                   <h2 className="text-2xl font-bold text-gray-800 mb-2">Select a Conversation</h2>
+                   <p className="text-gray-500 max-w-sm mx-auto">
                      Choose an online astrologer from the list to start a cosmic consultation.
                    </p>
                    <button
                      onClick={() => window.location.href = '/astrologers/chat'}
-                     className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-all"
+                     className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-purple-200"
                    >
                      Browse Astrologers
                    </button>
@@ -325,25 +318,25 @@ const Chat = () => {
               <div className="text-center py-12">
                 {sessionInfo?.status === "requested" ? (
                   <>
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-800 rounded-full mb-4 animate-pulse">
-                      <Sparkles className="text-purple-200" size={24} />
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-100 to-purple-200 rounded-full mb-4 animate-pulse">
+                      <Sparkles className="text-purple-600" size={24} />
                     </div>
-                    <h3 className="text-lg font-semibold text-purple-200 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
                       Connecting to Cosmos...
                     </h3>
-                    <p className="text-purple-300 text-sm max-w-md mx-auto">
+                    <p className="text-gray-500 text-sm max-w-md mx-auto">
                       Waiting for astrologer to accept your chat request...
                     </p>
                   </>
                 ) : (
                   <>
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded-full mb-4">
-                      <Gem className="text-yellow-200" size={24} />
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-full mb-4">
+                      <Gem className="text-yellow-600" size={24} />
                     </div>
-                    <h3 className="text-lg font-semibold text-yellow-200 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
                       Welcome to Royal Astrology
                     </h3>
-                    <p className="text-yellow-300 text-sm max-w-md mx-auto">
+                    <p className="text-gray-500 text-sm max-w-md mx-auto">
                       Begin your royal consultation with our expert astrologer.
                       Share your birth details and questions for divine guidance.
                     </p>
@@ -379,10 +372,10 @@ const Chat = () => {
                     } items-end`}
                   >
                     <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${
                         isMe
                           ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white"
-                          : "bg-gradient-to-br from-slate-600 to-slate-800 text-white"
+                          : "bg-white text-gray-700 border border-gray-200"
                       }`}
                     >
                       {getInitials(senderName)}
@@ -395,7 +388,7 @@ const Chat = () => {
                     >
                       <span
                         className={`text-[10px] mb-1 font-medium flex items-center gap-1 ${
-                          isMe ? "text-purple-300" : "text-gray-400"
+                          isMe ? "text-purple-600" : "text-gray-500"
                         }`}
                       >
                         {isAstrologerMsg && <Crown size={10} />}
@@ -403,10 +396,10 @@ const Chat = () => {
                       </span>
 
                       <div
-                        className={`p-4 rounded-2xl shadow-lg relative ${
+                        className={`p-4 rounded-2xl shadow-sm relative border ${
                           isMe
-                            ? "bg-gradient-to-br from-purple-600 to-indigo-700 text-white border border-purple-500/30 rounded-tr-none"
-                            : "bg-gradient-to-br from-slate-700 to-slate-800 text-gray-100 border border-slate-600/30 rounded-tl-none"
+                            ? "bg-gradient-to-br from-purple-600 to-indigo-700 text-white border-purple-600 rounded-tr-none"
+                            : "bg-white text-gray-800 border-gray-200 rounded-tl-none"
                         }`}
                       >
                         {isMe && (
@@ -423,7 +416,7 @@ const Chat = () => {
                           <div className="mt-2">
                             <audio
                               controls
-                              className="w-48 h-8 rounded-lg bg-black/20 border border-white/10"
+                              className="w-48 h-8 rounded-lg bg-black/10 border border-black/5"
                             >
                               <source src={msg.audioUrl} type="audio/mp3" />
                             </audio>
@@ -432,14 +425,14 @@ const Chat = () => {
 
                          {msg.mediaUrl && msg.type === 'image' && (
                           <div className="mt-2">
-                            <img src={msg.mediaUrl} alt="shared" className="rounded-lg max-w-full h-auto border border-white/10" />
+                            <img src={msg.mediaUrl} alt="shared" className="rounded-lg max-w-full h-auto border border-black/5" />
                           </div>
                         )}
 
                         <div
                           className={`text-[10px] mt-2 flex items-center gap-1 ${
                             isMe
-                              ? "text-purple-200 justify-end"
+                              ? "text-purple-100 justify-end"
                               : "text-gray-400 justify-start"
                           }`}
                         >
@@ -459,13 +452,13 @@ const Chat = () => {
 
             {isTyping && (
               <div className="flex justify-start">
-                <div className="max-w-[70%] p-4 rounded-2xl bg-slate-800/80 backdrop-blur-sm border border-slate-700/50">
+                <div className="max-w-[70%] p-4 rounded-2xl bg-white border border-gray-200 shadow-sm">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></div>
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-150"></div>
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-300"></div>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     {user?.role === "astrologer" ? "Client" : "Astrologer"} is
                     typing...
                   </p>
@@ -481,13 +474,13 @@ const Chat = () => {
 
       {/* Input Area */}
       {id !== "0" && (
-      <div className="chat-footer bg-slate-900/90 backdrop-blur-lg border-t border-purple-500/30 p-4 z-20">
+      <div className="chat-footer bg-white/90 backdrop-blur-lg border-t border-gray-200 p-4 z-20 shadow-lg">
         <div className="max-w-4xl mx-auto px-4">
           {isRecording && (
             <div className="text-center mb-3">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full">
-                <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
-                <span className="text-red-300 text-sm">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-full">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-red-600 text-sm">
                   Recording... Click to stop
                 </span>
               </div>
@@ -496,14 +489,14 @@ const Chat = () => {
 
           <form onSubmit={handleSendMessage} className="relative group">
             <div className="relative">
-              <div className="absolute inset-0 bg-purple-500/20 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
+              <div className="absolute inset-0 bg-purple-100 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-opacity"></div>
 
-              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3">
+              <div className="relative bg-white border-2 border-gray-100 rounded-2xl flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 focus-within:border-purple-200 focus-within:ring-2 focus-within:ring-purple-100 transition-all shadow-sm">
                 {!isRecording ? (
                   <button
                     type="button"
                     onClick={startRecording}
-                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-all duration-200 flex-shrink-0"
+                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-all duration-200 flex-shrink-0"
                     title="Record Audio"
                   >
                     <Mic size={20} />
@@ -512,7 +505,7 @@ const Chat = () => {
                   <button
                     type="button"
                     onClick={stopRecording}
-                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all duration-200 animate-pulse flex-shrink-0"
+                    className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 animate-pulse flex-shrink-0"
                     title="Stop Recording"
                   >
                     <MicOff size={20} />
@@ -529,7 +522,7 @@ const Chat = () => {
                 <button
                   type="button"
                   onClick={() => document.getElementById('image-upload').click()}
-                  className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-all duration-200 flex-shrink-0"
+                  className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-full transition-all duration-200 flex-shrink-0"
                   title="Attach Image"
                 >
                   <Paperclip size={20} />
@@ -551,7 +544,7 @@ const Chat = () => {
                   className={`p-2 rounded-full transition-all duration-200 flex-shrink-0 ${
                     message.trim()
                       ? "bg-purple-600 text-white shadow-lg hover:bg-purple-700 hover:scale-110"
-                      : "text-gray-400 bg-gray-100"
+                      : "text-gray-300 bg-gray-50 cursor-not-allowed"
                   }`}
                 >
                   <Send size={18} className="md:w-5 md:h-5" />
@@ -568,7 +561,7 @@ const Chat = () => {
                   setSelectedChart('birth-chart');
                   setShowChartModal(true);
                 }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-blue-100 hover:border-blue-300 text-blue-600 text-xs font-semibold shadow-sm hover:shadow-md transition-all transform hover:scale-105"
               >
                 <Star size={14} />
                 Birth Chart
@@ -579,7 +572,7 @@ const Chat = () => {
                   setSelectedChart('porutham');
                   setShowChartModal(true);
                 }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-pink-100 hover:border-pink-300 text-pink-600 text-xs font-semibold shadow-sm hover:shadow-md transition-all transform hover:scale-105"
               >
                 <Heart size={14} />
                 Porutham
@@ -590,7 +583,7 @@ const Chat = () => {
                   setSelectedChart('navamsa');
                   setShowChartModal(true);
                 }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-purple-100 hover:border-purple-300 text-purple-600 text-xs font-semibold shadow-sm hover:shadow-md transition-all transform hover:scale-105"
               >
                 <Sparkles size={14} />
                 Navamsa
@@ -601,7 +594,7 @@ const Chat = () => {
                   setSelectedChart('behavior');
                   setShowChartModal(true);
                 }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-orange-100 hover:border-orange-300 text-orange-600 text-xs font-semibold shadow-sm hover:shadow-md transition-all transform hover:scale-105"
               >
                 <Brain size={14} />
                 Behavior
