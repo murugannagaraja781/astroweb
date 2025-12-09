@@ -74,9 +74,14 @@ const AppLayout = ({ children }) => {
     if (user) {
       console.log("[App] Connecting global socket for user:", user.name);
       import('./utils/socketManager').then(({ default: socketManager }) => {
-        const socket = socketManager.connect(import.meta.env.VITE_API_URL, {
+        // In development, use relative path '/' to leverage the Vite proxy (set to localhost:8080)
+        // In production, use the configured Vercel/API URL
+        const socketUrl = import.meta.env.DEV ? '/' : import.meta.env.VITE_API_URL;
+
+        const socket = socketManager.connect(socketUrl, {
           query: { username: user.name },
-          transports: ['websocket']
+          transports: ['websocket', 'polling'],
+          path: '/socket.io' // Ensure path is explicit for proxy matching
         });
 
         const registrationId = user.id; // Or handle Astrologer vs Client ID logic if needed

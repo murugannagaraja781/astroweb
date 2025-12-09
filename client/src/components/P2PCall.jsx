@@ -58,11 +58,11 @@ const P2PCall = () => {
 
   // Initialize Socket
   useEffect(() => {
-    // Connect to server - assuming standard path or configured proxy
-    // If you have a specific URL, replace '/' with it, e.g., 'http://localhost:8080'
-    const newSocket = io('/', {
+    // Connect to server using relative path to trigger Vite proxy
+    // This allows it to work with the proxy config we just added
+    const newSocket = io({
+      path: '/socket.io',
       transports: ['websocket', 'polling'],
-      // Standardize query if needed, but this component uses custom 'register' event
     });
 
     setSocket(newSocket);
