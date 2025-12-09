@@ -575,7 +575,7 @@ useEffect(() => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-purple-50 pb-24 font-sans text-slate-800">
+    <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-800">
       {/* -------------------- POPUPS -------------------- */}
 
       {/* Offline Status Popup with Glassmorphism */}
@@ -664,36 +664,29 @@ useEffect(() => {
       )}
 
 
-      {/* -------------------- HEADER (Premium) -------------------- */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-               <div className="relative">
-                  <div className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-br from-amber-300 via-yellow-400 to-orange-500 shadow-md">
-                     <div className="w-full h-full bg-white rounded-full flex items-center justify-center overflow-hidden">
-                        <User size={24} className="text-slate-700" />
-                     </div>
-                  </div>
-                  <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 border-2 border-white rounded-full shadow-sm ${profile.isOnline ? 'bg-green-500' : 'bg-slate-400'}`}></div>
+      {/* -------------------- HEADER -------------------- */}
+      <header className="sticky top-0 z-40 bg-yellow-400 text-gray-900 shadow-md">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-black/5">
+                  <User size={20} className="text-gray-900" />
                </div>
-
                <div>
-                  <h1 className="font-bold text-xl text-slate-900 leading-tight tracking-tight">{user?.name || profile.name}</h1>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mt-1 ${
-                     profile.isOnline
-                     ? 'bg-green-100 text-green-700 border border-green-200'
-                     : 'bg-slate-100 text-slate-500 border border-slate-200'
-                  }`}>
-                     {profile.isOnline ? '● Online' : 'Offline'}
-                  </span>
+                  <h1 className="font-bold text-lg leading-tight">{user?.name || profile.name}</h1>
+                  <div className="flex items-center gap-1.5">
+                     <div className={`w-2 h-2 rounded-full ${profile.isOnline ? 'bg-green-600' : 'bg-red-500'}`}></div>
+                     <span className="text-xs font-semibold opacity-70">
+                        {profile.isOnline ? 'Online' : 'Offline'}
+                     </span>
+                  </div>
                </div>
             </div>
 
             <div className="flex items-center gap-3">
-               <button onClick={fetchPendingSessions} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-colors relative border border-slate-100 shadow-sm">
-                  <Bell size={20} />
+               <button onClick={fetchPendingSessions} className="p-2 hover:bg-black/5 rounded-full relative">
+                  <Bell size={24} />
                   {(myPendingSessions.length + myPendingVideoCalls.length + myPendingAudioCalls.length) > 0 && (
-                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-md border-2 border-white">
+                     <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
                         {myPendingSessions.length + myPendingVideoCalls.length + myPendingAudioCalls.length}
                      </span>
                   )}
@@ -970,41 +963,36 @@ useEffect(() => {
 
       </main>
 
-      {/* -------------------- BOTTOM NAVIGATION (Floating Premium) -------------------- */}
-      <nav className="fixed bottom-6 left-6 right-6 bg-slate-900/90 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-[2rem] flex justify-between items-center z-50 shadow-2xl shadow-slate-900/20">
+      {/* -------------------- BOTTOM NAVIGATION -------------------- */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-end z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
          <button onClick={() => setActiveTab('overview')} className={getTabClass('overview')}>
-            <Home size={24} className={activeTab === 'overview' ? 'text-amber-400 fill-current drop-shadow-md' : 'text-slate-400'} />
+            <Home size={24} className={activeTab === 'overview' ? 'fill-current' : ''} />
+            <span className="text-[10px] font-medium">Home</span>
          </button>
 
          <button onClick={() => setActiveTab('inbox')} className={getTabClass('inbox')}>
             <div className="relative">
-               <MessageCircle size={24} className={activeTab === 'inbox' ? 'text-amber-400 fill-current drop-shadow-md' : 'text-slate-400'} />
+               <MessageCircle size={24} className={activeTab === 'inbox' ? 'fill-current' : ''} />
                {(myPendingSessions.length + myPendingVideoCalls.length > 0) && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
                )}
             </div>
+            <span className="text-[10px] font-medium">Requests</span>
          </button>
 
-         {/* Center Action Button */}
-         <div className="absolute left-1/2 -translate-x-1/2 -top-6">
-            <button
-                onClick={() => setActiveTab('overview')}
-                className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all active:scale-95 ${
-                    isOnline
-                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-orange-500/30'
-                    : 'bg-slate-700 text-slate-300'
-                }`}
-            >
-                <Zap size={24} className={isOnline ? 'fill-current' : ''} />
-            </button>
-         </div>
+         <button onClick={() => setActiveTab('history')} className={getTabClass('history')}>
+            <Calendar size={24} className={activeTab === 'history' ? 'fill-current' : ''} />
+            <span className="text-[10px] font-medium">History</span>
+         </button>
 
          <button onClick={() => setActiveTab('earnings')} className={getTabClass('earnings')}>
-            <DollarSign size={24} className={activeTab === 'earnings' ? 'text-amber-400 fill-current drop-shadow-md' : 'text-slate-400'} />
+            <DollarSign size={24} className={activeTab === 'earnings' ? 'fill-current' : ''} />
+            <span className="text-[10px] font-medium">Earnings</span>
          </button>
 
          <button onClick={() => setActiveTab('profile')} className={getTabClass('profile')}>
-            <User size={24} className={activeTab === 'profile' ? 'text-amber-400 fill-current drop-shadow-md' : 'text-slate-400'} />
+            <User size={24} className={activeTab === 'profile' ? 'fill-current' : ''} />
+            <span className="text-[10px] font-medium">Profile</span>
          </button>
       </nav>
 
