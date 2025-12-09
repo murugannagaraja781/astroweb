@@ -128,12 +128,6 @@ useEffect(() => {
 }, []);
 
 
-  const playNotificationSound = () => {
-    if (notificationSoundRef.current) {
-      notificationSoundRef.current.currentTime = 0;
-      notificationSoundRef.current.play().catch(e => console.log("Sound error:", e));
-    }
-  };
 
   // Initialize socket connection once
   useEffect(() => {
@@ -153,8 +147,7 @@ useEffect(() => {
     // However, if we want to be double-sure or if this page is standalone:
     const onConnect = () => {
          console.log("[Astrologer] Socket connected/reconnected");
-         // Removed toast notification to prevent annoyance during status toggles
-         // addToast(`Socket Connected! ID: ${newSocket.id}`, 'success');
+         addToast(`Socket Connected! ID: ${newSocket.id}`, 'success'); // Show toast instead of alert
          const registrationId = user?.id || profile?.userId?._id || profile?.userId;
          if (registrationId) {
             newSocket.emit("user_online", { userId: registrationId });
@@ -163,24 +156,6 @@ useEffect(() => {
 
     newSocket.on("connect", onConnect);
 
-    // Listens for incoming chat requests
-    newSocket.on("chat:request", (data) => {
-        console.log("Incoming chat request:", data);
-        setIncomingRequest({ ...data, type: 'chat' });
-        setShowIncomingPopup(true);
-        playNotificationSound();
-        fetchPendingSessions(); // Refresh list as well
-    });
-
-    // Listens for incoming video/audio call requests
-    newSocket.on("call:request", (data) => {
-         console.log("Incoming call request:", data);
-         setIncomingRequest({ ...data, type: data.type || 'video' });
-         setShowIncomingPopup(true);
-         playNotificationSound();
-         fetchPendingSessions();
-    });
-
     // If already connected, run logic immediately
     if (newSocket.connected) {
         onConnect();
@@ -188,27 +163,323 @@ useEffect(() => {
 
     return () => {
       newSocket.off("connect", onConnect);
-      newSocket.off("chat:request");
-      newSocket.off("call:request");
+      // Do NOT close the global socket here as it breaks navigation
     };
-  }, [user, profile?.userId]); // Changed dependency from 'profile' to 'profile.userId' to avoid unnecessary re-runs
+  }, [user, profile]);
 
+  // Emit user_online when socket is ready and user is loaded
+
+
+  // Fetch pending sessions (Optimized to avoid re-renders)
+  const fetchPendingSessions = useCallback(async () => {
+    if (!navigator.onLine) {
+        console.warn("OFFLINE: Skipping session fetch");
+        return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (res.data && Array.isArray(res.data)) {
+        setPendingSessions(prev => {
+          // Optimization: Only update state if data has changed
+          const isSame = JSON.stringify(prev) === JSON.stringify(res.data);
+          return isSame ? prev : res.data;
+        });
+      } else {
+        setPendingSessions(prev => (prev.length === 0 ? prev : []));
+      }
+    } catch (err) {
+      console.error("Error fetching sessions:", err);
+      // Don't clear sessions on error to prevent UI flash, unless it's a 401/403
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+         setPendingSessions([]);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProfile();
+    fetchEarnings();
+  }, []);
+
+  // Setup socket listeners when socket is ready
+  useEffect(() => {
+    if (!socket) return;
+
+    // Video call request
+    socket.on("call:request", (data) => {
+      console.log("Incoming call request:", data);
+
+      // STRICT FILTER: Check ID and Name
+      const myId = profile?.userId?._id || profile?.userId;
+      const myName = user?.name || profile?.name;
+
+      // 1. ID Check
+      if (data.astrologerId && String(data.astrologerId) !== String(myId)) return;
+
+      // 2. Name Check - DISABLED (Name mismatches shouldn't block calls if ID matches)
+      // if (data.astrologerName && myName && data.astrologerName !== myName) return;
+
+      const newVideoRequest = {
+        id: `${data.fromId}_${Date.now()}`,
+        type: "video",
+        fromId: data.fromId,
+        fromName: data.fromName || "Client",
+        fromSocketId: data.fromSocketId,
+        fromImage: data.fromImage,
+        timestamp: new Date(),
+        roomId: data.roomId,
+        status: "pending"
+      };
+
+      setPendingVideoCalls((prev) => [...prev, newVideoRequest]);
+
+      // Add to incoming popup queue
+      addToRequestQueue(newVideoRequest);
+
+      setNotifications((n) => n + 1);
+      playNotificationSound();
+    });
+
+    // Chat request from client
+    socket.on("chat:request", (payload) => {
+      console.log("[Astrologer] Chat request received:", payload);
+
+      // STRICT FILTER: Check ID and Name
+      const myId = profile?.userId?._id || profile?.userId;
+      const myName = user?.name || profile?.name;
+
+      // 1. ID Check
+      // payload might have astrologerId at top level
+      if (payload.astrologerId && String(payload.astrologerId) !== String(myId)) return;
+
+      // 2. Name Check - DISABLED
+      // if (payload.astrologerName && myName && payload.astrologerName !== myName) return;
+
+      const newChatRequest = {
+        id: payload.sessionId || `${payload.userId?._id}_${Date.now()}`,
+        type: "chat",
+        fromId: payload.userId?._id,
+        fromName: payload.userId?.name || "Client",
+        fromSocketId: payload.socketId,
+        sessionId: payload.sessionId,
+        timestamp: new Date(),
+        status: "pending"
+      };
+
+      // Add to pending sessions if not already there
+      setPendingSessions((prev) => {
+        const exists = prev.some(s => s.sessionId === payload.sessionId);
+        if (!exists) {
+          return [...prev, {
+            sessionId: payload.sessionId,
+            userId: payload.userId,
+            client: payload.userId,
+            createdAt: new Date(),
+            ...newChatRequest
+          }];
+        }
+        return prev;
+      });
+
+      // Add to incoming popup queue
+      addToRequestQueue(newChatRequest);
+
+      setNotifications((n) => n + 1);
+      playNotificationSound();
+
+      setNotifications((n) => n + 1);
+      playNotificationSound();
+
+      // Refresh list from server to be safe - REMOVED to prevent API spam
+      // fetchPendingSessions();
+    });
+
+    // Audio call request
+    socket.on("audio:request", (data) => {
+      console.log("Incoming audio call request:", data);
+
+      // STRICT FILTER: Check ID and Name
+      const myId = profile?.userId?._id || profile?.userId;
+      const myName = user?.name || profile?.name;
+
+      if (data.astrologerId && String(data.astrologerId) !== String(myId)) return;
+      if (data.astrologerName && myName && data.astrologerName !== myName) return;
+
+      const newAudioRequest = {
+        id: `${data.fromId}_${Date.now()}`,
+        type: "audio",
+        fromId: data.fromId,
+        fromName: data.fromName || "Client",
+        fromSocketId: data.fromSocketId,
+        fromImage: data.fromImage,
+        timestamp: new Date(),
+        roomId: data.roomId,
+        status: "pending"
+      };
+
+      setPendingAudioCalls((prev) => [...prev, newAudioRequest]);
+
+      // Add to incoming popup queue
+      addToRequestQueue(newAudioRequest);
+
+      setNotifications((n) => n + 1);
+      playNotificationSound();
+    });
+
+    return () => {
+      socket.off("call:request");
+      socket.off("chat:request");
+      socket.off("audio:request");
+    };
+  }, [socket, fetchPendingSessions]);
+useEffect(() => {
+  window.testNotificationSound = () => {
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.play()
+        .then(() => console.log("Sound played"))
+        .catch(err => console.log("Sound blocked:", err));
+    } else {
+      console.log("Audio ref not ready");
+    }
+  };
+}, []);
+
+  useEffect(() => {
+    if (profile?.userId && socket) {
+      // Register astrologer in onlineUsers map
+      socket.emit("user_online", { userId: profile.userId });
+      fetchPendingSessions();
+    }
+  }, [profile?.userId, socket, fetchPendingSessions]);
+
+  // Play notification sound
+  // SUPER RELIABLE Notification Sound (works always when tab is open)
+  const playNotificationSound = () => {
+    const audio = notificationSoundRef.current;
+    if (!audio) {
+      console.warn("⚠️ Audio not initialized");
+      // Try browser notification sound as fallback
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('New Request', {
+          body: 'You have a new chat/call request',
+          icon: '/logo.png',
+          badge: '/logo.png',
+          tag: 'astrologer-request',
+          requireInteraction: true
+        });
+      }
+      return;
+    }
+
+    // Reset audio to beginning
+    audio.pause();
+    audio.currentTime = 0;
+
+    // Play with error handling
+    const playPromise = audio.play();
+
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("🔔 Notification sound played successfully");
+          // Vibrate on mobile if supported
+          if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200]);
+          }
+        })
+        .catch(err => {
+          // Ignore AbortError which happens when sound is interrupted
+          if (err.name !== 'AbortError') {
+             console.warn("⚠️ Sound play failed:", err);
+             // Fallback to visual notification
+             if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('New Request', {
+                  body: 'You have a new chat/call request',
+                  icon: '/logo.png',
+                  badge: '/logo.png',
+                  tag: 'astrologer-request',
+                });
+             }
+          }
+        });
+    }
+  };
+
+
+
+  // Add request to queue and show popup
+  // Add request to queue
+  const addToRequestQueue = (request) => {
+    setRequestQueue((prev) => [...prev, request]);
+  };
+
+  // Auto-decline timer state
+  const [autoDeclineTimer, setAutoDeclineTimer] = useState(30);
+
+  // Process queue: Show popup if queue has items and no popup is showing
+  useEffect(() => {
+    if (!showIncomingPopup && requestQueue.length > 0) {
+      setIncomingRequest(requestQueue[0]);
+      setShowIncomingPopup(true);
+      setAutoDeclineTimer(30); // Reset timer
+      playNotificationSound();
+
+      // Vibrate device - Strong pattern for incoming request
+      if ('vibrate' in navigator) {
+        // Pattern: [vibrate, pause, vibrate, pause, vibrate]
+        navigator.vibrate([400, 200, 400, 200, 400]);
+      }
+    }
+  }, [requestQueue, showIncomingPopup]);
+
+  // Auto-decline countdown timer
+  useEffect(() => {
+    if (!showIncomingPopup || !incomingRequest) return;
+
+    const timer = setInterval(() => {
+      setAutoDeclineTimer((prev) => {
+        if (prev <= 1) {
+          // Auto-decline when timer reaches 0
+          console.log("⏰ Auto-declining request due to timeout");
+          rejectIncomingRequest(incomingRequest);
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showIncomingPopup, incomingRequest]);
+
+  // Handle next request in queue
+  const handleNextRequest = () => {
+    setShowIncomingPopup(false);
+    setIncomingRequest(null);
+    setRequestQueue((prev) => {
+      const [, ...remaining] = prev;
+      return remaining;
+    });
+  };
 
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/astrologer/profile`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setProfile(res.data);
-      // Update online status in local state for polling consistency
-      setIsOnline(res.data.isOnline);
     } catch (err) {
       console.error("Error fetching profile:", err);
-      // Fallback for demo/testing if API fails
-      // setProfile({ name: user?.name || "Astrologer", isOnline: true });
-      addToast("Failed to load profile", "error");
     }
   };
 
@@ -217,119 +488,182 @@ useEffect(() => {
       const token = localStorage.getItem("token");
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/astrologer/earnings`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setEarnings(res.data.totalEarnings || 0);
     } catch (err) {
       console.error("Error fetching earnings:", err);
-    }
-  };
-
-  const fetchPendingSessions = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-       // Handle both array/object formats
-      const data = Array.isArray(res.data) ? res.data : res.data.data || [];
-
-      // Separate by type
-      const video = data.filter(s => s.type === 'video');
-      const audio = data.filter(s => s.type === 'audio');
-      const chat = data.filter(s => !s.type || s.type === 'chat');
-
-      setPendingSessions(chat);
-      setPendingVideoCalls(video);
-      setPendingAudioCalls(audio);
-    } catch (err) {
-      console.error("Error fetching pending sessions:", err);
+      setEarnings(0);
     }
   };
 
   const fetchChatHistory = async () => {
-      try {
-          const token = localStorage.getItem("token");
-          const res = await axios.get(
-              `${import.meta.env.VITE_API_URL}/api/chat/history`,
-              { headers: { Authorization: `Bearer ${token}` } }
-          );
-          setChatSessions(res.data);
-      } catch (err) {
-          console.error("Error fetching chat history", err);
-      }
+    try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/chat/sessions`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        setChatSessions(res.data);
+    } catch (err) {
+        console.error("Error fetching chat history", err);
+    }
   };
 
-  // Initial Data Load
-  useEffect(() => {
-    fetchProfile();
-    fetchEarnings();
-    fetchPendingSessions();
-    fetchChatHistory();
-  }, [user]);
 
-  // Polling for requests & sync status (Deep Connection)
   useEffect(() => {
-    const interval = setInterval(() => {
-        // Always fetch profile to ensure status is synced (e.g. if changed on another device)
-        fetchProfile();
+    if (activeTab === "inbox") {
+      fetchPendingSessions();
+    }
+    if (activeTab === "history") {
+        fetchChatHistory();
+    }
+  }, [activeTab, fetchPendingSessions]);
 
-        // Only fetch requests if we think we are online
-        if (profile?.isOnline) {
-            fetchPendingSessions();
-        }
-    }, 5000); // Increased frequency to 5s for better sync feel
-    return () => clearInterval(interval);
-  }, [profile?.isOnline]);
+
+
+
+  const acceptCall = () => {
+    if (!incomingCall || !socket) return;
+
+    if (incomingCall.type === "chat") {
+      socket.emit("chat:accept", { sessionId: incomingCall.callId });
+      navigate(`/chat/${incomingCall.callId}`);
+    } else if (incomingCall.type === "video") {
+      const roomId = `video_${Date.now()}_${incomingCall.from}`;
+      socket.emit("call:accept", {
+        toSocketId: incomingCall.socketId,
+        roomId
+      });
+      setActiveCallRoomId(roomId);
+      setActiveTab("calls");
+    }
+    setIncomingCall(null);
+  };
+
+  const rejectCall = () => {
+    if (incomingCall && socket) {
+      if (incomingCall.type === "video") {
+          socket.emit("call:reject", { toSocketId: incomingCall.socketId });
+      } else {
+          // Chat reject logic if needed
+      }
+    }
+    setIncomingCall(null);
+  };
+
+  // Accept incoming request from popup
+  const acceptIncomingRequest = (request) => {
+    if (!socket) return;
+
+    // Stop notification sound
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.pause();
+      notificationSoundRef.current.currentTime = 0;
+    }
+
+    if (request.type === "chat") {
+      socket.emit("chat:accept", { sessionId: request.sessionId });
+      navigate(`/chat/${request.sessionId}`);
+    } else if (request.type === "video") {
+      const roomId = request.roomId || `video_${Date.now()}_${request.fromId}`;
+      socket.emit("call:accept", {
+        toSocketId: request.fromSocketId,
+        toUserId: request.fromId, // Add User ID for robust targeting
+        roomId
+      });
+      setActiveCallRoomId(roomId);
+      setActiveCallType("video");
+      setActiveCallPeerId(request.fromSocketId);
+      setActiveTab("calls");
+    } else if (request.type === "audio") {
+      const roomId = request.roomId || `audio_${Date.now()}_${request.fromId}`;
+      socket.emit("audio:accept", {
+        toSocketId: request.fromSocketId,
+        toUserId: request.fromId, // Add User ID
+        roomId
+      });
+      setActiveCallRoomId(roomId);
+      setActiveCallType("audio");
+      setActiveCallPeerId(request.fromSocketId);
+      setActiveTab("calls");
+    }
+
+    // Remove from pending lists
+    if (request.type === "chat") {
+      setPendingSessions(prev => prev.filter(s => s.sessionId !== request.sessionId));
+    } else if (request.type === "video") {
+      setPendingVideoCalls(prev => prev.filter(v => v.id !== request.id));
+    } else if (request.type === "audio") {
+      setPendingAudioCalls(prev => prev.filter(a => a.id !== request.id));
+    }
+
+    // Show next request in queue
+    handleNextRequest();
+  };
+
+  // Reject incoming request from popup
+  // Reject incoming request from popup
+  const rejectIncomingRequest = (request) => {
+    console.log("❌ Rejecting request:", request);
+
+    // 1. Optimistic UI Update: Close popup immediately
+    setShowIncomingPopup(false);
+    setIncomingRequest(null);
+
+    // 2. Stop Sound
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.pause();
+      notificationSoundRef.current.currentTime = 0;
+    }
+
+    // 3. Emit Reject Event (Background)
+    setTimeout(() => {
+       if (socket) {
+          if (request.type === "chat") {
+             rejectChat(request.sessionId);
+          } else if (request.type === "video") {
+             socket.emit("call:reject", { toSocketId: request.fromSocketId });
+             // Remove locally
+             setPendingVideoCalls(prev => prev.filter(v => v.id !== request.id));
+          } else if (request.type === "audio") {
+             socket.emit("audio:reject", { toSocketId: request.fromSocketId });
+             setPendingAudioCalls(prev => prev.filter(v => v.id !== request.id));
+          }
+       }
+    }, 100);
+
+    // 4. Process Next Request
+    handleNextRequest();
+  };
+
 
   const toggleStatus = async () => {
-    // 1. Optimistic Update (Immediate Feedback - Deep Connection)
-    const oldStatus = profile.isOnline;
-    const newStatus = !oldStatus;
-
-    // Instantly update UI state
-    setProfile(prev => ({ ...prev, isOnline: newStatus }));
-
-    // Instantly close offline popup if going online
-    if (newStatus) {
-        setShowOfflinePopup(false);
-    }
-
-    // Toggle socket event immediately for responsiveness
-    if (socket) {
-        if (newStatus) {
-             socket.emit("user_online", { userId: profile.userId });
-        } else {
-             socket.emit("user_offline", { userId: profile.userId });
-        }
-    }
-
     try {
       const token = localStorage.getItem("token");
-      // 2. API Call (Background)
       const res = await axios.put(
         `${import.meta.env.VITE_API_URL}/api/astrologer/status`,
+        // Just toggle isOnline. The backend might reset call availability, or we preserve it.
+        // Assuming backend works with just status toggle or we send full object.
+        // For now, let's just send the toggle request.
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // 3. Sync with Server Response
-      // Only update if the result is different to avoid jitter,
-      // but usually we just trust the server.
-      if (res.data.isOnline !== newStatus) {
-           setProfile(res.data);
+      setProfile(res.data);
+      // Also emit via socket
+      if (socket) {
+        if (!res.data.isOnline) {
+             socket.emit("user_offline", { userId: profile.userId });
+        } else {
+             socket.emit("user_online", { userId: profile.userId });
+        }
+      }
+      if(showOfflinePopup && res.data.isOnline) {
+          setShowOfflinePopup(false);
       }
     } catch (err) {
       console.error("Error toggling status:", err);
-      // 4. Revert on Error
-      setProfile(prev => ({ ...prev, isOnline: oldStatus }));
-      addToast("Failed to update status", "error");
-
-      // Re-show popup if we failed to go online
-      if (newStatus) {
-          setShowOfflinePopup(true);
-      }
     }
   };
 
@@ -357,80 +691,8 @@ useEffect(() => {
   };
 
 
-
-  // Timer for auto-decline popup
-  const [autoDeclineTimer, setAutoDeclineTimer] = useState(30);
-
-  useEffect(() => {
-    let timer;
-    if (showIncomingPopup && incomingRequest) {
-        setAutoDeclineTimer(30); // Reset to 30s
-        timer = setInterval(() => {
-            setAutoDeclineTimer((prev) => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    rejectIncomingRequest(incomingRequest); // Auto reject
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [showIncomingPopup, incomingRequest]);
-
-  const acceptIncomingRequest = (req) => {
-      setShowIncomingPopup(false);
-      if (req.type === 'chat') {
-          acceptChat(req.sessionId);
-      } else {
-          // Video/Audio accept logic
-          // For now, let's assume video
-          // setActiveCall(req...);
-          // THIS SECTION needs to hook into the video logic,
-          // but for chat specifically:
-           socket.emit("call:accept", { toSocketId: req.fromSocketId, roomId: req.roomId });
-           setActiveCallRoomId(req.roomId);
-           setActiveCallType(req.type);
-           setActiveCallPeerId(req.fromSocketId);
-           setActiveCallPeerName(req.fromName);
-           setActiveTab('calls');
-      }
-  };
-
-  const rejectIncomingRequest = (req) => {
-      setShowIncomingPopup(false);
-
-      // Stop sound
-      if (notificationSoundRef.current) {
-         notificationSoundRef.current.pause();
-         notificationSoundRef.current.currentTime = 0;
-      }
-
-      if (req.type === 'chat') {
-          rejectChat(req.sessionId);
-      } else {
-          // For calls, we emit a reject event
-          if (socket) {
-              socket.emit("call:reject", {
-                  toSocketId: req.fromSocketId,
-                  roomId: req.roomId
-              });
-          }
-          // Also remove from pending list
-          setPendingVideoCalls(prev => prev.filter(c => c.id !== req.id));
-      }
-      setIncomingRequest(null);
-  };
-
   const acceptChat = (sessionId) => {
     if (!socket) return;
-
-    // Stop sound
-    if (notificationSoundRef.current) {
-        notificationSoundRef.current.pause();
-        notificationSoundRef.current.currentTime = 0;
-    }
 
     if (!socket.connected) {
       alert("Connection lost. Reconnecting...");
@@ -445,28 +707,23 @@ useEffect(() => {
 
   // REJECT CHAT FROM LIST
   const rejectChat = async (sessionId) => {
-    // 1. Emit Socket Event (Real-time alert for Client)
     if (socket && socket.connected) {
       socket.emit("chat:reject", { sessionId });
     }
 
-    // 2. API Call (Database Update)
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/chat/reject`,
+        `${import.meta.env.VITE_API_URL}/api/chat/debug/all`,
         { sessionId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // 3. Update Local UI
       setPendingSessions((prev) =>
         prev.filter((s) => s.sessionId !== sessionId)
       );
-      addToast("Request rejected", "info");
     } catch (err) {
       console.error("Error rejecting chat:", err);
-      addToast("Failed to reject chat completely", "error");
+      // alert("Failed to reject chat. Please try again.");
     }
   };
 
@@ -578,26 +835,26 @@ useEffect(() => {
     <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-800">
       {/* -------------------- POPUPS -------------------- */}
 
-      {/* Offline Status Popup with Glassmorphism */}
+      {/* Offline Status Popup */}
       {showOfflinePopup && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in zoom-in duration-300">
-          <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border border-white/50 relative">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl relative">
             <button
               onClick={() => setShowOfflinePopup(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
             >
               <X size={24} />
             </button>
-            <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-              <span className="text-4xl">🌙</span>
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">🌙</span>
             </div>
-            <h2 className="text-2xl font-bold mb-3 text-slate-800">You are Offline</h2>
-            <p className="text-slate-500 mb-8 leading-relaxed">
-              Go online to start receiving consultation requests and maximize your earnings today.
+            <h2 className="text-xl font-bold mb-2">You are Offline</h2>
+            <p className="text-gray-500 mb-6 text-sm">
+              Go online to start receiving consultation requests and earning.
             </p>
             <button
               onClick={toggleStatus}
-              className="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-200 transform active:scale-[0.98] transition-all"
+              className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-xl shadow-lg transform active:scale-95 transition-all"
             >
               Go Online Now
             </button>
@@ -605,55 +862,53 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Incoming Request Popup - Premium */}
+      {/* Incoming Request Popup */}
       {showIncomingPopup && incomingRequest && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[8px] flex items-center justify-center z-[100] p-4 animate-in fade-in zoom-in duration-300">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl relative border-4 border-amber-200 animate-bounce-subtle">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl relative border-4 border-yellow-400 animate-bounce" style={{
+            animation: 'bounce 0.5s ease-in-out 3'
+          }}>
              {/* Header */}
-             <div className="bg-gradient-to-r from-amber-300 to-orange-400 p-6 text-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
-                <h3 className="text-white font-bold text-lg flex items-center justify-center gap-3 tracking-wider relative z-10">
+             <div className="bg-yellow-400 p-4 text-center">
+                <h3 className="text-black font-bold text-lg flex items-center justify-center gap-2">
                    INCOMING {incomingRequest.type.toUpperCase()}
-                   <span className="animate-ping w-2.5 h-2.5 bg-white rounded-full"></span>
+                   <span className="animate-ping w-2 h-2 bg-red-600 rounded-full"></span>
                 </h3>
              </div>
 
-             <div className="p-8 text-center bg-white relative">
-                <div className="w-28 h-28 mx-auto -mt-16 mb-6 bg-white rounded-full flex items-center justify-center border-4 border-white shadow-xl relative z-20">
-                   {incomingRequest.type === 'video' && <Video size={48} className="text-green-500 drop-shadow-sm" />}
-                   {incomingRequest.type === 'audio' && <Phone size={48} className="text-blue-500 drop-shadow-sm" />}
-                   {incomingRequest.type === 'chat' && <MessageCircle size={48} className="text-amber-500 drop-shadow-sm" />}
+             <div className="p-6 text-center">
+                <div className="w-24 h-24 mx-auto mb-4 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 shadow-inner">
+                   {incomingRequest.type === 'video' && <Video size={40} className="text-green-600" />}
+                   {incomingRequest.type === 'audio' && <Phone size={40} className="text-blue-600" />}
+                   {incomingRequest.type === 'chat' && <MessageCircle size={40} className="text-yellow-600" />}
                 </div>
 
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">{incomingRequest.fromName}</h2>
-                <p className="text-slate-500 font-medium mb-8">
-                   {incomingRequest.type === 'chat' ? 'Requesting a live chat session...' : 'Incoming call request...'}
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">{incomingRequest.fromName}</h2>
+                <p className="text-gray-500 text-sm mb-6">
+                   {incomingRequest.type === 'chat' ? 'Wants to chat now' : 'Incoming call request'}
                 </p>
 
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                    <button
                       onClick={() => rejectIncomingRequest(incomingRequest)}
-                      className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all active:scale-95"
+                      className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl active:scale-95 transition-all"
                    >
                       Decline
                    </button>
                    <button
                       onClick={() => acceptIncomingRequest(incomingRequest)}
-                      className="flex-1 py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-green-200 active:scale-95 transition-all animate-pulse-subtle"
+                      className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl shadow-md shadow-green-200 active:scale-95 transition-all animate-pulse"
                    >
                       Accept
                    </button>
                 </div>
 
-                {/* Elegant Timer */}
-                <div className="mt-8">
-                   <div className="flex justify-between text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">
-                      <span>Auto-decline</span>
-                      <span>{autoDeclineTimer}s</span>
-                   </div>
-                   <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                {/* Auto decline bar */}
+                <div className="mt-6">
+                   <p className="text-xs text-gray-400 mb-1">Auto-decline in {autoDeclineTimer}s</p>
+                   <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
                       <div
-                         className="h-full bg-gradient-to-r from-red-400 to-rose-500 transition-all duration-1000 ease-linear rounded-full"
+                         className="h-full bg-red-500 transition-all duration-1000 ease-linear"
                          style={{ width: `${(autoDeclineTimer / 30) * 100}%` }}
                       ></div>
                    </div>
@@ -697,72 +952,49 @@ useEffect(() => {
 
 
       {/* -------------------- MAIN CONTENT -------------------- */}
-      <main className="container mx-auto px-4 pt-6 space-y-8">
+      <main className="container mx-auto px-4 pt-6 space-y-6">
 
-         {/* 1. Status Control Center (Premium Card) */}
+         {/* 1. Status Control Center */}
          {activeTab === 'overview' && (
-         <div className="bg-white/70 backdrop-blur-md rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 border border-white">
-            <div className="flex items-center justify-between mb-8">
-               <div>
-                  <h2 className="font-bold text-slate-900 text-xl">Availability Status</h2>
-                  <p className="text-sm text-slate-500 mt-1">Manage your visibility to clients</p>
-               </div>
-               <label className="relative inline-flex items-center cursor-pointer group">
+         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+               <span className="font-bold text-gray-900 text-lg">Your Availability</span>
+               <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" className="sr-only peer" checked={profile.isOnline} onChange={toggleStatus} />
-                  <div className="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-green-400 peer-checked:to-emerald-500 shadow-inner group-hover:shadow-md transition-all"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
                </label>
             </div>
 
             {profile.isOnline && (
-               <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                  {/* Audio Call */}
-                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
-                           <Phone size={22} />
-                        </div>
-                        <div>
-                           <span className="font-bold text-slate-800 block">Audio Call</span>
-                           <span className="text-xs text-slate-400 font-medium">₹{profile.ratePerMinute || 20}/min</span>
-                        </div>
+               <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                     <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-100 text-green-700 rounded-lg"><Phone size={18} /></div>
+                        <span className="font-medium text-sm">Audio Call</span>
                      </div>
                      <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={profile.isAudioCallAvailable} onChange={() => updateCallAvailability('audio', !profile.isAudioCallAvailable)} />
-                         <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 shadow-sm"></div>
+                         <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                      </label>
                   </div>
-
-                  {/* Video Call */}
-                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
-                           <Video size={22} />
-                        </div>
-                        <div>
-                           <span className="font-bold text-slate-800 block">Video Call</span>
-                           <span className="text-xs text-slate-400 font-medium">₹{profile.videoRate || 40}/min</span>
-                        </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                     <div className="flex items-center gap-3">
+                        <div className="p-2 bg-yellow-100 text-yellow-700 rounded-lg"><Video size={18} /></div>
+                         <span className="font-medium text-sm">Video Call</span>
                      </div>
                      <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={profile.isVideoCallAvailable} onChange={() => updateCallAvailability('video', !profile.isVideoCallAvailable)} />
-                         <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 shadow-sm"></div>
+                         <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                      </label>
                   </div>
-
-                  {/* Chat */}
-                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center">
-                           <MessageCircle size={22} />
-                        </div>
-                        <div>
-                           <span className="font-bold text-slate-800 block">Live Chat</span>
-                           <span className="text-xs text-slate-400 font-medium">₹{profile.chatRate || 15}/min</span>
-                        </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                     <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 text-blue-700 rounded-lg"><MessageCircle size={18} /></div>
+                         <span className="font-medium text-sm">Chat</span>
                      </div>
                      <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={profile.isChatAvailable} onChange={() => updateCallAvailability('chat', !profile.isChatAvailable)} />
-                         <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 shadow-sm"></div>
+                         <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                      </label>
                   </div>
                </div>
@@ -770,192 +1002,209 @@ useEffect(() => {
          </div>
          )}
 
-         {/* 2. Stats Cards (Premium) */}
+         {/* 2. Stats Cards */}
          {activeTab === 'overview' && (
          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/60 backdrop-blur-sm p-5 rounded-[1.5rem] shadow-lg shadow-slate-200/50 border border-white hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group" onClick={() => setActiveTab('earnings')}>
-               <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Earnings</div>
-               <div className="text-2xl font-black text-slate-800 break-words group-hover:text-amber-600 transition-colors">₹{earnings.toLocaleString()}</div>
-               <div className="mt-3 text-[10px] font-bold text-green-700 bg-green-100/50 px-2 py-1 rounded-lg inline-block border border-green-200">
-                  +12% vs last week
-               </div>
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center" onClick={() => setActiveTab('earnings')}>
+               <div className="text-gray-400 text-xs font-semibold uppercase mb-1">Earnings</div>
+               <div className="text-2xl font-bold text-gray-900">₹{earnings.toLocaleString()}</div>
+               <div className="mt-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-md font-medium">View Details</div>
             </div>
-             <div className="bg-white/60 backdrop-blur-sm p-5 rounded-[1.5rem] shadow-lg shadow-slate-200/50 border border-white hover:shadow-xl hover:-translate-y-1 transition-all">
-               <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Rating</div>
-               <div className="text-2xl font-black text-slate-800 flex items-center gap-1">
-                  4.8 <Star size={20} className="text-amber-400 fill-current drop-shadow-sm" />
+             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+               <div className="text-gray-400 text-xs font-semibold uppercase mb-1">Rating</div>
+               <div className="text-2xl font-bold text-gray-900 flex items-center gap-1">
+                  4.8 <Star size={16} className="text-yellow-400 fill-current" />
                </div>
-               <div className="mt-3 text-xs text-slate-500 font-medium">From 12 Reviews</div>
+               <div className="mt-2 text-xs text-gray-500">12 Reviews</div>
             </div>
          </div>
          )}
 
 
-         {/* 3. INBOX Tab (Premium) */}
+         {/* 3. INBOX Tab */}
          {activeTab === 'inbox' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Incoming Requests</h2>
-                  <button onClick={fetchPendingSessions} className="px-4 py-2 bg-white rounded-full text-amber-600 text-xs font-bold shadow-sm border border-amber-100 flex items-center gap-1.5 hover:bg-amber-50 active:scale-95 transition-all">
+                  <h2 className="text-xl font-bold text-gray-900">Incoming Requests</h2>
+                  <button onClick={fetchPendingSessions} className="text-yellow-600 text-sm font-bold flex items-center gap-1">
                      <Sparkles size={14} /> Refresh
                   </button>
                </div>
 
-               <div className="flex gap-3 pb-2 overflow-x-auto scrollbar-hide">
-                    {['chat', 'video', 'audio'].map((type) => {
-                       const count = type === 'chat' ? myPendingSessions.length : type === 'video' ? myPendingVideoCalls.length : myPendingAudioCalls.length;
-                       const isActive = inboxTab === type;
-                       return (
-                          <button
-                             key={type}
-                             onClick={() => setInboxTab(type)}
-                             className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                                isActive
-                                ? 'bg-slate-800 text-white shadow-lg shadow-slate-200 transform scale-105'
-                                : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'
-                             }`}
-                          >
-                             {type.charAt(0).toUpperCase() + type.slice(1)} ({count})
-                          </button>
-                       )
-                    })}
+               <div className="flex gap-2 pb-2 overflow-x-auto">
+                    <button onClick={() => setInboxTab('chat')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'chat' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}>
+                       Chat ({myPendingSessions.length})
+                    </button>
+                    <button onClick={() => setInboxTab('video')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'video' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}>
+                       Video ({myPendingVideoCalls.length})
+                    </button>
+                    <button onClick={() => setInboxTab('audio')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'audio' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}>
+                       Audio ({myPendingAudioCalls.length})
+                    </button>
                </div>
 
-               {/* Request Lists */}
-               <div className="space-y-4">
-                   {/* Handle Chat */}
-                   {inboxTab === 'chat' && (
-                      myPendingSessions.length === 0 ? (
-                         <div className="text-center py-16 bg-white/50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                               <MessageCircle size={32} />
+               {/* Chat List */}
+               {inboxTab === 'chat' && (
+                  <div className="space-y-3">
+                     {myPendingSessions.length === 0 ? (
+                        <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 border-dashed">
+                           <MessageCircle size={40} className="mx-auto text-gray-300 mb-2" />
+                           <p className="text-gray-500 font-medium">No pending chat requests</p>
+                        </div>
+                     ) : (
+                        myPendingSessions.map(session => (
+                           <div key={session.sessionId} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                              <div>
+                                 <h3 className="font-bold text-gray-900">{session.userId?.name || session.client?.name || 'Client'}</h3>
+                                 <p className="text-xs text-gray-500">Waited {Math.floor((new Date() - new Date(session.createdAt))/60000)}m ago</p>
+                              </div>
+                              <div className="flex gap-2">
+                                 <button onClick={() => rejectChat(session.sessionId)} className="p-3 bg-gray-100 text-gray-600 rounded-xl active:scale-95"><X size={18} /></button>
+                                 <button onClick={() => acceptChat(session.sessionId)} className="px-5 py-3 bg-yellow-400 text-black font-bold rounded-xl active:scale-95">Accept</button>
+                              </div>
+                           </div>
+                        ))
+                     )}
+                  </div>
+               )}
+
+               {inboxTab === 'video' && (
+                  <div className="space-y-3">
+                     {myPendingVideoCalls.length === 0 ? (
+                        <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 border-dashed">
+                           <Video size={40} className="mx-auto text-gray-300 mb-2" />
+                           <p className="text-gray-500 font-medium">No pending video requests</p>
+                        </div>
+                     ) : (
+                        myPendingVideoCalls.map(call => (
+                           <div key={call.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                              <div>
+                                 <h3 className="font-bold text-gray-900">{call.fromName || 'Client'}</h3>
+                                 <p className="text-xs text-gray-500">Incoming Video Call...</p>
+                              </div>
+                              <div className="flex gap-2">
+                                 <button onClick={() => acceptIncomingRequest(call)} className="px-5 py-3 bg-green-500 text-white font-bold rounded-xl active:scale-95 animate-pulse">Answer</button>
+                              </div>
+                           </div>
+                        ))
+                     )}
+                  </div>
+               )}
+
+              {/* Audio Call Requests Tab */}
+              {inboxTab === "audio" && (
+                <div>
+                  {pendingAudioCalls.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4">🎙️</div>
+                      <p className="text-gray-500 text-lg">No pending audio call requests</p>
+                      <p className="text-gray-400">
+                        Clients will appear here when they request audio consultations
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {pendingAudioCalls.map((call) => (
+                        <div
+                          key={call.id}
+                          className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-2xl p-6"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-bold text-gray-800">
+                                {call.fromName || "Client"}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                📞 Requesting audio call...
+                              </p>
                             </div>
-                            <p className="text-slate-400 font-medium">No pending chat requests</p>
-                         </div>
-                      ) : (
-                         myPendingSessions.map(session => (
-                            <div key={session.sessionId || session.id} className="bg-white p-5 rounded-[1.5rem] shadow-lg shadow-slate-100 border border-slate-50 flex flex-col gap-4 animate-in fade-in zoom-in duration-300">
-                               <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                     <div className="w-10 h-10 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center text-amber-600 font-bold border border-white shadow-sm">
-                                        {(session.fromName || 'C')[0]}
-                                     </div>
-                                     <div>
-                                        <h3 className="font-bold text-slate-900">{session.userId?.name || session.client?.name || session.fromName || 'Client'}</h3>
-                                        <p className="text-xs text-slate-400 font-medium">Waiting since {new Date(session.createdAt || session.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                                     </div>
-                                  </div>
-                                  <span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-lg border border-amber-100">CHAT</span>
-                               </div>
-                               <div className="flex gap-3 pt-2 border-t border-slate-50">
-                                  <button onClick={() => rejectChat(session.sessionId)} className="p-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors active:scale-95">
-                                      <X size={20} />
-                                  </button>
-                                  <button onClick={() => acceptChat(session.sessionId)} className="flex-1 py-3 bg-gradient-to-r from-slate-800 to-slate-900 text-white font-bold rounded-xl shadow-lg shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2">
-                                      Accept Request
-                                  </button>
-                               </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => acceptIncomingRequest(call)}
+                                className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 transform hover:scale-105 animate-pulse shadow-lg"
+                              >
+                                Answer Call
+                              </button>
                             </div>
-                         ))
-                      )
-                   )}
-                   {/* Video/Audio Lists would follow similar premium style */}
-                   {inboxTab === 'video' && (
-                       myPendingVideoCalls.length === 0 ? (
-                           <div className="text-center py-12 text-slate-400">No video requests</div>
-                       ) : (
-                           myPendingVideoCalls.map(call => (
-                               <div key={call.id} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100">
-                                   <div className="font-bold">{call.fromName}</div>
-                                   <button onClick={() => acceptIncomingRequest(call)} className="mt-2 w-full py-2 bg-green-500 text-white rounded-xl font-bold">Answer Video</button>
-                               </div>
-                           ))
-                       )
-                   )}
-               </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
          )}
 
 
-         {/* 4. HISTORY Tab (Premium) */}
+         {/* 4. HISTORY Tab */}
          {activeTab === 'history' && (
-            <div className="bg-white/80 backdrop-blur-md rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white p-6 min-h-[50vh]">
-               <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                  <Calendar className="text-amber-500" size={24} />
-                  History
-               </h2>
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
+               <h2 className="text-xl font-bold text-gray-900 mb-4">Chat History</h2>
                <ChatHistoryList sessions={chatSessions} />
             </div>
          )}
 
-         {/* 5. EARNINGS Tab (Premium) */}
+         {/* 5. EARNINGS Tab (Placeholder) */}
          {activeTab === 'earnings' && (
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2.5rem] shadow-2xl shadow-slate-400/50 p-10 text-center text-white relative overflow-hidden">
-               {/* Decorative Circles */}
-               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-               <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-500/20 rounded-full blur-xl -ml-5 -mb-5"></div>
-
-               <div className="bg-white/20 backdrop-blur-md w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/10">
-                  <DollarSign size={32} className="text-amber-300" />
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center">
+               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <DollarSign size={32} className="text-green-600" />
                </div>
-               <h2 className="text-lg font-medium text-slate-300 mb-2 uppercase tracking-wide">Total Earnings</h2>
-               <p className="text-5xl font-black text-white my-4 tracking-tight">₹{earnings.toLocaleString()}</p>
-               <div className="mt-8 inline-block px-4 py-2 bg-white/10 rounded-full text-xs font-semibold backdrop-blur-sm border border-white/10">
-                  Payout next Monday
-               </div>
+               <h2 className="text-2xl font-bold text-gray-900 mb-1">Total Earnings</h2>
+               <p className="text-4xl font-extrabold text-green-600 my-4">₹{earnings.toLocaleString()}</p>
+               <p className="text-gray-500 text-sm">Payout scheduled for next Monday</p>
             </div>
          )}
 
-         {/* 6. Quick Action Grid (Premium) */}
+         {/* 6. Quick Action Grid (Always on Overview) */}
          {activeTab === 'overview' && (
-            <div className="grid grid-cols-3 gap-4">
-               <button onClick={() => setShowChartModal(true)} className="bg-white p-4 rounded-[1.5rem] shadow-md shadow-slate-100 border border-white flex flex-col items-center gap-3 active:scale-95 transition-all hover:-translate-y-1 group">
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-sm">
-                     <BarChart3 size={24} />
+            <div className="grid grid-cols-3 gap-3">
+               <button onClick={() => setShowChartModal(true)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                     <BarChart3 size={20} />
                   </div>
-                  <span className="text-xs font-bold text-slate-600">Charts</span>
+                  <span className="text-xs font-semibold">Charts</span>
                </button>
-               <button onClick={() => setActiveTab('history')} className="bg-white p-4 rounded-[1.5rem] shadow-md shadow-slate-100 border border-white flex flex-col items-center gap-3 active:scale-95 transition-all hover:-translate-y-1 group">
-                  <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm">
-                     <Calendar size={24} />
+               <button onClick={() => setActiveTab('history')} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                  <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
+                     <Calendar size={20} />
                   </div>
-                  <span className="text-xs font-bold text-slate-600">History</span>
+                  <span className="text-xs font-semibold">History</span>
                </button>
-               <button onClick={() => navigate('/astrology')} className="bg-white p-4 rounded-[1.5rem] shadow-md shadow-slate-100 border border-white flex flex-col items-center gap-3 active:scale-95 transition-all hover:-translate-y-1 group">
-                  <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors shadow-sm">
-                     <Sparkles size={24} />
+               <button onClick={() => navigate('/astrology')} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                  <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center">
+                     <Sparkles size={20} />
                   </div>
-                  <span className="text-xs font-bold text-slate-600">Astrology</span>
+                  <span className="text-xs font-semibold">Astrology</span>
                </button>
             </div>
          )}
 
           {activeTab === "calls" && (
             <div>
-              <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl shadow-lg shadow-green-200">
-                  <Phone className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl">
+                  <Phone className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-800">
+                <h3 className="text-xl font-bold text-gray-800">
                   {activeCallType === "video" ? "Video" : "Audio"} Call Studio
                 </h3>
               </div>
               {activeCallType === "video" ? (
-                <div className="rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
-                    <VideoCall
-                      roomId={activeCallRoomId}
-                      peerSocketId={activeCallPeerId}
-                      isInitiator={false}
-                      onEndCall={() => {
-                         setActiveCallRoomId(null);
-                         setActiveCallType(null);
-                         setActiveCallPeerId(null);
-                      }}
-                    />
-                </div>
+                <VideoCall
+                  roomId={activeCallRoomId}
+                  peerSocketId={activeCallPeerId}
+                  isInitiator={false}
+                  onEndCall={() => {
+                     setActiveCallRoomId(null);
+                     setActiveCallType(null);
+                     setActiveCallPeerId(null);
+                  }}
+                />
               ) : (
-                <div className="flex items-center justify-center h-64 bg-slate-100 rounded-[2rem] text-slate-400 font-medium">
-                  Audio Call Interface Loading...
+                <div className="flex items-center justify-center h-full text-white">
+                  Audio Call not yet fully migrated to new system. Use Video Call.
                 </div>
               )}
             </div>
@@ -980,18 +1229,19 @@ useEffect(() => {
             <span className="text-[10px] font-medium">Requests</span>
          </button>
 
+         <div className="relative -top-5">
+            <button onClick={toggleStatus} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transform transition-transform active:scale-95 border-4 border-white ${profile.isOnline ? 'bg-yellow-400 text-black' : 'bg-gray-800 text-white'}`}>
+               <Zap size={24} className="fill-current" />
+            </button>
+         </div>
+
          <button onClick={() => setActiveTab('history')} className={getTabClass('history')}>
             <Calendar size={24} className={activeTab === 'history' ? 'fill-current' : ''} />
             <span className="text-[10px] font-medium">History</span>
          </button>
 
          <button onClick={() => setActiveTab('earnings')} className={getTabClass('earnings')}>
-            <DollarSign size={24} className={activeTab === 'earnings' ? 'fill-current' : ''} />
-            <span className="text-[10px] font-medium">Earnings</span>
-         </button>
-
-         <button onClick={() => setActiveTab('profile')} className={getTabClass('profile')}>
-            <User size={24} className={activeTab === 'profile' ? 'fill-current' : ''} />
+            <User size={24} className={activeTab === 'earnings' ? 'fill-current' : ''} />
             <span className="text-[10px] font-medium">Profile</span>
          </button>
       </nav>
