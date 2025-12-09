@@ -313,7 +313,22 @@ const Chat = () => {
              </div>
         ) : (
         <div className="max-w-4xl mx-auto h-full flex flex-col">
-          <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container">
+          <div className="flex-1 overflow-y-auto px-4 pt-6 space-y-4 message-container pb-32">
+             {/* Always show Birth Details at top if available */}
+             {sessionInfo?.client?.birthDetails && (
+                 <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 max-w-sm mx-auto text-left shadow-sm mb-6">
+                    <div className="flex items-center gap-2 mb-2 text-purple-700 font-bold border-b border-purple-200 pb-2">
+                       <Star size={16} className="fill-purple-600" />
+                       <span>Birth Details Shared</span>
+                    </div>
+                    <div className="space-y-1 text-sm text-gray-700">
+                         <div className="flex justify-between"><span className="text-gray-500">Date:</span><span className="font-medium">{sessionInfo.client.birthDetails.day}/{sessionInfo.client.birthDetails.month}/{sessionInfo.client.birthDetails.year}</span></div>
+                         <div className="flex justify-between"><span className="text-gray-500">Time:</span><span className="font-medium">{String(sessionInfo.client.birthDetails.hour).padStart(2, '0')}:{String(sessionInfo.client.birthDetails.minute).padStart(2, '0')}</span></div>
+                         <div className="mt-2 text-xs text-center text-purple-500 italic bg-white p-2 rounded-lg border border-purple-100">System: Auto-filled into Astrologer's Chart.</div>
+                    </div>
+                 </div>
+             )}
+
             {conversation.length === 0 ? (
               <div className="text-center py-12">
                 {sessionInfo?.status === "requested" ? (
@@ -351,10 +366,37 @@ const Chat = () => {
                     <h3 className="text-lg font-semibold text-gray-800 mb-2">
                       Welcome to Royal Astrology
                     </h3>
-                    <p className="text-gray-500 text-sm max-w-md mx-auto">
+                    <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">
                       Begin your royal consultation with our expert astrologer.
                       Share your birth details and questions for divine guidance.
                     </p>
+
+                    {/* Birth Details Card - Printed in Chat */}
+                    {sessionInfo?.client?.birthDetails && (
+                        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 max-w-sm mx-auto text-left shadow-sm">
+                           <div className="flex items-center gap-2 mb-2 text-purple-700 font-bold border-b border-purple-200 pb-2">
+                              <Star size={16} className="fill-purple-600" />
+                              <span>Birth Details Shared</span>
+                           </div>
+                           <div className="space-y-1 text-sm text-gray-700">
+                              <div className="flex justify-between">
+                                 <span className="text-gray-500">Date:</span>
+                                 <span className="font-medium">{sessionInfo.client.birthDetails.day}/{sessionInfo.client.birthDetails.month}/{sessionInfo.client.birthDetails.year}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                 <span className="text-gray-500">Time:</span>
+                                 <span className="font-medium">{String(sessionInfo.client.birthDetails.hour).padStart(2, '0')}:{String(sessionInfo.client.birthDetails.minute).padStart(2, '0')}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                 <span className="text-gray-500">Place:</span>
+                                 <span className="font-medium">{sessionInfo.client.birthDetails.latitude?.toFixed(2)}, {sessionInfo.client.birthDetails.longitude?.toFixed(2)}</span>
+                              </div>
+                              <div className="mt-3 text-xs text-center text-purple-500 italic bg-white p-2 rounded-lg border border-purple-100">
+                                 System: These details have been auto-filled into the astrologer's chart calculator.
+                              </div>
+                           </div>
+                        </div>
+                    )}
                   </>
                 )}
               </div>

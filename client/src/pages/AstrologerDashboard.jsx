@@ -147,7 +147,6 @@ useEffect(() => {
     // However, if we want to be double-sure or if this page is standalone:
     const onConnect = () => {
          console.log("[Astrologer] Socket connected/reconnected");
-         addToast(`Socket Connected! ID: ${newSocket.id}`, 'success'); // Show toast instead of alert
          const registrationId = user?.id || profile?.userId?._id || profile?.userId;
          if (registrationId) {
             newSocket.emit("user_online", { userId: registrationId });

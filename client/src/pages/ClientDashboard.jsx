@@ -65,6 +65,40 @@ const ClientDashboard = () => {
     }
   };
 
+  // Real-time status updates
+  useEffect(() => {
+    const handleStatusChange = (data) => {
+      console.log("Status update received:", data);
+      setAstrologers(prev => prev.map(astro => {
+        // Handle both populated object and flat ID
+        const astroUserId = astro.userId?._id || astro.userId;
+        if (astroUserId === data.userId) {
+           return { ...astro, isOnline: data.status === 'online' };
+        }
+        return astro;
+      }));
+    };
+
+    // Assuming socketManager is available globally or imported
+    // Since it's not imported in the original file, we need to import it at the top
+    // For now, I'll rely on the existing import if available, or I need to add it.
+    // Let's assume I need to adding import in a separate tool call if not present.
+    // Wait, the file snippet shows imports, socketManager was NOT imported.
+    // I will add it using multi-replace or just assume the next edit adds it.
+    // Actually, I can use window.socket if available or direct import.
+    // Best to import `socketManager` from utils.
+
+    import('../utils/socketManager').then(({ default: socketManager }) => {
+        socketManager.on('user_status_changed', handleStatusChange);
+    });
+
+    return () => {
+       import('../utils/socketManager').then(({ default: socketManager }) => {
+          socketManager.off('user_status_changed', handleStatusChange);
+       });
+    };
+  }, []);
+
   const handleAddMoney = async () => {
     const paymentAmount = parseInt(amount);
 
