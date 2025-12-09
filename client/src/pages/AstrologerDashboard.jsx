@@ -167,7 +167,90 @@ useEffect(() => {
     };
   }, [user, profile?.userId]); // Changed dependency from 'profile' to 'profile.userId' to avoid unnecessary re-runs
 
-  // ...
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/profile`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProfile(res.data);
+      // Update online status in local state for polling consistency
+      setIsOnline(res.data.isOnline);
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+      // Fallback for demo/testing if API fails
+      // setProfile({ name: user?.name || "Astrologer", isOnline: true });
+      addToast("Failed to load profile", "error");
+    }
+  };
+
+  const fetchEarnings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/earnings`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setEarnings(res.data.totalEarnings || 0);
+    } catch (err) {
+      console.error("Error fetching earnings:", err);
+    }
+  };
+
+  const fetchPendingSessions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/chat/sessions/pending`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+       // Handle both array/object formats
+      const data = Array.isArray(res.data) ? res.data : res.data.data || [];
+
+      // Separate by type
+      const video = data.filter(s => s.type === 'video');
+      const audio = data.filter(s => s.type === 'audio');
+      const chat = data.filter(s => !s.type || s.type === 'chat');
+
+      setPendingSessions(chat);
+      setPendingVideoCalls(video);
+      setPendingAudioCalls(audio);
+    } catch (err) {
+      console.error("Error fetching pending sessions:", err);
+    }
+  };
+
+  const fetchChatHistory = async () => {
+      try {
+          const token = localStorage.getItem("token");
+          const res = await axios.get(
+              `${import.meta.env.VITE_API_URL}/api/chat/history`,
+              { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setChatSessions(res.data);
+      } catch (err) {
+          console.error("Error fetching chat history", err);
+      }
+  };
+
+  // Initial Data Load
+  useEffect(() => {
+    fetchProfile();
+    fetchEarnings();
+    fetchPendingSessions();
+    fetchChatHistory();
+  }, [user]);
+
+  // Polling for requests (every 10s)
+  useEffect(() => {
+    const interval = setInterval(() => {
+        if (profile?.isOnline) {
+            fetchPendingSessions();
+        }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [profile?.isOnline]);
 
   const toggleStatus = async () => {
     // 1. Optimistic Update (Immediate Feedback)
