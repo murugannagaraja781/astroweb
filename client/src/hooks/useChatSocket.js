@@ -142,6 +142,36 @@ export const useChatSocket = (sessionId, user) => {
         };
     }, [sessionId, user?.id, user?.name]);
 
+    // Polling Fallback: Check status every 3s if stuck on 'requested'
+    useEffect(() => {
+        let interval;
+        if (sessionInfo?.status === 'requested') {
+            interval = setInterval(async () => {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (!sessionId || !token) return;
+
+                    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/session/${sessionId}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+
+                    if (data && data.status === 'active') {
+                        console.log("[Chat Polling] Session became active via API check");
+                        setSessionInfo(prev => ({ ...prev, ...data, status: 'active' }));
+                        // Ensure we join the room now that we know it's active
+                        socket.emit("join_chat", { sessionId, userId: user.id });
+                    } else if (data && data.status === 'rejected') {
+                        setSessionInfo(prev => ({ ...prev, status: 'rejected' }));
+                    }
+                } catch (err) {
+                    console.error("Polling error", err);
+                }
+            }, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [sessionInfo?.status, sessionId, user?.id]);
+
     const sendMessage = useCallback((text, type = 'text', mediaUrl = null) => {
         if (!socket.connected) {
             setError("Not connected");

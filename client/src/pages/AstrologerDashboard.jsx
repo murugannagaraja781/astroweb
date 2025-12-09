@@ -128,6 +128,12 @@ useEffect(() => {
 }, []);
 
 
+  const playNotificationSound = () => {
+    if (notificationSoundRef.current) {
+      notificationSoundRef.current.currentTime = 0;
+      notificationSoundRef.current.play().catch(e => console.log("Sound error:", e));
+    }
+  };
 
   // Initialize socket connection once
   useEffect(() => {
@@ -157,6 +163,24 @@ useEffect(() => {
 
     newSocket.on("connect", onConnect);
 
+    // Listens for incoming chat requests
+    newSocket.on("chat:request", (data) => {
+        console.log("Incoming chat request:", data);
+        setIncomingRequest({ ...data, type: 'chat' });
+        setShowIncomingPopup(true);
+        playNotificationSound();
+        fetchPendingSessions(); // Refresh list as well
+    });
+
+    // Listens for incoming video/audio call requests
+    newSocket.on("call:request", (data) => {
+         console.log("Incoming call request:", data);
+         setIncomingRequest({ ...data, type: data.type || 'video' });
+         setShowIncomingPopup(true);
+         playNotificationSound();
+         fetchPendingSessions();
+    });
+
     // If already connected, run logic immediately
     if (newSocket.connected) {
         onConnect();
@@ -164,8 +188,11 @@ useEffect(() => {
 
     return () => {
       newSocket.off("connect", onConnect);
+      newSocket.off("chat:request");
+      newSocket.off("call:request");
     };
   }, [user, profile?.userId]); // Changed dependency from 'profile' to 'profile.userId' to avoid unnecessary re-runs
+
 
   const fetchProfile = async () => {
     try {
@@ -242,22 +269,32 @@ useEffect(() => {
     fetchChatHistory();
   }, [user]);
 
-  // Polling for requests (every 10s)
+  // Polling for requests & sync status (Deep Connection)
   useEffect(() => {
     const interval = setInterval(() => {
+        // Always fetch profile to ensure status is synced (e.g. if changed on another device)
+        fetchProfile();
+
+        // Only fetch requests if we think we are online
         if (profile?.isOnline) {
             fetchPendingSessions();
         }
-    }, 10000);
+    }, 5000); // Increased frequency to 5s for better sync feel
     return () => clearInterval(interval);
   }, [profile?.isOnline]);
 
   const toggleStatus = async () => {
-    // 1. Optimistic Update (Immediate Feedback)
+    // 1. Optimistic Update (Immediate Feedback - Deep Connection)
     const oldStatus = profile.isOnline;
     const newStatus = !oldStatus;
 
+    // Instantly update UI state
     setProfile(prev => ({ ...prev, isOnline: newStatus }));
+
+    // Instantly close offline popup if going online
+    if (newStatus) {
+        setShowOfflinePopup(false);
+    }
 
     // Toggle socket event immediately for responsiveness
     if (socket) {
@@ -277,17 +314,22 @@ useEffect(() => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // 3. Sync with Server Response (Optional, usually matches)
-      setProfile(res.data);
-
-      if(showOfflinePopup && res.data.isOnline) {
-          setShowOfflinePopup(false);
+      // 3. Sync with Server Response
+      // Only update if the result is different to avoid jitter,
+      // but usually we just trust the server.
+      if (res.data.isOnline !== newStatus) {
+           setProfile(res.data);
       }
     } catch (err) {
       console.error("Error toggling status:", err);
       // 4. Revert on Error
       setProfile(prev => ({ ...prev, isOnline: oldStatus }));
       addToast("Failed to update status", "error");
+
+      // Re-show popup if we failed to go online
+      if (newStatus) {
+          setShowOfflinePopup(true);
+      }
     }
   };
 
@@ -315,8 +357,80 @@ useEffect(() => {
   };
 
 
+
+  // Timer for auto-decline popup
+  const [autoDeclineTimer, setAutoDeclineTimer] = useState(30);
+
+  useEffect(() => {
+    let timer;
+    if (showIncomingPopup && incomingRequest) {
+        setAutoDeclineTimer(30); // Reset to 30s
+        timer = setInterval(() => {
+            setAutoDeclineTimer((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    rejectIncomingRequest(incomingRequest); // Auto reject
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showIncomingPopup, incomingRequest]);
+
+  const acceptIncomingRequest = (req) => {
+      setShowIncomingPopup(false);
+      if (req.type === 'chat') {
+          acceptChat(req.sessionId);
+      } else {
+          // Video/Audio accept logic
+          // For now, let's assume video
+          // setActiveCall(req...);
+          // THIS SECTION needs to hook into the video logic,
+          // but for chat specifically:
+           socket.emit("call:accept", { toSocketId: req.fromSocketId, roomId: req.roomId });
+           setActiveCallRoomId(req.roomId);
+           setActiveCallType(req.type);
+           setActiveCallPeerId(req.fromSocketId);
+           setActiveCallPeerName(req.fromName);
+           setActiveTab('calls');
+      }
+  };
+
+  const rejectIncomingRequest = (req) => {
+      setShowIncomingPopup(false);
+
+      // Stop sound
+      if (notificationSoundRef.current) {
+         notificationSoundRef.current.pause();
+         notificationSoundRef.current.currentTime = 0;
+      }
+
+      if (req.type === 'chat') {
+          rejectChat(req.sessionId);
+      } else {
+          // For calls, we emit a reject event
+          if (socket) {
+              socket.emit("call:reject", {
+                  toSocketId: req.fromSocketId,
+                  roomId: req.roomId
+              });
+          }
+          // Also remove from pending list
+          setPendingVideoCalls(prev => prev.filter(c => c.id !== req.id));
+      }
+      setIncomingRequest(null);
+  };
+
   const acceptChat = (sessionId) => {
     if (!socket) return;
+
+    // Stop sound
+    if (notificationSoundRef.current) {
+        notificationSoundRef.current.pause();
+        notificationSoundRef.current.currentTime = 0;
+    }
 
     if (!socket.connected) {
       alert("Connection lost. Reconnecting...");
@@ -331,23 +445,28 @@ useEffect(() => {
 
   // REJECT CHAT FROM LIST
   const rejectChat = async (sessionId) => {
+    // 1. Emit Socket Event (Real-time alert for Client)
     if (socket && socket.connected) {
       socket.emit("chat:reject", { sessionId });
     }
 
+    // 2. API Call (Database Update)
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/chat/debug/all`,
+        `${import.meta.env.VITE_API_URL}/api/chat/reject`,
         { sessionId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // 3. Update Local UI
       setPendingSessions((prev) =>
         prev.filter((s) => s.sessionId !== sessionId)
       );
+      addToast("Request rejected", "info");
     } catch (err) {
       console.error("Error rejecting chat:", err);
-      // alert("Failed to reject chat. Please try again.");
+      addToast("Failed to reject chat completely", "error");
     }
   };
 
