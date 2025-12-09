@@ -3,16 +3,16 @@ import axios from 'axios';
 import { City } from 'country-state-city';
 import BirthChartDisplay from './BirthChartDisplay';
 
-const BirthChartForm = ({ onClose }) => {
+const BirthChartForm = ({ onClose, initialData }) => {
   const [formData, setFormData] = useState({
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
-    day: new Date().getDate(),
-    hour: 12,
-    minute: 0,
-    latitude: 13.0827,
-    longitude: 80.2707,
-    timezone: 5.5
+    year: initialData?.year || new Date().getFullYear(),
+    month: initialData?.month || new Date().getMonth() + 1,
+    day: initialData?.day || new Date().getDate(),
+    hour: initialData?.hour !== undefined ? initialData.hour : 12,
+    minute: initialData?.minute !== undefined ? initialData.minute : 0,
+    latitude: initialData?.latitude || 13.0827,
+    longitude: initialData?.longitude || 80.2707,
+    timezone: initialData?.timezone || 5.5
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

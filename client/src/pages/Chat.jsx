@@ -616,6 +616,7 @@ const Chat = () => {
             isOpen={showChartModal}
             onClose={() => setShowChartModal(false)}
             initialChart={selectedChart}
+            initialData={user?.role === 'astrologer' ? sessionInfo?.client?.birthDetails : null}
           />
 
           {/* Show only for astrologers/admins */}

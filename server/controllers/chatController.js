@@ -575,7 +575,7 @@ exports.getSessionInfo = async (req, res) => {
     const { sessionId } = req.params;
 
     const session = await ChatSession.findOne({ sessionId })
-      .populate('clientId', 'name')
+      .populate('clientId', 'name birthDetails')
       .populate('astrologerId', 'name');
 
     if (!session) {
@@ -614,7 +614,8 @@ exports.getSessionInfo = async (req, res) => {
       sessionId: session.sessionId,
       client: {
         id: session.clientId ? session.clientId._id : null,
-        name: session.clientId ? session.clientId.name : "Unknown User"
+        name: session.clientId ? session.clientId.name : "Unknown User",
+        birthDetails: session.clientId ? session.clientId.birthDetails : null
       },
       astrologer: {
         id: session.astrologerId ? session.astrologerId._id : null,

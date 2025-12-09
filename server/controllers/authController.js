@@ -137,3 +137,26 @@ exports.logout = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, birthDetails } = req.body;
+
+    // Build update object
+    const updateFields = {};
+    if (name) updateFields.name = name;
+    if (birthDetails) updateFields.birthDetails = birthDetails;
+
+    // Find and update user
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updateFields },
+      { new: true }
+    ).select('-password');
+
+    res.json(user);
+  } catch (err) {
+    console.error('Profile update error:', err.message);
+    res.status(500).send('Server error');
+  }
+};

@@ -8,7 +8,7 @@ exports.getPublicAstrologers = async (req, res) => {
         const astrologers = await User.find({ role: 'astrologer' }).select('name email'); // Select basic info
 
         const result = await Promise.all(astrologers.map(async (astro) => {
-            const profile = await AstrologerProfile.findOne({ userId: astro._id }).select('profileImage languages specialties ratePerMinute isOnline bio experience');
+            const profile = await AstrologerProfile.findOne({ userId: astro._id }).select('profileImage languages specialties ratePerMinute isOnline bio experience isVideoCallAvailable isAudioCallAvailable isChatAvailable');
             return {
                 _id: astro._id,
                 name: astro.name,

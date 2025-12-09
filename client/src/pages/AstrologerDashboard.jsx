@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 // import AudioCall from "./AudioCall";
 import VideoCall from "../components/VideoCall";
 import ChartModal from "../components/ChartModal";
-import AstrologyQuickMenu from "../components/AstrologyQuickMenu";
+
 import AuthContext from "../context/AuthContext";
 import socketManager from "../utils/socketManager";
 import {
@@ -661,6 +661,25 @@ useEffect(() => {
     }
   };
 
+  const updateCallAvailability = async (type, value) => {
+    try {
+      const token = localStorage.getItem("token");
+      const updates = {};
+      if (type === 'video') updates.isVideoCallAvailable = value;
+      if (type === 'audio') updates.isAudioCallAvailable = value;
+      if (type === 'chat') updates.isChatAvailable = value;
+
+      const res = await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/astrologer/profile`,
+        updates,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProfile(res.data);
+    } catch (err) {
+      console.error("Error updating call availability:", err);
+    }
+  };
+
   const checkOnlineStatus = () => {
     if (!profile?.isOnline) {
       setShowOfflinePopup(true);
@@ -824,37 +843,7 @@ useEffect(() => {
     setActiveTab(item.id);
   };
 
-  // Handle chart selection from FAB menu
-  const handleChartSelect = (chartId) => {
-    console.log('Selected chart:', chartId);
 
-    switch(chartId) {
-      case 'chat':
-        // Toggle chat panel (slide in from right)
-        if (!profile?.isOnline) {
-          setShowOfflinePopup(true);
-        } else {
-          setShowChatPanel(prev => !prev);
-        }
-        break;
-      case 'birth-chart':
-        setSelectedChart('birth-chart');
-        setShowChartModal(true);
-        break;
-      case 'porutham':
-        setSelectedChart('porutham');
-        setShowChartModal(true);
-        break;
-      case 'navamsa':
-        setSelectedChart('navamsa');
-        setShowChartModal(true);
-        break;
-      case 'behavior':
-        setSelectedChart('behavior');
-        setShowChartModal(true);
-        break;
-    }
-  };
 
   if (!profile) {
     return (
@@ -1083,7 +1072,7 @@ useEffect(() => {
 
           {/* Status Card */}
           <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/30">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div
                   className={`w-4 h-4 rounded-full ${
@@ -1093,11 +1082,6 @@ useEffect(() => {
                 <span className="font-semibold">
                   {profile.isOnline ? "Online & Available" : "Offline & Meditating"}
                 </span>
-                {profile.isOnline && (
-                  <span className="text-xs bg-green-500/30 px-2 py-1 rounded-full">
-                    🔔 Incoming notifications enabled
-                  </span>
-                )}
               </div>
               <div
                 onClick={toggleStatus}
@@ -1113,6 +1097,53 @@ useEffect(() => {
                 />
               </div>
             </div>
+
+            {/* Granular Availability Toggles */}
+            {profile.isOnline && (
+              <div className="border-t border-white/20 pt-3 flex flex-wrap gap-4 text-sm">
+                 <div className="flex items-center gap-2">
+                    <span className="text-white/90">Video:</span>
+                    <button
+                      onClick={() => updateCallAvailability('video', !profile.isVideoCallAvailable)}
+                      className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${
+                        profile.isVideoCallAvailable ? "bg-green-400" : "bg-gray-500"
+                      }`}
+                    >
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
+                         profile.isVideoCallAvailable ? "translate-x-4" : "translate-x-0"
+                      }`} />
+                    </button>
+                 </div>
+
+                 <div className="flex items-center gap-2">
+                    <span className="text-white/90">Audio:</span>
+                    <button
+                      onClick={() => updateCallAvailability('audio', !profile.isAudioCallAvailable)}
+                      className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${
+                        profile.isAudioCallAvailable ? "bg-green-400" : "bg-gray-500"
+                      }`}
+                    >
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
+                         profile.isAudioCallAvailable ? "translate-x-4" : "translate-x-0"
+                      }`} />
+                    </button>
+                 </div>
+
+                 <div className="flex items-center gap-2">
+                    <span className="text-white/90">Chat:</span>
+                    <button
+                      onClick={() => updateCallAvailability('chat', !profile.isChatAvailable)}
+                      className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${
+                        profile.isChatAvailable ? "bg-green-400" : "bg-gray-500"
+                      }`}
+                    >
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
+                         profile.isChatAvailable ? "translate-x-4" : "translate-x-0"
+                      }`} />
+                    </button>
+                 </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1817,8 +1848,7 @@ useEffect(() => {
         </>
       )}
 
-      {/* Floating Action Button Menu */}
-      <AstrologyQuickMenu onSelectChart={handleChartSelect} />
+
 
       {/* Active Video/Audio Call Overlay */}
       {activeCallRoomId && (activeCallType === 'video' || activeCallType === 'audio') && (

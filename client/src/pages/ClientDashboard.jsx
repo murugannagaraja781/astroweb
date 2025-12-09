@@ -2,11 +2,12 @@ import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Plus, TrendingUp, Clock, Star, ArrowUpRight, ArrowDownRight, Phone, MessageCircle, Video, CreditCard } from 'lucide-react';
+import { Wallet, Plus, TrendingUp, Clock, Star, ArrowUpRight, ArrowDownRight, Phone, MessageCircle, Video, CreditCard, User } from 'lucide-react';
 import OnlineAstrologers from '../components/OnlineAstrologers';
 import ChatHistoryList from '../components/ChatHistoryList';
 import CallHistoryList from '../components/CallHistoryList';
 import { useToast } from '../context/ToastContext';
+import BirthDetailsForm from '../components/BirthDetailsForm';
 
 const ClientDashboard = () => {
   const [wallet, setWallet] = useState(null);
@@ -24,6 +25,9 @@ const ClientDashboard = () => {
 
   useEffect(() => {
     if (user) {
+      if (!user.birthDetails && activeTab !== 'profile') {
+         // Optionally prompt user to complete profile
+      }
       fetchData();
     }
   }, [user]);
@@ -154,6 +158,17 @@ const ClientDashboard = () => {
             <MessageCircle className="w-5 h-5" />
             Chat History
           </button>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all whitespace-nowrap ${
+              activeTab === 'profile'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+            }`}
+          >
+            <User className="w-5 h-5" />
+            Profile
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -283,6 +298,15 @@ const ClientDashboard = () => {
             </div>
           )}
 
+          {/* Profile Tab */}
+          {activeTab === 'profile' && (
+            <div className="p-6">
+              <BirthDetailsForm user={user} onUpdate={() => {
+                   fetchData(); // Refresh user data if needed, though context handles user updates usually.
+                   window.location.reload(); // Simple reload to refresh context
+              }} />
+            </div>
+          )}
         </div>
       </div>
 

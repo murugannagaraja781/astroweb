@@ -215,10 +215,12 @@ exports.calculatePorutham = async (req, res) => {
         };
 
         // Calculate simplified compatibility
-        const simplified = await poruthamCalculator.getSimplifiedCompatibility(person1Data, person2Data);
+        const simplifiedResponse = await poruthamCalculator.getSimplifiedCompatibility(person1Data, person2Data);
+        const simplified = simplifiedResponse.data || simplifiedResponse;
 
         // Calculate detailed porutham
-        const detailed = await poruthamCalculator.calculatePortuthamWithValidation(person1Data, person2Data);
+        const detailedResponse = await poruthamCalculator.calculatePortuthamWithValidation(person1Data, person2Data);
+        const detailed = detailedResponse.data || detailedResponse;
 
         res.json({
             success: true,

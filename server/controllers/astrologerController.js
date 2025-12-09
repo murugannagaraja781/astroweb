@@ -28,7 +28,7 @@ exports.toggleStatus = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { languages, specialties, ratePerMinute, bio, experience, education } = req.body;
+    const { languages, specialties, ratePerMinute, bio, experience, education, isVideoCallAvailable, isAudioCallAvailable, isChatAvailable } = req.body;
     const profile = await AstrologerProfile.findOne({ userId: req.user.id });
 
     if (!profile) return res.status(404).json({ msg: 'Profile not found' });
@@ -39,6 +39,9 @@ exports.updateProfile = async (req, res) => {
     if (bio) profile.bio = bio;
     if (experience) profile.experience = experience;
     if (education) profile.education = education;
+    if (typeof isVideoCallAvailable !== 'undefined') profile.isVideoCallAvailable = isVideoCallAvailable;
+    if (typeof isAudioCallAvailable !== 'undefined') profile.isAudioCallAvailable = isAudioCallAvailable;
+    if (typeof isChatAvailable !== 'undefined') profile.isChatAvailable = isChatAvailable;
 
     await profile.save();
     res.json(profile);
