@@ -28,6 +28,7 @@ const PhonePeTest = lazy(() => import('./pages/PhonePeTest'));
 const HealthTest = lazy(() => import('./pages/HealthTest'));
 const AstrologerListChat = lazy(() => import('./pages/AstrologerListChat'));
 const AstrologerListCalls = lazy(() => import('./pages/AstrologerListCalls'));
+const P2PCall = lazy(() => import('./components/P2PCall'));
 
 // Loading component
 const LoadingFallback = () => (
@@ -203,6 +204,7 @@ function App() {
                   <Route path="/astrologers/calls" element={<AstrologerListCalls />} />
                   <Route path="/phonepe-test" element={<PhonePeTest />} />
                   <Route path="/health-test" element={<HealthTest />} />
+                  <Route path="/p2p-test" element={<P2PCall />} />
                 </Routes>
               </Suspense>
             </AppLayout>

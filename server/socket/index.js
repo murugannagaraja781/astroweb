@@ -17,6 +17,7 @@ module.exports = (io) => {
         chatHandler(io, socket);
         signalingHandler(io, socket);
         presenceHandler(io, socket);
+        require('./handlers/p2pCall')(io, socket);
 
         // Handle disconnect
         socket.on('disconnect', () => {

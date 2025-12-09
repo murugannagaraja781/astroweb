@@ -27,6 +27,10 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/', require('./routes/p2pUpload'));
+
 // Make socket.io instance available to controllers
 app.set("io", io);
 
