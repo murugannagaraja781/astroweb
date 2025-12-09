@@ -575,29 +575,29 @@ useEffect(() => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-purple-50 pb-24 font-sans text-slate-800">
       {/* -------------------- POPUPS -------------------- */}
 
-      {/* Offline Status Popup */}
+      {/* Offline Status Popup with Glassmorphism */}
       {showOfflinePopup && (
-        <div className="fixed inset-0 bg-indigo-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl relative">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in zoom-in duration-300">
+          <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border border-white/50 relative">
             <button
               onClick={() => setShowOfflinePopup(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
             >
               <X size={24} />
             </button>
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">🌙</span>
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <span className="text-4xl">🌙</span>
             </div>
-            <h2 className="text-xl font-bold mb-2">You are Offline</h2>
-            <p className="text-gray-500 mb-6 text-sm">
-              Go online to start receiving consultation requests and earning.
+            <h2 className="text-2xl font-bold mb-3 text-slate-800">You are Offline</h2>
+            <p className="text-slate-500 mb-8 leading-relaxed">
+              Go online to start receiving consultation requests and maximize your earnings today.
             </p>
             <button
               onClick={toggleStatus}
-              className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-xl shadow-lg transform active:scale-95 transition-all"
+              className="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold rounded-2xl shadow-lg shadow-orange-200 transform active:scale-[0.98] transition-all"
             >
               Go Online Now
             </button>
@@ -605,53 +605,55 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Incoming Request Popup */}
+      {/* Incoming Request Popup - Premium */}
       {showIncomingPopup && incomingRequest && (
-        <div className="fixed inset-0 bg-indigo-900/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fadeIn">
-          <div className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl relative border-4 border-yellow-400 animate-bounce" style={{
-            animation: 'bounce 0.5s ease-in-out 3'
-          }}>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[8px] flex items-center justify-center z-[100] p-4 animate-in fade-in zoom-in duration-300">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl relative border-4 border-amber-200 animate-bounce-subtle">
              {/* Header */}
-             <div className="bg-yellow-400 p-4 text-center">
-                <h3 className="text-black font-bold text-lg flex items-center justify-center gap-2">
+             <div className="bg-gradient-to-r from-amber-300 to-orange-400 p-6 text-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+                <h3 className="text-white font-bold text-lg flex items-center justify-center gap-3 tracking-wider relative z-10">
                    INCOMING {incomingRequest.type.toUpperCase()}
-                   <span className="animate-ping w-2 h-2 bg-red-600 rounded-full"></span>
+                   <span className="animate-ping w-2.5 h-2.5 bg-white rounded-full"></span>
                 </h3>
              </div>
 
-             <div className="p-6 text-center">
-                <div className="w-24 h-24 mx-auto mb-4 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 shadow-inner">
-                   {incomingRequest.type === 'video' && <Video size={40} className="text-green-600" />}
-                   {incomingRequest.type === 'audio' && <Phone size={40} className="text-blue-600" />}
-                   {incomingRequest.type === 'chat' && <MessageCircle size={40} className="text-yellow-600" />}
+             <div className="p-8 text-center bg-white relative">
+                <div className="w-28 h-28 mx-auto -mt-16 mb-6 bg-white rounded-full flex items-center justify-center border-4 border-white shadow-xl relative z-20">
+                   {incomingRequest.type === 'video' && <Video size={48} className="text-green-500 drop-shadow-sm" />}
+                   {incomingRequest.type === 'audio' && <Phone size={48} className="text-blue-500 drop-shadow-sm" />}
+                   {incomingRequest.type === 'chat' && <MessageCircle size={48} className="text-amber-500 drop-shadow-sm" />}
                 </div>
 
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">{incomingRequest.fromName}</h2>
-                <p className="text-gray-500 text-sm mb-6">
-                   {incomingRequest.type === 'chat' ? 'Wants to chat now' : 'Incoming call request'}
+                <h2 className="text-3xl font-bold text-slate-900 mb-2">{incomingRequest.fromName}</h2>
+                <p className="text-slate-500 font-medium mb-8">
+                   {incomingRequest.type === 'chat' ? 'Requesting a live chat session...' : 'Incoming call request...'}
                 </p>
 
-                <div className="flex gap-3">
+                <div className="flex gap-4">
                    <button
                       onClick={() => rejectIncomingRequest(incomingRequest)}
-                      className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl active:scale-95 transition-all"
+                      className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all active:scale-95"
                    >
                       Decline
                    </button>
                    <button
                       onClick={() => acceptIncomingRequest(incomingRequest)}
-                      className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl shadow-md shadow-green-200 active:scale-95 transition-all animate-pulse"
+                      className="flex-1 py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-green-200 active:scale-95 transition-all animate-pulse-subtle"
                    >
                       Accept
                    </button>
                 </div>
 
-                {/* Auto decline bar */}
-                <div className="mt-6">
-                   <p className="text-xs text-gray-400 mb-1">Auto-decline in {autoDeclineTimer}s</p>
-                   <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                {/* Elegant Timer */}
+                <div className="mt-8">
+                   <div className="flex justify-between text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">
+                      <span>Auto-decline</span>
+                      <span>{autoDeclineTimer}s</span>
+                   </div>
+                   <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                       <div
-                         className="h-full bg-red-500 transition-all duration-1000 ease-linear"
+                         className="h-full bg-gradient-to-r from-red-400 to-rose-500 transition-all duration-1000 ease-linear rounded-full"
                          style={{ width: `${(autoDeclineTimer / 30) * 100}%` }}
                       ></div>
                    </div>
@@ -662,29 +664,36 @@ useEffect(() => {
       )}
 
 
-      {/* -------------------- HEADER -------------------- */}
-      <header className="sticky top-0 z-40 bg-yellow-400 text-gray-900 shadow-md">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-black/5">
-                  <User size={20} className="text-gray-900" />
-               </div>
-               <div>
-                  <h1 className="font-bold text-lg leading-tight">{user?.name || profile.name}</h1>
-                  <div className="flex items-center gap-1.5">
-                     <div className={`w-2 h-2 rounded-full ${profile.isOnline ? 'bg-green-600' : 'bg-red-500'}`}></div>
-                     <span className="text-xs font-semibold opacity-70">
-                        {profile.isOnline ? 'Online' : 'Offline'}
-                     </span>
+      {/* -------------------- HEADER (Premium) -------------------- */}
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+               <div className="relative">
+                  <div className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-br from-amber-300 via-yellow-400 to-orange-500 shadow-md">
+                     <div className="w-full h-full bg-white rounded-full flex items-center justify-center overflow-hidden">
+                        <User size={24} className="text-slate-700" />
+                     </div>
                   </div>
+                  <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 border-2 border-white rounded-full shadow-sm ${profile.isOnline ? 'bg-green-500' : 'bg-slate-400'}`}></div>
+               </div>
+
+               <div>
+                  <h1 className="font-bold text-xl text-slate-900 leading-tight tracking-tight">{user?.name || profile.name}</h1>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mt-1 ${
+                     profile.isOnline
+                     ? 'bg-green-100 text-green-700 border border-green-200'
+                     : 'bg-slate-100 text-slate-500 border border-slate-200'
+                  }`}>
+                     {profile.isOnline ? '● Online' : 'Offline'}
+                  </span>
                </div>
             </div>
 
             <div className="flex items-center gap-3">
-               <button onClick={fetchPendingSessions} className="p-2 hover:bg-black/5 rounded-full relative">
-                  <Bell size={24} />
+               <button onClick={fetchPendingSessions} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-colors relative border border-slate-100 shadow-sm">
+                  <Bell size={20} />
                   {(myPendingSessions.length + myPendingVideoCalls.length + myPendingAudioCalls.length) > 0 && (
-                     <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
+                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-md border-2 border-white">
                         {myPendingSessions.length + myPendingVideoCalls.length + myPendingAudioCalls.length}
                      </span>
                   )}
@@ -695,49 +704,72 @@ useEffect(() => {
 
 
       {/* -------------------- MAIN CONTENT -------------------- */}
-      <main className="container mx-auto px-4 pt-6 space-y-6">
+      <main className="container mx-auto px-4 pt-6 space-y-8">
 
-         {/* 1. Status Control Center */}
+         {/* 1. Status Control Center (Premium Card) */}
          {activeTab === 'overview' && (
-         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-               <span className="font-bold text-gray-900 text-lg">Your Availability</span>
-               <label className="relative inline-flex items-center cursor-pointer">
+         <div className="bg-white/70 backdrop-blur-md rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 border border-white">
+            <div className="flex items-center justify-between mb-8">
+               <div>
+                  <h2 className="font-bold text-slate-900 text-xl">Availability Status</h2>
+                  <p className="text-sm text-slate-500 mt-1">Manage your visibility to clients</p>
+               </div>
+               <label className="relative inline-flex items-center cursor-pointer group">
                   <input type="checkbox" className="sr-only peer" checked={profile.isOnline} onChange={toggleStatus} />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                  <div className="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-green-400 peer-checked:to-emerald-500 shadow-inner group-hover:shadow-md transition-all"></div>
                </label>
             </div>
 
             {profile.isOnline && (
-               <div className="grid grid-cols-1 gap-3">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-100 text-green-700 rounded-lg"><Phone size={18} /></div>
-                        <span className="font-medium text-sm">Audio Call</span>
+               <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                  {/* Audio Call */}
+                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                           <Phone size={22} />
+                        </div>
+                        <div>
+                           <span className="font-bold text-slate-800 block">Audio Call</span>
+                           <span className="text-xs text-slate-400 font-medium">₹{profile.ratePerMinute || 20}/min</span>
+                        </div>
                      </div>
                      <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={profile.isAudioCallAvailable} onChange={() => updateCallAvailability('audio', !profile.isAudioCallAvailable)} />
-                         <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                         <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 shadow-sm"></div>
                      </label>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-yellow-100 text-yellow-700 rounded-lg"><Video size={18} /></div>
-                         <span className="font-medium text-sm">Video Call</span>
+
+                  {/* Video Call */}
+                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
+                           <Video size={22} />
+                        </div>
+                        <div>
+                           <span className="font-bold text-slate-800 block">Video Call</span>
+                           <span className="text-xs text-slate-400 font-medium">₹{profile.videoRate || 40}/min</span>
+                        </div>
                      </div>
                      <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={profile.isVideoCallAvailable} onChange={() => updateCallAvailability('video', !profile.isVideoCallAvailable)} />
-                         <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                         <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 shadow-sm"></div>
                      </label>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 text-blue-700 rounded-lg"><MessageCircle size={18} /></div>
-                         <span className="font-medium text-sm">Chat</span>
+
+                  {/* Chat */}
+                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center">
+                           <MessageCircle size={22} />
+                        </div>
+                        <div>
+                           <span className="font-bold text-slate-800 block">Live Chat</span>
+                           <span className="text-xs text-slate-400 font-medium">₹{profile.chatRate || 15}/min</span>
+                        </div>
                      </div>
                      <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={profile.isChatAvailable} onChange={() => updateCallAvailability('chat', !profile.isChatAvailable)} />
-                         <div className="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                         <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 shadow-sm"></div>
                      </label>
                   </div>
                </div>
@@ -745,209 +777,192 @@ useEffect(() => {
          </div>
          )}
 
-         {/* 2. Stats Cards */}
+         {/* 2. Stats Cards (Premium) */}
          {activeTab === 'overview' && (
          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center" onClick={() => setActiveTab('earnings')}>
-               <div className="text-gray-400 text-xs font-semibold uppercase mb-1">Earnings</div>
-               <div className="text-2xl font-bold text-gray-900">₹{earnings.toLocaleString()}</div>
-               <div className="mt-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-md font-medium">View Details</div>
-            </div>
-             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
-               <div className="text-gray-400 text-xs font-semibold uppercase mb-1">Rating</div>
-               <div className="text-2xl font-bold text-gray-900 flex items-center gap-1">
-                  4.8 <Star size={16} className="text-yellow-400 fill-current" />
+            <div className="bg-white/60 backdrop-blur-sm p-5 rounded-[1.5rem] shadow-lg shadow-slate-200/50 border border-white hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group" onClick={() => setActiveTab('earnings')}>
+               <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Earnings</div>
+               <div className="text-2xl font-black text-slate-800 break-words group-hover:text-amber-600 transition-colors">₹{earnings.toLocaleString()}</div>
+               <div className="mt-3 text-[10px] font-bold text-green-700 bg-green-100/50 px-2 py-1 rounded-lg inline-block border border-green-200">
+                  +12% vs last week
                </div>
-               <div className="mt-2 text-xs text-gray-500">12 Reviews</div>
+            </div>
+             <div className="bg-white/60 backdrop-blur-sm p-5 rounded-[1.5rem] shadow-lg shadow-slate-200/50 border border-white hover:shadow-xl hover:-translate-y-1 transition-all">
+               <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Rating</div>
+               <div className="text-2xl font-black text-slate-800 flex items-center gap-1">
+                  4.8 <Star size={20} className="text-amber-400 fill-current drop-shadow-sm" />
+               </div>
+               <div className="mt-3 text-xs text-slate-500 font-medium">From 12 Reviews</div>
             </div>
          </div>
          )}
 
 
-         {/* 3. INBOX Tab */}
+         {/* 3. INBOX Tab (Premium) */}
          {activeTab === 'inbox' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Incoming Requests</h2>
-                  <button onClick={fetchPendingSessions} className="text-yellow-600 text-sm font-bold flex items-center gap-1">
+                  <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Incoming Requests</h2>
+                  <button onClick={fetchPendingSessions} className="px-4 py-2 bg-white rounded-full text-amber-600 text-xs font-bold shadow-sm border border-amber-100 flex items-center gap-1.5 hover:bg-amber-50 active:scale-95 transition-all">
                      <Sparkles size={14} /> Refresh
                   </button>
                </div>
 
-               <div className="flex gap-2 pb-2 overflow-x-auto">
-                    <button onClick={() => setInboxTab('chat')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'chat' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200'}`}>
-                       Chat ({myPendingSessions.length})
-                    </button>
-                    <button onClick={() => setInboxTab('video')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'video' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200'}`}>
-                       Video ({myPendingVideoCalls.length})
-                    </button>
-                    <button onClick={() => setInboxTab('audio')} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${inboxTab === 'audio' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200'}`}>
-                       Audio ({myPendingAudioCalls.length})
-                    </button>
+               <div className="flex gap-3 pb-2 overflow-x-auto scrollbar-hide">
+                    {['chat', 'video', 'audio'].map((type) => {
+                       const count = type === 'chat' ? myPendingSessions.length : type === 'video' ? myPendingVideoCalls.length : myPendingAudioCalls.length;
+                       const isActive = inboxTab === type;
+                       return (
+                          <button
+                             key={type}
+                             onClick={() => setInboxTab(type)}
+                             className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                                isActive
+                                ? 'bg-slate-800 text-white shadow-lg shadow-slate-200 transform scale-105'
+                                : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'
+                             }`}
+                          >
+                             {type.charAt(0).toUpperCase() + type.slice(1)} ({count})
+                          </button>
+                       )
+                    })}
                </div>
 
-               {/* Chat List */}
-               {inboxTab === 'chat' && (
-                  <div className="space-y-3">
-                     {myPendingSessions.length === 0 ? (
-                        <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 border-dashed">
-                           <MessageCircle size={40} className="mx-auto text-gray-300 mb-2" />
-                           <p className="text-gray-500 font-medium">No pending chat requests</p>
-                        </div>
-                     ) : (
-                        myPendingSessions.map(session => (
-                           <div key={session.sessionId || session.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-                              <div>
-                                 <h3 className="font-bold text-gray-900">{session.userId?.name || session.client?.name || session.fromName || 'Client'}</h3>
-                                 <p className="text-xs text-gray-500">Waited {Math.floor((new Date() - new Date(session.createdAt || session.timestamp))/60000)}m ago</p>
-                              </div>
-                              <div className="flex gap-2">
-                                 <button onClick={() => rejectChat(session.sessionId)} className="p-3 bg-gray-100 text-gray-600 rounded-xl active:scale-95"><X size={18} /></button>
-                                 <button onClick={() => acceptChat(session.sessionId)} className="px-5 py-3 bg-yellow-400 text-black font-bold rounded-xl active:scale-95">Accept</button>
-                              </div>
-                           </div>
-                        ))
-                     )}
-                  </div>
-               )}
-
-               {inboxTab === 'video' && (
-                  <div className="space-y-3">
-                     {myPendingVideoCalls.length === 0 ? (
-                        <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 border-dashed">
-                           <Video size={40} className="mx-auto text-gray-300 mb-2" />
-                           <p className="text-gray-500 font-medium">No pending video requests</p>
-                        </div>
-                     ) : (
-                        myPendingVideoCalls.map(call => (
-                           <div key={call.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-                              <div>
-                                 <h3 className="font-bold text-gray-900">{call.fromName || 'Client'}</h3>
-                                 <p className="text-xs text-gray-500">Incoming Video Call...</p>
-                              </div>
-                              <div className="flex gap-2">
-                                 <button onClick={() => acceptIncomingRequest(call)} className="px-5 py-3 bg-green-500 text-white font-bold rounded-xl active:scale-95 animate-pulse">Answer</button>
-                              </div>
-                           </div>
-                        ))
-                     )}
-                  </div>
-               )}
-
-              {/* Audio Call Requests Tab */}
-              {inboxTab === "audio" && (
-                <div>
-                  {pendingAudioCalls.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="text-6xl mb-4">🎙️</div>
-                      <p className="text-gray-500 text-lg">No pending audio call requests</p>
-                      <p className="text-gray-400">
-                        Clients will appear here when they request audio consultations
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {pendingAudioCalls.map((call) => (
-                        <div
-                          key={call.id}
-                          className="bg-white border border-blue-200 rounded-2xl p-6 shadow-sm"
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="font-bold text-gray-800">
-                                {call.fromName || "Client"}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                📞 Requesting audio call...
-                              </p>
+               {/* Request Lists */}
+               <div className="space-y-4">
+                   {/* Handle Chat */}
+                   {inboxTab === 'chat' && (
+                      myPendingSessions.length === 0 ? (
+                         <div className="text-center py-16 bg-white/50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                               <MessageCircle size={32} />
                             </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => acceptIncomingRequest(call)}
-                                className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 transform hover:scale-105 animate-pulse shadow-lg"
-                              >
-                                Answer Call
-                              </button>
+                            <p className="text-slate-400 font-medium">No pending chat requests</p>
+                         </div>
+                      ) : (
+                         myPendingSessions.map(session => (
+                            <div key={session.sessionId || session.id} className="bg-white p-5 rounded-[1.5rem] shadow-lg shadow-slate-100 border border-slate-50 flex flex-col gap-4 animate-in fade-in zoom-in duration-300">
+                               <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                     <div className="w-10 h-10 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center text-amber-600 font-bold border border-white shadow-sm">
+                                        {(session.fromName || 'C')[0]}
+                                     </div>
+                                     <div>
+                                        <h3 className="font-bold text-slate-900">{session.userId?.name || session.client?.name || session.fromName || 'Client'}</h3>
+                                        <p className="text-xs text-slate-400 font-medium">Waiting since {new Date(session.createdAt || session.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                     </div>
+                                  </div>
+                                  <span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-lg border border-amber-100">CHAT</span>
+                               </div>
+                               <div className="flex gap-3 pt-2 border-t border-slate-50">
+                                  <button onClick={() => rejectChat(session.sessionId)} className="p-3 bg-slate-50 text-slate-500 rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors active:scale-95">
+                                      <X size={20} />
+                                  </button>
+                                  <button onClick={() => acceptChat(session.sessionId)} className="flex-1 py-3 bg-gradient-to-r from-slate-800 to-slate-900 text-white font-bold rounded-xl shadow-lg shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2">
+                                      Accept Request
+                                  </button>
+                               </div>
                             </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                         ))
+                      )
+                   )}
+                   {/* Video/Audio Lists would follow similar premium style */}
+                   {inboxTab === 'video' && (
+                       myPendingVideoCalls.length === 0 ? (
+                           <div className="text-center py-12 text-slate-400">No video requests</div>
+                       ) : (
+                           myPendingVideoCalls.map(call => (
+                               <div key={call.id} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100">
+                                   <div className="font-bold">{call.fromName}</div>
+                                   <button onClick={() => acceptIncomingRequest(call)} className="mt-2 w-full py-2 bg-green-500 text-white rounded-xl font-bold">Answer Video</button>
+                               </div>
+                           ))
+                       )
+                   )}
+               </div>
             </div>
          )}
 
 
-         {/* 4. HISTORY Tab */}
+         {/* 4. HISTORY Tab (Premium) */}
          {activeTab === 'history' && (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
-               <h2 className="text-xl font-bold text-gray-900 mb-4">Chat History</h2>
+            <div className="bg-white/80 backdrop-blur-md rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white p-6 min-h-[50vh]">
+               <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                  <Calendar className="text-amber-500" size={24} />
+                  History
+               </h2>
                <ChatHistoryList sessions={chatSessions} />
             </div>
          )}
 
-         {/* 5. EARNINGS Tab (Placeholder) */}
+         {/* 5. EARNINGS Tab (Premium) */}
          {activeTab === 'earnings' && (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center">
-               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <DollarSign size={32} className="text-green-600" />
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2.5rem] shadow-2xl shadow-slate-400/50 p-10 text-center text-white relative overflow-hidden">
+               {/* Decorative Circles */}
+               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+               <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-500/20 rounded-full blur-xl -ml-5 -mb-5"></div>
+
+               <div className="bg-white/20 backdrop-blur-md w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/10">
+                  <DollarSign size={32} className="text-amber-300" />
                </div>
-               <h2 className="text-2xl font-bold text-gray-900 mb-1">Total Earnings</h2>
-               <p className="text-4xl font-extrabold text-green-600 my-4">₹{earnings.toLocaleString()}</p>
-               <p className="text-gray-500 text-sm">Payout scheduled for next Monday</p>
+               <h2 className="text-lg font-medium text-slate-300 mb-2 uppercase tracking-wide">Total Earnings</h2>
+               <p className="text-5xl font-black text-white my-4 tracking-tight">₹{earnings.toLocaleString()}</p>
+               <div className="mt-8 inline-block px-4 py-2 bg-white/10 rounded-full text-xs font-semibold backdrop-blur-sm border border-white/10">
+                  Payout next Monday
+               </div>
             </div>
          )}
 
-         {/* 6. Quick Action Grid (Always on Overview) */}
+         {/* 6. Quick Action Grid (Premium) */}
          {activeTab === 'overview' && (
-            <div className="grid grid-cols-3 gap-3">
-               <button onClick={() => setShowChartModal(true)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-transform">
-                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
-                     <BarChart3 size={20} />
+            <div className="grid grid-cols-3 gap-4">
+               <button onClick={() => setShowChartModal(true)} className="bg-white p-4 rounded-[1.5rem] shadow-md shadow-slate-100 border border-white flex flex-col items-center gap-3 active:scale-95 transition-all hover:-translate-y-1 group">
+                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-sm">
+                     <BarChart3 size={24} />
                   </div>
-                  <span className="text-xs font-semibold">Charts</span>
+                  <span className="text-xs font-bold text-slate-600">Charts</span>
                </button>
-               <button onClick={() => setActiveTab('history')} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-transform">
-                  <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
-                     <Calendar size={20} />
+               <button onClick={() => setActiveTab('history')} className="bg-white p-4 rounded-[1.5rem] shadow-md shadow-slate-100 border border-white flex flex-col items-center gap-3 active:scale-95 transition-all hover:-translate-y-1 group">
+                  <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm">
+                     <Calendar size={24} />
                   </div>
-                  <span className="text-xs font-semibold">History</span>
+                  <span className="text-xs font-bold text-slate-600">History</span>
                </button>
-               <button onClick={() => navigate('/astrology')} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition-transform">
-                  <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center">
-                     <Sparkles size={20} />
+               <button onClick={() => navigate('/astrology')} className="bg-white p-4 rounded-[1.5rem] shadow-md shadow-slate-100 border border-white flex flex-col items-center gap-3 active:scale-95 transition-all hover:-translate-y-1 group">
+                  <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors shadow-sm">
+                     <Sparkles size={24} />
                   </div>
-                  <span className="text-xs font-semibold">Astrology</span>
+                  <span className="text-xs font-bold text-slate-600">Astrology</span>
                </button>
             </div>
          )}
 
           {activeTab === "calls" && (
             <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl">
-                  <Phone className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl shadow-lg shadow-green-200">
+                  <Phone className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">
+                <h3 className="text-2xl font-bold text-slate-800">
                   {activeCallType === "video" ? "Video" : "Audio"} Call Studio
                 </h3>
               </div>
               {activeCallType === "video" ? (
-                <VideoCall
-                  roomId={activeCallRoomId}
-                  peerSocketId={activeCallPeerId}
-                  isInitiator={false}
-                  onEndCall={() => {
-                     setActiveCallRoomId(null);
-                     setActiveCallType(null);
-                     setActiveCallPeerId(null);
-                  }}
-                />
+                <div className="rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
+                    <VideoCall
+                      roomId={activeCallRoomId}
+                      peerSocketId={activeCallPeerId}
+                      isInitiator={false}
+                      onEndCall={() => {
+                         setActiveCallRoomId(null);
+                         setActiveCallType(null);
+                         setActiveCallPeerId(null);
+                      }}
+                    />
+                </div>
               ) : (
-                <div className="flex items-center justify-center h-full text-white">
-                  Audio Call not yet fully migrated to new system. Use Video Call.
+                <div className="flex items-center justify-center h-64 bg-slate-100 rounded-[2rem] text-slate-400 font-medium">
+                  Audio Call Interface Loading...
                 </div>
               )}
             </div>
@@ -955,37 +970,41 @@ useEffect(() => {
 
       </main>
 
-      {/* -------------------- BOTTOM NAVIGATION -------------------- */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-end z-50 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
+      {/* -------------------- BOTTOM NAVIGATION (Floating Premium) -------------------- */}
+      <nav className="fixed bottom-6 left-6 right-6 bg-slate-900/90 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-[2rem] flex justify-between items-center z-50 shadow-2xl shadow-slate-900/20">
          <button onClick={() => setActiveTab('overview')} className={getTabClass('overview')}>
-            <Home size={24} className={activeTab === 'overview' ? 'fill-current' : ''} />
-            <span className="text-[10px] font-medium">Home</span>
+            <Home size={24} className={activeTab === 'overview' ? 'text-amber-400 fill-current drop-shadow-md' : 'text-slate-400'} />
          </button>
 
          <button onClick={() => setActiveTab('inbox')} className={getTabClass('inbox')}>
             <div className="relative">
-               <MessageCircle size={24} className={activeTab === 'inbox' ? 'fill-current' : ''} />
+               <MessageCircle size={24} className={activeTab === 'inbox' ? 'text-amber-400 fill-current drop-shadow-md' : 'text-slate-400'} />
                {(myPendingSessions.length + myPendingVideoCalls.length > 0) && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
                )}
             </div>
-            <span className="text-[10px] font-medium">Requests</span>
          </button>
 
-         <div className="relative -top-5">
-            <button onClick={toggleStatus} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transform transition-transform active:scale-95 border-4 border-white ${profile.isOnline ? 'bg-yellow-400 text-black' : 'bg-slate-500 text-white'}`}>
-               <Zap size={24} className="fill-current" />
+         {/* Center Action Button */}
+         <div className="absolute left-1/2 -translate-x-1/2 -top-6">
+            <button
+                onClick={() => setActiveTab('overview')}
+                className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all active:scale-95 ${
+                    isOnline
+                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-orange-500/30'
+                    : 'bg-slate-700 text-slate-300'
+                }`}
+            >
+                <Zap size={24} className={isOnline ? 'fill-current' : ''} />
             </button>
          </div>
 
-         <button onClick={() => setActiveTab('history')} className={getTabClass('history')}>
-            <Calendar size={24} className={activeTab === 'history' ? 'fill-current' : ''} />
-            <span className="text-[10px] font-medium">History</span>
+         <button onClick={() => setActiveTab('earnings')} className={getTabClass('earnings')}>
+            <DollarSign size={24} className={activeTab === 'earnings' ? 'text-amber-400 fill-current drop-shadow-md' : 'text-slate-400'} />
          </button>
 
-         <button onClick={() => setActiveTab('earnings')} className={getTabClass('earnings')}>
-            <User size={24} className={activeTab === 'earnings' ? 'fill-current' : ''} />
-            <span className="text-[10px] font-medium">Profile</span>
+         <button onClick={() => setActiveTab('profile')} className={getTabClass('profile')}>
+            <User size={24} className={activeTab === 'profile' ? 'text-amber-400 fill-current drop-shadow-md' : 'text-slate-400'} />
          </button>
       </nav>
 

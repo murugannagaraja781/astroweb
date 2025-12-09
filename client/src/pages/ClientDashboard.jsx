@@ -23,6 +23,17 @@ const ClientDashboard = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
 
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // --- Categories for Filter ---
+  const categories = [
+    { id: 'all', label: 'All', icon: 'grid' },
+    { id: 'love', label: 'Love', icon: 'heart' },
+    { id: 'career', label: 'Career', icon: 'briefcase' },
+    { id: 'finance', label: 'Finance', icon: 'dollar-sign' },
+    { id: 'health', label: 'Health', icon: 'activity' }
+  ];
+
   useEffect(() => {
     if (user) {
       if (!user.birthDetails && activeTab !== 'profile') {
@@ -131,15 +142,7 @@ const ClientDashboard = () => {
     { id: 'history', icon: Clock, label: 'History' }
   ];
 
-  // --- Categories for Filter ---
-  const categories = [
-    { id: 'all', label: 'All', icon: 'grid' },
-    { id: 'love', label: 'Love', icon: 'heart' },
-    { id: 'career', label: 'Career', icon: 'briefcase' },
-    { id: 'finance', label: 'Finance', icon: 'dollar-sign' },
-    { id: 'health', label: 'Health', icon: 'activity' }
-  ];
-  const [selectedCategory, setSelectedCategory] = useState('all');
+
 
   return (
     <div className="min-h-[100dvh] bg-gray-50 font-sans pb-24">
