@@ -127,6 +127,12 @@ describe('Chart Controller', () => {
             expect(response.body.data).toHaveProperty('lagna');
             expect(response.body.data).toHaveProperty('moonSign');
             expect(response.body.data).toHaveProperty('moonNakshatra');
+            expect(response.body.data).toHaveProperty('panchangam');
+            expect(response.body.data.panchangam).toHaveProperty('tithi');
+            expect(response.body.data.panchangam).toHaveProperty('nakshatra');
+            expect(response.body.data.panchangam).toHaveProperty('yoga');
+            expect(response.body.data.panchangam).toHaveProperty('karana');
+            expect(response.body.data.panchangam).toHaveProperty('vara');
         });
 
         it('should return 400 for invalid input', async () => {

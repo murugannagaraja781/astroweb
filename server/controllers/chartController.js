@@ -11,6 +11,7 @@ const {
     getRashiFromLongitude,
     getNakshatraFromLongitude
 } = require('vedic-astrology-api/lib/utils/common');
+const { calculatePanchangam } = require('../utils/panchangamCalculator');
 
 // Initialize generators
 const birthChartGenerator = new BirthChartGenerator();
@@ -66,6 +67,9 @@ exports.generateBirthChart = async (req, res) => {
         const moonNakshatra = getNakshatraFromLongitude(moonLongitude);
         const lagna = getRashiFromLongitude(ascendant);
 
+        // Calculate Panchangam
+        const panchangam = calculatePanchangam(date, positions.Sun.longitude, positions.Moon.longitude);
+
         res.json({
             success: true,
             data: {
@@ -77,6 +81,7 @@ exports.generateBirthChart = async (req, res) => {
                 lagna,
                 moonSign: moonRashi,
                 moonNakshatra,
+                panchangam,
                 positions,
                 birthData: {
                     date: `${year}-${month}-${day}`,

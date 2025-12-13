@@ -3,11 +3,11 @@ const router = express.Router();
 const chartController = require('../controllers/chartController');
 const authenticateToken = require('../middleware/auth');
 
-// All chart routes require authentication
-router.use(authenticateToken);
-
-// Birth Chart
+// Birth Chart (Public)
 router.post('/birth-chart', chartController.generateBirthChart);
+
+// All other chart routes require authentication
+router.use(authenticateToken);
 
 // Navamsa Chart
 router.post('/navamsa', chartController.generateNavamsaChart);
